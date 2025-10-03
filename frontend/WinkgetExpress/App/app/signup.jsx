@@ -3,11 +3,12 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'reac
 import { useRouter, Link } from 'expo-router';
 import { Colors, Spacing, Radius } from '../constants/colors';
 import LoadingOverlay from '../components/LoadingOverlay';
-import { signupUser } from '../services/auth';
+import { useAuth } from '../context/AuthContext';
 
 export default function SignupScreen() {
 	const router = useRouter();
 	const [role, setRole] = useState('User');
+	const { register } = useAuth();
 	const [form, setForm] = useState({
 		name: '', email: '', phone: '', password: '', confirmPassword: '',
 		vehicleType: '', vehicleNumber: '', licenseNumber: '',
@@ -31,8 +32,8 @@ export default function SignupScreen() {
 		}
 		setLoading(true);
 		try {
-			await signupUser(role, form);
-			if (role === 'Captain') router.replace('/captain'); else router.replace('/');
+			await register(form.name, form.email.trim(), form.password);
+			router.replace('/(tabs)');
 		} catch (e) {
 			Alert.alert('Signup failed', e.message || 'Please try again');
 		} finally { setLoading(false); }
