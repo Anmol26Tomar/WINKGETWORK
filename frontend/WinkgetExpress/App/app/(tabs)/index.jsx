@@ -1,9 +1,8 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, FlatList, SafeAreaView, StatusBar } from 'react-native';
 import { useRouter } from 'expo-router';
-import ServiceCard from '../components/ServiceCard';
-import { Colors, Spacing } from '../constants/colors';
-import { useAuth } from '../context/AuthContext';
+import ServiceCard from '../../components/ServiceCard';
+import { Colors, Spacing } from '../../constants/colors';
 
 const SERVICES = [
 	{ key: 'local', title: 'Local Parcel', route: 'local-parcel', bg: '#E8F1FA', subtitle: '≤ 20kg, 2hrs by bike' },
@@ -14,14 +13,8 @@ const SERVICES = [
 	{ key: 'packers', title: 'Packers & Movers', route: 'packers-movers', bg: '#F5EDF7', subtitle: '1-3BHK moves' },
 ];
 
-export default function HomeScreen() {
+export default function TabsHomeScreen() {
 	const router = useRouter();
-	const { user, loading } = useAuth();
-	useEffect(() => {
-		if (!loading) {
-			if (!user) router.replace('/login'); else router.replace('/(tabs)');
-		}
-	}, [loading, user]);
 	return (
 		<SafeAreaView style={styles.safe}>
 			<StatusBar barStyle="dark-content" />
@@ -51,5 +44,6 @@ const styles = StyleSheet.create({
 	row: { gap: Spacing.md, marginBottom: Spacing.md },
 	cardWrap: { flex: 1 },
 });
+
 
 

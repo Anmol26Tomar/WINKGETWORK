@@ -3,10 +3,11 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'reac
 import { useRouter, Link } from 'expo-router';
 import { Colors, Spacing, Radius } from '../constants/colors';
 import LoadingOverlay from '../components/LoadingOverlay';
-import { loginUser } from '../services/auth';
+import { useAuth } from '../context/AuthContext';
 
 export default function LoginScreen() {
 	const router = useRouter();
+	const { login } = useAuth();
 	const [role, setRole] = useState('User');
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
@@ -16,8 +17,8 @@ export default function LoginScreen() {
 		if (!email || !password) return Alert.alert('Missing fields', 'Please fill all fields');
 		setLoading(true);
 		try {
-			await loginUser(role, email.trim(), password);
-			if (role === 'Captain') router.replace('/captain'); else router.replace('/');
+			await login(email.trim(), password);
+			router.replace('/(tabs)');
 		} catch (e) {
 			Alert.alert('Login failed', e.message || 'Please try again');
 		} finally { setLoading(false); }
