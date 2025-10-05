@@ -11,7 +11,6 @@ async function connectDB() {
 		process.exit(1);
 	}
 }
-
 module.exports = { connectDB };
 
 
