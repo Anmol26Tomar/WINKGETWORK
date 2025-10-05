@@ -18,6 +18,7 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 app.use('/api/auth', require('./WinkgetExpress/routes/auth'));
 app.use('/api/parcels', require('./WinkgetExpress/routes/parcelRoutes'));
+app.use('/api/transport', require('./WinkgetExpress/routes/transportRoutes'));
 
 //captain routing
 

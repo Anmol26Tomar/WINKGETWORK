@@ -3,7 +3,9 @@ import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, RefreshContr
 import { Colors, Spacing, Radius } from '../constants/colors';
 import LoadingOverlay from './LoadingOverlay';
 import { getParcelHistory, testConnection } from '../services/parcelService';
+import { listTransportByUser } from '../services/transportService';
 import { useRouter } from 'expo-router';
+import { useAuth } from '../context/AuthContext';
 
 const STATUS_CONFIG = {
     pending: { label: 'Pending', color: Colors.warning || '#FFA500', icon: '⏳' },
@@ -18,6 +20,7 @@ export default function ParcelHistory({ serviceType = 'parcel' }) {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const router = useRouter();
+    const { user } = useAuth?.() || {};
 
     const loadHistory = async (showRefresh = false) => {
         try {
@@ -34,9 +37,26 @@ export default function ParcelHistory({ serviceType = 'parcel' }) {
                 console.error('Connection test failed:', testError);
             }
             
-            const data = await getParcelHistory(serviceType);
-            console.log('Received parcel data:', data);
-            setParcels(data.parcels || []);
+            if (serviceType === 'cab' || serviceType === 'bike' || serviceType === 'transport') {
+                const uid = user?.id || user?._id;
+                if (!uid) throw new Error('User not found');
+                const data = await listTransportByUser(uid);
+                setParcels((data.transports || []).map((t) => ({
+                    _id: t._id,
+                    pickup: t.pickup,
+                    delivery: { address: t.destination?.address },
+                    receiverName: '-',
+                    receiverContact: '-',
+                    package: { name: t.vehicleType, size: '—' },
+                    fareEstimate: t.fareEstimate,
+                    vehicleType: t.vehicleType,
+                    status: mapTransportStatus(t.status),
+                    createdAt: t.createdAt,
+                })));
+            } else {
+                const data = await getParcelHistory(serviceType);
+                setParcels(data.parcels || []);
+            }
         } catch (e) {
             console.error('Error loading parcel history:', e);
             Alert.alert('Error', e.message || 'Failed to load history');
@@ -62,6 +82,12 @@ export default function ParcelHistory({ serviceType = 'parcel' }) {
         return STATUS_CONFIG[status] || STATUS_CONFIG.pending;
     };
 
+    function mapTransportStatus(s) {
+        if (s === 'in_progress') return 'in_transit';
+        if (s === 'completed') return 'delivered';
+        return s;
+    }
+
     const formatDate = (dateString) => {
         const date = new Date(dateString);
         return date.toLocaleDateString('en-IN', {
@@ -75,6 +101,7 @@ export default function ParcelHistory({ serviceType = 'parcel' }) {
 
     const renderParcelItem = ({ item }) => {
         const statusConfig = getStatusConfig(item.status);
+        const isTransport = serviceType === 'transport' || serviceType === 'cab' || serviceType === 'bike';
         
         return (
             <TouchableOpacity 
@@ -93,12 +120,20 @@ export default function ParcelHistory({ serviceType = 'parcel' }) {
                     <Text style={styles.routeText}>
                         {item.pickup?.address?.split(',')[0]} → {item.delivery?.address?.split(',')[0]}
                     </Text>
-                    <Text style={styles.receiverText}>
-                        To: {item.receiverName} • {item.receiverContact}
-                    </Text>
-                    <Text style={styles.packageText}>
-                        {item.package?.name} ({item.package?.size}) • ₹{item.fareEstimate}
-                    </Text>
+                    {isTransport ? (
+                        <Text style={styles.packageText}>
+                            {item.vehicleType?.toUpperCase()} • ₹{item.fareEstimate}
+                        </Text>
+                    ) : (
+                        <>
+                            <Text style={styles.receiverText}>
+                                To: {item.receiverName} • {item.receiverContact}
+                            </Text>
+                            <Text style={styles.packageText}>
+                                {item.package?.name} ({item.package?.size}) • ₹{item.fareEstimate}
+                            </Text>
+                        </>
+                    )}
                 </View>
                 
                 <View style={styles.parcelFooter}>
@@ -111,10 +146,10 @@ export default function ParcelHistory({ serviceType = 'parcel' }) {
 
     const renderEmptyState = () => (
         <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>📦</Text>
-            <Text style={styles.emptyTitle}>No {serviceType} history</Text>
+            <Text style={styles.emptyIcon}>{(serviceType === 'transport' || serviceType === 'cab' || serviceType === 'bike') ? '🚗' : '📦'}</Text>
+            <Text style={styles.emptyTitle}>No {(serviceType === 'transport' || serviceType === 'cab' || serviceType === 'bike') ? 'trips' : 'parcels'} history</Text>
             <Text style={styles.emptyDescription}>
-                You haven't created any {serviceType} orders yet
+                {(serviceType === 'transport' || serviceType === 'cab' || serviceType === 'bike') ? "You haven't booked any trips yet" : "You haven't created any parcels yet"}
             </Text>
         </View>
     );

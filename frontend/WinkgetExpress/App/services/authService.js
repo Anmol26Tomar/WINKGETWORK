@@ -1,7 +1,7 @@
 import { saveToken, getToken, deleteToken } from '../utils/secureStore';
 import { Platform } from 'react-native';
 
-const DEFAULT_BASE = 'http://10.170.131.55:5000';
+const DEFAULT_BASE = 'http://10.170.131.51:5000';
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || DEFAULT_BASE;
 
 async function request(path, { method = 'GET', body, auth = false } = {}) {
