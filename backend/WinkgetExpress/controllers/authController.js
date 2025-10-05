@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
+const Agent=require('../models/Agent')
 async function register(req, res) {
 	try {
 		const { name, email, password } = req.body;
@@ -41,6 +42,103 @@ async function profile(req, res) {
 	}
 }
 
-module.exports = { register, login, profile };
 
+// captain controller
+
+// Signup
+async function CaptainSignup (req, res){
+  try {
+    const {
+      fullName,
+      email,
+      phone,
+      city,
+      vehicleType,
+      serviceType,
+      password,
+      confirmPassword,
+      vehicleSubType
+    } = req.body;
+
+    // Check required fields
+    if (!fullName || !email || !phone || !city || !vehicleType || !serviceType || !password || !confirmPassword) {
+      return res.status(400).json({ success: false, message: "All fields are required." });
+    }
+
+    // Password match check
+    if (password !== confirmPassword) {
+      return res.status(400).json({ success: false, message: "Passwords do not match." });
+    }
+
+    // Check if agent already exists
+    const existingAgent = await Agent.findOne({ email });
+    if (existingAgent) {
+      return res.status(400).json({ success: false, message: "Agent already exists." });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create agent
+    const agent = await Agent.create({
+      fullName,
+      email,
+      phone,
+      city,
+      vehicleType,
+      serviceType,
+      password: hashedPassword,
+      vehicleSubType
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Agent created successfully.",
+      data: agent,
+    });
+
+  } catch (error) {
+    console.error("Signup error:", error);
+    return res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
+// Login
+async function CaptainLogin  (req, res)  {
+  try {
+    const { email, password } = req.body;
+    console.log(email,password)
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: "Email and password required." });
+    }
+
+    const agent = await Agent.findOne({ email });
+    if (!agent) {
+      return res.status(401).json({ success: false, message: "Agent not found." });
+    }
+
+    const match = await bcrypt.compare(password, agent.password);
+    if (!match) {
+      return res.status(401).json({ success: false, message: "Incorrect password." });
+    }
+
+    // Generate JWT
+    const token = jwt.sign({ id: agent._id, email: agent.email }, process.env.JWT_SECRET || 'dev_secret', {
+      expiresIn: "2h",
+    });
+
+    // Hide password in response
+    const agentData = agent.toObject();
+    delete agentData.password;
+
+    return res.status(200).json({ success: true, token, agent: agentData });
+
+  } catch (error) {
+    console.error("Login error:", error);
+    return res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
+
+module.exports = { register, login, profile,CaptainLogin,CaptainSignup };
 

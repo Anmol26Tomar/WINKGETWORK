@@ -12,10 +12,16 @@ app.use(express.json());
 
 connectDB();
 
+const agentRoutes=require("./WinkgetExpress/routes/agent");
+
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 app.use('/api/auth', require('./WinkgetExpress/routes/auth'));
 app.use('/api/parcels', require('./WinkgetExpress/routes/parcelRoutes'));
+
+//captain routing
+
+app.use('/api/auth/agent',agentRoutes);
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 

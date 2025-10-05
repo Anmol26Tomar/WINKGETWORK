@@ -1,8 +1,9 @@
 const mongoose = require('mongoose');
 
 async function connectDB() {
-	const uri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/winkget';
-	try {
+	const uri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/winkget'
+	console.log(uri)
+	try {git 
 		await mongoose.connect(uri, { dbName: 'winkget' });
 		console.log('MongoDB connected');
 	} catch (err) {
