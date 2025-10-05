@@ -16,6 +16,7 @@ export default function RootLayout() {
 				<Stack.Screen name="index" options={{ title: 'Winkget Services' }} />
 				<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 				<Stack.Screen name="success" options={{ title: 'Success' }} />
+				<Stack.Screen name="parcel-details" options={{ title: 'Parcel Details' }} />
 				<Stack.Screen name="local-parcel" options={{ title: 'Local Parcel' }} />
 				<Stack.Screen name="truck-booking" options={{ title: 'Truck Booking' }} />
 				<Stack.Screen name="all-india-parcel" options={{ title: 'All India Parcel' }} />

@@ -3,8 +3,7 @@ import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, Alert,
 import { Colors, Spacing, Radius } from '../constants/colors';
 import LoadingOverlay from '../components/LoadingOverlay';
 import BackButton from '../components/BackButton';
-import MapView, { Marker } from 'react-native-maps';
-import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
+import MapView, { Marker, UrlTile } from 'react-native-maps';
 import { estimateFare, createParcel } from '../services/parcelService';
 import { haversineKm, estimateFareKm } from '../utils/fareCalculator';
 import { useRouter } from 'expo-router';
@@ -20,7 +19,11 @@ export default function CreateParcelScreen() {
 	const [fare, setFare] = useState(null);
 	const [loading, setLoading] = useState(false);
 
-	const region = useMemo(() => ({ latitude: 28.6139, longitude: 77.2090, latitudeDelta: 0.08, longitudeDelta: 0.08 }), []);
+const region = useMemo(() => ({ latitude: 28.6139, longitude: 77.2090, latitudeDelta: 0.08, longitudeDelta: 0.08 }), []);
+const mapTilerKey = process.env.EXPO_PUBLIC_MAPTILER_KEY;
+const tileUrl = mapTilerKey
+    ? `https://api.maptiler.com/maps/streets/512/{z}/{x}/{y}.png?key=${mapTilerKey}`
+    : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
 	const onEstimate = async () => {
 		try {
@@ -35,14 +38,24 @@ export default function CreateParcelScreen() {
 		}
 	};
 
-	const setPlace = (type, details) => {
-		const geometry = details?.geometry?.location;
-		const address = details?.formatted_address || details?.description || '';
-		if (geometry) {
-			const point = { lat: geometry.lat, lng: geometry.lng, address };
-			type === 'pickup' ? setPickup(point) : setDelivery(point);
-		}
-	};
+const setPlace = (type, point) => {
+    type === 'pickup' ? setPickup(point) : setDelivery(point);
+};
+
+async function searchAddress(query, setFn) {
+    if (!query || query.length < 3) return;
+    try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`;
+        const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+        const list = await res.json();
+        if (Array.isArray(list) && list.length) {
+            const first = list[0];
+            setFn({ lat: parseFloat(first.lat), lng: parseFloat(first.lon), address: first.display_name });
+        }
+    } catch (e) {
+        console.warn('Nominatim error', e);
+    }
+}
 
 	const onMapPress = (type, e) => {
 		const { latitude, longitude } = e.nativeEvent.coordinate;
@@ -68,7 +81,7 @@ export default function CreateParcelScreen() {
 			};
 			const created = await createParcel(payload);
 			Alert.alert('Parcel created', `ID: ${created._id}`);
-			router.push({ pathname: 'success', params: { message: 'Parcel created and forwarded to captains.' } });
+			router.push({ pathname: 'parcel-details', params: { id: created._id } });
 		} catch (e) {
 			Alert.alert('Failed', e.message || 'Please try again');
 		} finally { setLoading(false); }
@@ -83,28 +96,32 @@ export default function CreateParcelScreen() {
 				<Text style={styles.meta}>Select pickup and delivery on map or search by address.</Text>
 
 				<Text style={styles.label}>Pickup</Text>
-				<GooglePlacesAutocomplete
-					placeholder="Search pickup address"
-					onPress={(data, details) => setPlace('pickup', details)}
-					fetchDetails
-					query={{ key: 'YOUR_GOOGLE_API_KEY', language: 'en' }}
-					styles={{ textInput: styles.input }}
-				/>
-				<MapView style={styles.map} initialRegion={region} onPress={(e) => onMapPress('pickup', e)}>
-					{pickup ? <Marker coordinate={{ latitude: pickup.lat, longitude: pickup.lng }} title="Pickup" /> : null}
-				</MapView>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TextInput style={[styles.input, { flex: 1 }]} placeholder="Search pickup address"
+                        onSubmitEditing={(e) => searchAddress(e.nativeEvent.text, (p) => setPlace('pickup', p))}
+                    />
+                </View>
+                <View style={styles.mapWrap}>
+                    <MapView style={styles.map} initialRegion={region} onPress={(e) => onMapPress('pickup', e)}>
+                        <UrlTile urlTemplate={tileUrl} maximumZ={19} flipY={false} />
+						{pickup ? <Marker coordinate={{ latitude: pickup.lat, longitude: pickup.lng }} title="Pickup" /> : null}
+                    </MapView>
+                    <View pointerEvents="none" style={styles.attributionWrap}><Text style={styles.attribution}>© OpenStreetMap contributors{mapTilerKey ? ' • MapTiler' : ''}</Text></View>
+				</View>
 
 				<Text style={styles.label}>Delivery</Text>
-				<GooglePlacesAutocomplete
-					placeholder="Search delivery address"
-					onPress={(data, details) => setPlace('delivery', details)}
-					fetchDetails
-					query={{ key: 'YOUR_GOOGLE_API_KEY', language: 'en' }}
-					styles={{ textInput: styles.input }}
-				/>
-				<MapView style={styles.map} initialRegion={region} onPress={(e) => onMapPress('delivery', e)}>
-					{delivery ? <Marker coordinate={{ latitude: delivery.lat, longitude: delivery.lng }} title="Delivery" /> : null}
-				</MapView>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TextInput style={[styles.input, { flex: 1 }]} placeholder="Search delivery address"
+                        onSubmitEditing={(e) => searchAddress(e.nativeEvent.text, (p) => setPlace('delivery', p))}
+                    />
+                </View>
+                <View style={styles.mapWrap}>
+                    <MapView style={styles.map} initialRegion={region} onPress={(e) => onMapPress('delivery', e)}>
+                        <UrlTile urlTemplate={tileUrl} maximumZ={19} flipY={false} />
+						{delivery ? <Marker coordinate={{ latitude: delivery.lat, longitude: delivery.lng }} title="Delivery" /> : null}
+                    </MapView>
+                    <View pointerEvents="none" style={styles.attributionWrap}><Text style={styles.attribution}>© OpenStreetMap contributors{mapTilerKey ? ' • MapTiler' : ''}</Text></View>
+				</View>
 
 				<Text style={styles.section}>Package</Text>
 				<TextInput style={styles.input} placeholder="Name" value={pkg.name} onChangeText={(t) => setPkg((s) => ({ ...s, name: t }))} />
@@ -139,11 +156,14 @@ const styles = StyleSheet.create({
 	input: { backgroundColor: '#fff', borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.md, padding: Spacing.md, marginBottom: Spacing.md },
 	multiline: { height: 80, textAlignVertical: 'top' },
 	map: { height: 200, borderRadius: Radius.md, marginBottom: Spacing.md },
+	mapWrap: { height: 200, borderRadius: Radius.md, marginBottom: Spacing.md, overflow: 'hidden' },
 	btn: { backgroundColor: Colors.primary, padding: Spacing.lg, borderRadius: Radius.lg, alignItems: 'center', marginTop: Spacing.md },
 	btnTxt: { color: '#fff', fontWeight: '700' },
 	estimateBtn: { paddingVertical: 10, paddingHorizontal: 14, backgroundColor: Colors.background, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg },
 	estimateTxt: { color: Colors.text, fontWeight: '700' },
 	fare: { marginTop: 8, fontWeight: '800', color: Colors.text },
+    attributionWrap: { position: 'absolute', bottom: 6, right: 8, backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+    attribution: { fontSize: 10, color: '#333' },
 });
 
 

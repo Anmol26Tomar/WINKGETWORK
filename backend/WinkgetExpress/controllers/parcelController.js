@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Parcel = require('../models/Parcel');
 
 function haversineKm(a, b) {
@@ -108,6 +109,118 @@ async function confirmPayment(req, res) {
 	}
 }
 
-module.exports = { estimate, createParcel, getParcel, verifyOtp, confirmPayment };
+async function getParcelHistory(req, res) {
+	try {
+		const { serviceType = 'parcel' } = req.query;
+		
+		console.log('Fetching parcel history for user:', req.user.id, 'serviceType:', serviceType);
+		
+		// Build query filter
+		let filter = { userRef: req.user.id };
+		
+		// Only filter by vehicleType if serviceType is a specific vehicle type
+		if (serviceType !== 'parcel' && serviceType !== 'all') {
+			filter.vehicleType = serviceType;
+		}
+		
+		console.log('Query filter:', filter);
+		
+		const parcels = await Parcel.find(filter)
+		.sort({ createdAt: -1 })
+		.limit(50)
+		.select('-otp.code -otp.expiresAt'); // Exclude sensitive OTP data
+		
+		console.log('Found parcels:', parcels.length);
+		
+		return res.json({ parcels });
+	} catch (err) {
+		console.error('Error fetching parcel history:', err);
+		return res.status(500).json({ message: 'Server error' });
+	}
+}
+
+async function updateParcelStatus(req, res) {
+	try {
+		const { status } = req.body;
+		const allowedStatuses = ['pending', 'accepted', 'in_transit', 'delivered', 'cancelled'];
+		
+		if (!allowedStatuses.includes(status)) {
+			return res.status(400).json({ message: 'Invalid status' });
+		}
+		
+		const parcel = await Parcel.findById(req.params.id);
+		if (!parcel) return res.status(404).json({ message: 'Not found' });
+		if (parcel.userRef.toString() !== req.user.id) return res.status(403).json({ message: 'Forbidden' });
+		
+		parcel.status = status;
+		if (status === 'accepted') {
+			parcel.accepted = true;
+		}
+		await parcel.save();
+		
+		return res.json({ success: true, parcel });
+	} catch (err) {
+		return res.status(500).json({ message: 'Server error' });
+	}
+}
+
+async function getParcelTracking(req, res) {
+	try {
+		console.log('Fetching parcel tracking for ID:', req.params.id, 'user:', req.user.id);
+		
+		// Validate ObjectId format
+		if (!req.params.id || !mongoose.Types.ObjectId.isValid(req.params.id)) {
+			console.log('Invalid ObjectId format:', req.params.id);
+			return res.status(400).json({ message: 'Invalid parcel ID format' });
+		}
+		
+		const parcel = await Parcel.findById(req.params.id)
+			.select('-otp.code -otp.expiresAt'); // Exclude sensitive OTP data
+			
+		if (!parcel) {
+			console.log('Parcel not found for ID:', req.params.id);
+			return res.status(404).json({ message: 'Not found' });
+		}
+		
+		if (parcel.userRef.toString() !== req.user.id) {
+			console.log('Access denied for user:', req.user.id, 'parcel belongs to:', parcel.userRef.toString());
+			return res.status(403).json({ message: 'Forbidden' });
+		}
+		
+		console.log('Successfully found parcel:', parcel._id, 'status:', parcel.status);
+		return res.json(parcel);
+	} catch (err) {
+		console.error('Error fetching parcel tracking:', err);
+		return res.status(500).json({ message: 'Server error' });
+	}
+}
+
+async function testEndpoint(req, res) {
+	try {
+		console.log('Test endpoint called by user:', req.user.id);
+		const totalParcels = await Parcel.countDocuments({ userRef: req.user.id });
+		return res.json({ 
+			message: 'Test successful', 
+			userId: req.user.id, 
+			totalParcels,
+			userRole: req.user.role 
+		});
+	} catch (err) {
+		console.error('Test endpoint error:', err);
+		return res.status(500).json({ message: 'Test failed' });
+	}
+}
+
+module.exports = { 
+	estimate, 
+	createParcel, 
+	getParcel, 
+	verifyOtp, 
+	confirmPayment, 
+	getParcelHistory, 
+	updateParcelStatus, 
+	getParcelTracking,
+	testEndpoint 
+};
 
 
