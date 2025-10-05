@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Colors, Spacing, Radius } from '../../constants/colors';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useRouter } from 'expo-router';
 import ParcelHistory from '../../components/ParcelHistory';
@@ -9,6 +10,7 @@ export default function ProfileScreen() {
 	const { user, logout } = useAuth();
 	const router = useRouter();
 	const [activeTab, setActiveTab] = useState('profile');
+	const [historySubTab, setHistorySubTab] = useState('parcel');
 
 	const onLogout = async () => {
 		await logout();
@@ -30,12 +32,29 @@ export default function ProfileScreen() {
 		</View>
 	);
 
-	const renderHistoryTab = () => (
-		<View style={styles.historyContainer}>
-			<Text style={styles.heading}>Order History</Text>
-			<ParcelHistory serviceType="parcel" />
-		</View>
-	);
+
+const renderHistoryTab = () => {
+		return (
+			<View style={styles.historyContainer}>
+				<Text style={styles.heading}>Order History</Text>
+				<View style={styles.subTabs}>
+					<TouchableOpacity style={[styles.subTabBtn, historySubTab === 'parcel' && styles.subTabActive]} onPress={() => setHistorySubTab('parcel')}>
+						<Ionicons name={historySubTab === 'parcel' ? 'cube' : 'cube-outline'} size={16} color={historySubTab === 'parcel' ? '#fff' : Colors.text} />
+						<Text style={[styles.subTabTxt, historySubTab === 'parcel' && styles.subTabTxtActive]}>Parcels</Text>
+					</TouchableOpacity>
+					<TouchableOpacity style={[styles.subTabBtn, historySubTab === 'transport' && styles.subTabActive]} onPress={() => setHistorySubTab('transport')}>
+						<Ionicons name={historySubTab === 'transport' ? 'car' : 'car-outline'} size={16} color={historySubTab === 'transport' ? '#fff' : Colors.text} />
+						<Text style={[styles.subTabTxt, historySubTab === 'transport' && styles.subTabTxtActive]}>Trips</Text>
+					</TouchableOpacity>
+				</View>
+				{historySubTab === 'parcel' ? (
+					<ParcelHistory serviceType="parcel" />
+				) : (
+					<ParcelHistory serviceType="transport" />
+				)}
+			</View>
+		);
+	};
 
 	return (
 		<View style={styles.container}>
@@ -135,7 +154,28 @@ const styles = StyleSheet.create({
 	},
 	historyContainer: { 
 		flex: 1 
-	}
+	},
+	subTabs: {
+		flexDirection: 'row',
+		backgroundColor: '#fff',
+		marginBottom: Spacing.md,
+		borderRadius: Radius.lg,
+		borderWidth: 1,
+		borderColor: Colors.border,
+		overflow: 'hidden'
+	},
+	subTabBtn: {
+		flex: 1,
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'center',
+		paddingVertical: 10,
+		gap: 6,
+	},
+	subTabActive: { backgroundColor: Colors.primary },
+	subTabTxt: { color: Colors.text, fontWeight: '700' },
+    subTabTxtActive: { color: '#fff' },
 });
+
 
 
