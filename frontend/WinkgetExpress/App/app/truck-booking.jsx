@@ -1,69 +1,55 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors, Spacing, Radius } from '../constants/colors';
-import LoadingOverlay from '../components/LoadingOverlay';
 import BackButton from '../components/BackButton';
-import { bookTruck } from '../services/api';
 
-const TRUCKS = ['Mini Truck', 'Pickup Van', 'Medium Truck', 'Large Truck'];
+const VEHICLES = [
+    { key: 'mini_truck', label: 'Mini Truck', subtitle: 'Best for 1RK/Studio, boxes', emoji: '🚚' },
+    { key: 'auto', label: 'Auto', subtitle: 'Budget 3-wheeler for small moves', emoji: '🛺' },
+    { key: 'pickup_van', label: 'Pickup Van', subtitle: 'For bulky items and furniture', emoji: '🚛' },
+];
 
 export default function TruckBookingScreen() {
-	const router = useRouter();
-	const [type, setType] = useState(TRUCKS[0]);
-	const [pickup, setPickup] = useState('');
-	const [drop, setDrop] = useState('');
-	const [loading, setLoading] = useState(false);
+    const router = useRouter();
 
-	const onSubmit = async () => {
-		if (!pickup || !drop || !type) {
-			Alert.alert('Missing fields', 'Please fill all required fields.');
-			return;
-		}
-		setLoading(true);
-		try {
-			await bookTruck({ type, pickup, drop });
-			router.replace({ pathname: 'success', params: { message: 'Truck booking sent to captain app.' } });
-		} finally {
-			setLoading(false);
-		}
-	};
+    const goToForm = (vehicleType) => {
+        router.push({ pathname: 'truck-booking-form', params: { vehicleType } });
+    };
 
-	return (
-		<View style={styles.container}>
-			<LoadingOverlay visible={loading} />
-			<ScrollView contentContainerStyle={styles.content}>
-				<BackButton />
-				<Text style={styles.title}>Truck Booking</Text>
-				<View style={styles.pickerWrap}>
-					{TRUCKS.map((t) => (
-						<TouchableOpacity key={t} onPress={() => setType(t)} style={[styles.tag, type === t ? styles.tagActive : null]}>
-							<Text style={[styles.tagTxt, type === t ? styles.tagTxtActive : null]}>{t}</Text>
-						</TouchableOpacity>
-					))}
-				</View>
-				<TextInput style={styles.input} placeholder="Pickup Location" value={pickup} onChangeText={setPickup} />
-				<TextInput style={styles.input} placeholder="Drop Location" value={drop} onChangeText={setDrop} />
-				<TouchableOpacity style={styles.btn} onPress={onSubmit}>
-					<Text style={styles.btnTxt}>Submit</Text>
-				</TouchableOpacity>
-			</ScrollView>
-		</View>
-	);
+    return (
+        <View style={styles.container}>
+            <ScrollView contentContainerStyle={styles.content}>
+                <BackButton />
+                <Text style={styles.title}>Choose your vehicle</Text>
+                <Text style={styles.subtitle}>Select the right option for your load</Text>
+				<View style={styles.grid}>
+                    {VEHICLES.map((v) => (
+						<TouchableOpacity key={v.key} style={styles.card} onPress={() => goToForm(v.key)}>
+                            <Text style={styles.emoji}>{v.emoji}</Text>
+                            <Text style={styles.cardTitle}>{v.label}</Text>
+                            <Text style={styles.cardSub}>{v.subtitle}</Text>
+                            <View style={styles.cta}><Text style={styles.ctaTxt}>Book {v.label}</Text></View>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            </ScrollView>
+        </View>
+    );
 }
 
 const styles = StyleSheet.create({
 	container: { flex: 1, backgroundColor: Colors.background },
-	content: { padding: Spacing.xl },
-	title: { fontSize: 22, fontWeight: '800', color: Colors.text, marginBottom: Spacing.md },
-	pickerWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: Spacing.md },
-	tag: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 18, borderWidth: 1, borderColor: Colors.border, marginRight: 6, marginBottom: 6 },
-	tagActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-	tagTxt: { color: Colors.text },
-	tagTxtActive: { color: '#fff' },
-	input: { backgroundColor: '#fff', borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.md, padding: Spacing.md, marginBottom: Spacing.md },
-	btn: { backgroundColor: Colors.primary, padding: Spacing.lg, borderRadius: Radius.lg, alignItems: 'center' },
-	btnTxt: { color: '#fff', fontWeight: '700' },
+    content: { padding: Spacing.xl },
+    title: { fontSize: 24, fontWeight: '800', color: Colors.text, marginBottom: 4 },
+    subtitle: { color: Colors.mutedText, marginBottom: Spacing.lg },
+	grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+	card: { width: '48%', backgroundColor: '#fff', borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: Spacing.lg, marginBottom: Spacing.md },
+    emoji: { fontSize: 28, marginBottom: Spacing.sm },
+    cardTitle: { fontSize: 16, fontWeight: '700', color: Colors.text, marginBottom: 2 },
+    cardSub: { color: Colors.mutedText, fontSize: 12, marginBottom: Spacing.md },
+    cta: { backgroundColor: Colors.primary, borderRadius: Radius.md, paddingVertical: 8, alignItems: 'center' },
+    ctaTxt: { color: '#fff', fontWeight: '700' },
 });
 
 
