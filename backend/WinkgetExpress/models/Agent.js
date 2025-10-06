@@ -44,12 +44,12 @@ const agentSchema = new mongoose.Schema({
     validate: {
       validator: function (v) {
         // Fix: match enum values exactly
-        if (this.vehicleType === "bike" && v !== "intra_city") {
+        if (this.vehicleType === "bike" && v !== "intra-city") {
           return false;
         }
         return true;
       },
-      message: "Bike can only select intra_city service",
+      message: "Bike can only select intra-city service",
     },
   },
   password: {

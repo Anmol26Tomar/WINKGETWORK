@@ -1,7 +1,7 @@
 import { saveToken, getToken, deleteToken } from '../utils/secureStore';
 import { Platform } from 'react-native';
 
-const DEFAULT_BASE = 'http://10.170.131.51:5000';
+const DEFAULT_BASE = 'http://10.85.122.137:3001';
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || DEFAULT_BASE;
 
 async function request(path, { method = 'GET', body, auth = false } = {}) {
@@ -20,6 +20,7 @@ async function request(path, { method = 'GET', body, auth = false } = {}) {
 		throw new Error(data.message || 'Request failed');
 	}
 	return data;
+	
 }
 
 export async function registerUser(name, email, password) {
@@ -28,6 +29,7 @@ export async function registerUser(name, email, password) {
 
 export async function loginUser(email, password) {
 	const res = await request('/api/auth/login', { method: 'POST', body: { email, password } });
+	console.log("real res",res);
 	if (res?.token) await saveToken(res.token);
 	return res.user;
 }

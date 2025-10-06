@@ -140,5 +140,16 @@ async function CaptainLogin  (req, res)  {
 };
 
 
-module.exports = { register, login, profile,CaptainLogin,CaptainSignup };
+async function CaptainProfile(req, res) {
+	try {
+		const captain = await Agent.findById(req.captain.id).select('-password');
+		if (!captain) return res.status(404).json({ message: 'Captain not found' });
+		return res.json(captain);
+	} catch (err) {
+		return res.status(500).json({ message: 'Server error' });
+	}
+}
+
+
+module.exports = { register, login, profile,CaptainLogin,CaptainSignup,CaptainProfile };
 
