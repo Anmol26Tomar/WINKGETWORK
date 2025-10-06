@@ -2,6 +2,7 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { Colors } from '../../constants/colors';
 import { Ionicons } from '@expo/vector-icons';
+import HeaderTitle from '../../components/HeaderTitle';
 
 export default function TabsLayout() {
 	return (
@@ -9,7 +10,7 @@ export default function TabsLayout() {
 			screenOptions={{
 				headerStyle: { backgroundColor: Colors.background },
 				headerTintColor: Colors.text,
-				headerTitleStyle: { fontWeight: '800' },
+				headerTitle: ({ children }) => <HeaderTitle>{children}</HeaderTitle>,
 				tabBarActiveTintColor: Colors.primary,
 				tabBarInactiveTintColor: Colors.mutedText,
 				tabBarStyle: { backgroundColor: Colors.background, borderTopColor: Colors.border, height: 60, paddingBottom: 8 },

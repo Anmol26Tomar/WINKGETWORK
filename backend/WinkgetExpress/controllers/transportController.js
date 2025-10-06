@@ -1,4 +1,5 @@
 const Transport = require('../models/Transport');
+const { getIO } = require('../utils/socket');
 
 function haversineKm(a, b) {
 	const toRad = (d) => (d * Math.PI) / 180;
@@ -25,7 +26,7 @@ async function create(req, res) {
 		}
 		const distanceKm = haversineKm(pickup, destination);
 		const fareEstimate = estimateFareKm(distanceKm, vehicleType);
-		const doc = await Transport.create({
+    const doc = await Transport.create({
 			userRef: req.user.id,
 			pickup,
 			destination,
@@ -35,6 +36,8 @@ async function create(req, res) {
 			rideAccepted: false,
 			status: 'pending',
 		});
+		const io = getIO();
+		io?.to(`user:${req.user.id}`).emit('ride-created', { ride: doc });
 		return res.status(201).json(doc);
 	} catch (err) {
 		return res.status(500).json({ message: 'Server error' });
@@ -66,6 +69,55 @@ async function estimate(req, res) {
 	}
 }
 
-module.exports = { create, listByUser, estimate };
+async function getById(req, res) {
+	try {
+		const { id } = req.params;
+		const doc = await Transport.findById(id);
+		if (!doc) return res.status(404).json({ message: 'Not found' });
+		if (String(doc.userRef) !== String(req.user.id)) return res.status(403).json({ message: 'Forbidden' });
+		return res.json(doc);
+	} catch (err) {
+		return res.status(500).json({ message: 'Server error' });
+	}
+}
+
+async function updateStatus(req, res) {
+	try {
+		const { id } = req.params;
+		const { status, captainRef } = req.body;
+		const doc = await Transport.findById(id);
+		if (!doc) return res.status(404).json({ message: 'Not found' });
+		if (String(doc.userRef) !== String(req.user.id)) return res.status(403).json({ message: 'Forbidden' });
+		if (typeof captainRef !== 'undefined') doc.captainRef = captainRef;
+		if (status) {
+			doc.status = status;
+			doc.rideAccepted = status === 'accepted' || status === 'in_progress' || status === 'completed';
+		}
+		await doc.save();
+		const io = getIO();
+		io?.to(`ride:${id}`).emit('ride-updated', { ride: doc });
+		if (doc.rideAccepted) io?.to(`ride:${id}`).emit('ride-accepted', { ride: doc });
+		return res.json(doc);
+	} catch (err) {
+		return res.status(500).json({ message: 'Server error' });
+	}
+}
+
+async function cancelRide(req, res) {
+	try {
+		const { id } = req.params;
+		const doc = await Transport.findById(id);
+		if (!doc) return res.status(404).json({ message: 'Not found' });
+		if (String(doc.userRef) !== String(req.user.id)) return res.status(403).json({ message: 'Forbidden' });
+		await Transport.deleteOne({ _id: id });
+		const io = getIO();
+		io?.to(`ride:${id}`).emit('ride-cancelled', { rideId: id });
+		return res.json({ success: true });
+	} catch (err) {
+		return res.status(500).json({ message: 'Server error' });
+	}
+}
+
+module.exports = { create, listByUser, estimate, getById, updateStatus, cancelRide };
 
 

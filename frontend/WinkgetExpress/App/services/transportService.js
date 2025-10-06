@@ -29,4 +29,16 @@ export async function listTransportByUser(userId) {
 	return request(`/api/transport/user/${userId}`, { method: 'GET' });
 }
 
+export async function getTransportById(id) {
+    return request(`/api/transport/${id}`, { method: 'GET' });
+}
+
+export async function updateTransportStatus(id, status, captainRef) {
+    return request(`/api/transport/${id}/status`, { method: 'PUT', body: { status, captainRef } });
+}
+
+export async function cancelTransport(id) {
+    return request(`/api/transport/${id}`, { method: 'DELETE' });
+}
+
 

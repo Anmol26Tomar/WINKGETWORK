@@ -5,13 +5,20 @@ import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { Colors, Spacing, Radius } from '../constants/colors';
 import LoadingOverlay from '../components/LoadingOverlay';
+import WaitingDrawer from '../components/WaitingDrawer';
+import { getSocket } from '../services/socket';
+import { listTransportByUser, cancelTransport } from '../services/transportService';
+import { useAuth } from '../context/AuthContext';
 import BackButton from '../components/BackButton';
 import { estimateTransport, createTransport } from '../services/transportService';
 
 export default function BikeRideScreen() {
 	const router = useRouter();
 	const mapRef = useRef(null);
+	const drawerRef = useRef(null);
 	const [loading, setLoading] = useState(false);
+	const { user } = useAuth?.() || {};
+const createdRideIdRef = useRef(null);
 	const [pickup, setPickup] = useState(null);
 	const [destination, setDestination] = useState(null);
 	const [pickupSearch, setPickupSearch] = useState('');
@@ -70,9 +77,51 @@ export default function BikeRideScreen() {
 		if (!pickup || !destination) { Alert.alert('Missing fields', 'Please select pickup and destination'); return; }
 		try {
 			setLoading(true);
-			await createTransport({ pickup, destination, vehicleType: 'bike' });
-			Alert.alert('Booked', `Your bike is on the way. Est. fare ₹${fare}`);
-			router.replace('/history');
+            const created = await createTransport({ pickup, destination, vehicleType: 'bike' });
+            createdRideIdRef.current = created?._id || created?.id;
+			// open waiting drawer and listen for acceptance
+			drawerRef.current?.open();
+			const socket = getSocket();
+			if (socket) {
+				const rideId = created?._id || created?.id;
+				const subscribe = () => {
+					socket.emit('user:subscribe-ride', { rideId });
+					socket.emit('join-ride', { rideId });
+					socket.emit('subscribe-ride', { rideId });
+				};
+				if (socket.connected) subscribe(); else socket.once('connect', subscribe);
+				const handleMaybeAccepted = (payload = {}) => {
+					const pid = payload?.ride?._id || payload?.rideId || payload?._id;
+					if (pid === rideId) {
+						drawerRef.current?.close();
+						router.replace({ pathname: '/transport-tracking', params: { id: rideId } });
+						socket.off('ride-accepted', handleMaybeAccepted);
+						socket.off('transport-accepted', handleMaybeAccepted);
+						socket.off('ride:update', handleMaybeAccepted);
+						socket.off('ride-updated', handleMaybeAccepted);
+					}
+				};
+				socket.on('ride-accepted', handleMaybeAccepted);
+				socket.on('transport-accepted', handleMaybeAccepted);
+				socket.on('ride:update', handleMaybeAccepted);
+				socket.on('ride-updated', handleMaybeAccepted);
+				// polling fallback in case event name/payload differs
+				let pollTimer = setInterval(async () => {
+					try {
+						const uid = user?.id || user?._id;
+						if (!uid) return;
+						const data = await listTransportByUser(uid);
+						const found = (data.transports || []).find(t => t._id === rideId);
+						if (found && (found.rideAccepted || found.status === 'accepted' || found.status === 'in_progress')) {
+							clearInterval(pollTimer);
+							drawerRef.current?.close();
+							router.replace({ pathname: '/transport-tracking', params: { id: rideId } });
+						}
+					} catch {}
+				}, 4000);
+				// clear on unmount
+				setTimeout(() => clearInterval(pollTimer), 60000);
+			}
 		} catch (e) {
 			Alert.alert('Failed', e.message || 'Could not create booking');
 		} finally { setLoading(false); }
@@ -148,6 +197,10 @@ export default function BikeRideScreen() {
 				<TouchableOpacity style={styles.btn} onPress={onSubmit}>
 					<Text style={styles.btnTxt}>Confirm Booking</Text>
 				</TouchableOpacity>
+				<WaitingDrawer ref={drawerRef} onCancel={async () => {
+					try { if (createdRideIdRef.current) await cancelTransport(createdRideIdRef.current); } catch {}
+					drawerRef.current?.close();
+				}} />
 			</ScrollView>
 		</View>
 	);

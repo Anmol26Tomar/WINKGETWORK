@@ -5,6 +5,9 @@ const path = require('path');
 const { connectDB } = require('./WinkgetExpress/config/db');
 
 const app = express();
+const http = require('http').createServer(app);
+const { Server } = require('socket.io');
+const { setIO } = require('./WinkgetExpress/utils/socket');
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
@@ -23,7 +26,20 @@ app.use('/api/transport', require('./WinkgetExpress/routes/transportRoutes'));
 //captain routing
 
 app.use('/api/auth/agent',agentRoutes);
+app.use('/api/agents', require('./WinkgetExpress/routes/agents'));
+app.use('/api/agent', require('./WinkgetExpress/routes/agents'));
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const io = new Server(http, { cors: { origin: '*'} });
+setIO(io);
+
+io.on('connection', (socket) => {
+	socket.on('user:subscribe-ride', ({ rideId }) => {
+		socket.join(`ride:${rideId}`);
+	});
+	socket.on('join-ride', ({ rideId }) => socket.join(`ride:${rideId}`));
+	socket.on('subscribe-ride', ({ rideId }) => socket.join(`ride:${rideId}`));
+});
+
+http.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 

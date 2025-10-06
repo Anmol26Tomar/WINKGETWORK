@@ -2,6 +2,7 @@ import React from 'react';
 import { Stack } from 'expo-router';
 import { Colors } from '../constants/colors';
 import { AuthProvider } from '../context/AuthContext';
+import HeaderTitle from '../components/HeaderTitle';
 
 export default function RootLayout() {
 	return (
@@ -10,6 +11,7 @@ export default function RootLayout() {
 				headerStyle: { backgroundColor: Colors.background },
 				headerTintColor: Colors.text,
 				headerShadowVisible: false,
+				headerTitle: ({ children }) => <HeaderTitle>{children}</HeaderTitle>,
 			}}>
 				<Stack.Screen name="login" options={{ title: 'Login', headerShown: false }} />
 				<Stack.Screen name="signup" options={{ title: 'Sign up', headerShown: false }} />

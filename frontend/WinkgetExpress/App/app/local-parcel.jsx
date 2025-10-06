@@ -5,7 +5,7 @@ import * as Location from 'expo-location';
 import { Colors, Spacing, Radius } from '../constants/colors';
 import LoadingOverlay from '../components/LoadingOverlay';
 import BackButton from '../components/BackButton';
-import MapView, { Marker, UrlTile } from 'react-native-maps';
+import MapView, { Marker, Polyline, UrlTile } from 'react-native-maps';
 import { estimateFare, createParcel } from '../services/parcelService';
 import { haversineKm, estimateFareKm } from '../utils/fareCalculator';
 
@@ -26,9 +26,8 @@ export default function LocalParcelScreen() {
     const [currentLocation, setCurrentLocation] = useState(null);
     const [locationLoading, setLocationLoading] = useState(true);
     
-    // Refs for map components
-    const pickupMapRef = useRef(null);
-    const deliveryMapRef = useRef(null);
+    // Single map ref (show both pickup and delivery like truck/all-india screens)
+    const mapRef = useRef(null);
     const searchTimeoutRef = useRef(null);
     const autoSearchTimeoutRef = useRef(null);
 
@@ -83,16 +82,9 @@ export default function LocalParcelScreen() {
                 setPickup(currentLocationData);
                 setPickupSearch(address);
                 
-                // Center both maps on current location
+                // Center map on current location
                 setTimeout(() => {
-                    pickupMapRef.current?.animateToRegion({
-                        latitude: latitude,
-                        longitude: longitude,
-                        latitudeDelta: 0.01,
-                        longitudeDelta: 0.01,
-                    }, 1000);
-                    
-                    deliveryMapRef.current?.animateToRegion({
+                    mapRef.current?.animateToRegion({
                         latitude: latitude,
                         longitude: longitude,
                         latitudeDelta: 0.01,
@@ -269,7 +261,7 @@ export default function LocalParcelScreen() {
             setPickupSearch(address.address);
             setShowResults(prev => ({ ...prev, pickup: false }));
             // Smooth map animation to new location
-            pickupMapRef.current?.animateToRegion({
+            mapRef.current?.animateToRegion({
                 latitude: address.lat,
                 longitude: address.lng,
                 latitudeDelta: 0.01,
@@ -280,7 +272,7 @@ export default function LocalParcelScreen() {
             setDeliverySearch(address.address);
             setShowResults(prev => ({ ...prev, delivery: false }));
             // Smooth map animation to new location
-            deliveryMapRef.current?.animateToRegion({
+            mapRef.current?.animateToRegion({
                 latitude: address.lat,
                 longitude: address.lng,
                 latitudeDelta: 0.01,
@@ -341,8 +333,8 @@ export default function LocalParcelScreen() {
                 if (type === 'pickup') {
                     setPickup(point);
                     setPickupSearch(displayAddress);
-                    // Smooth map animation to new location
-                    pickupMapRef.current?.animateToRegion({
+            // Smooth map animation to new location
+            mapRef.current?.animateToRegion({
                         latitude: point.lat,
                         longitude: point.lng,
                         latitudeDelta: 0.01,
@@ -351,8 +343,8 @@ export default function LocalParcelScreen() {
                 } else {
                     setDelivery(point);
                     setDeliverySearch(displayAddress);
-                    // Smooth map animation to new location
-                    deliveryMapRef.current?.animateToRegion({
+            // Smooth map animation to new location
+            mapRef.current?.animateToRegion({
                         latitude: point.lat,
                         longitude: point.lng,
                         latitudeDelta: 0.01,
@@ -378,40 +370,19 @@ export default function LocalParcelScreen() {
         }
     };
 
-    const onMapPress = async (type, e) => {
+    const onMapPress = async (e) => {
         const { latitude, longitude } = e.nativeEvent.coordinate;
-        
-        // Show loading state
-        if (type === 'pickup') {
-            setPickupSearch('Getting address...');
-        } else {
-            setDeliverySearch('Getting address...');
-        }
-        
         const address = await getAddressFromCoords(latitude, longitude);
         const point = { lat: latitude, lng: longitude, address };
-        
-        if (type === 'pickup') {
+        // If pickup not set, set pickup first, else set delivery
+        if (!pickup) {
             setPickup(point);
-            setPickupSearch(address); // This will show the full address
-            // Smooth map animation to new location
-            pickupMapRef.current?.animateToRegion({
-                latitude: latitude,
-                longitude: longitude,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
-            }, 1000);
+            setPickupSearch(address);
         } else {
             setDelivery(point);
-            setDeliverySearch(address); // This will show the full address
-            // Smooth map animation to new location
-            deliveryMapRef.current?.animateToRegion({
-                latitude: latitude,
-                longitude: longitude,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
-            }, 1000);
+            setDeliverySearch(address);
         }
+        mapRef.current?.animateToRegion({ latitude, longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 }, 800);
     };
 
     const onSubmit = async () => {
@@ -478,13 +449,21 @@ export default function LocalParcelScreen() {
                 </View>
                 <View style={styles.mapWrap}>
                     <MapView 
-                        ref={pickupMapRef}
+                        ref={mapRef}
                         style={styles.map} 
                         initialRegion={region} 
-                        onPress={(e) => onMapPress('pickup', e)}
+                        onPress={onMapPress}
                     >
                         <UrlTile urlTemplate={tileUrl} maximumZ={19} flipY={false} />
                         {pickup ? <Marker coordinate={{ latitude: pickup.lat, longitude: pickup.lng }} title="Pickup" /> : null}
+                        {delivery ? <Marker coordinate={{ latitude: delivery.lat, longitude: delivery.lng }} title="Delivery" /> : null}
+                        {pickup && delivery ? (
+                            <Polyline
+                                coordinates={[{ latitude: pickup.lat, longitude: pickup.lng }, { latitude: delivery.lat, longitude: delivery.lng }]}
+                                strokeColor={Colors.primary}
+                                strokeWidth={3}
+                            />
+                        ) : null}
                     </MapView>
                     <View pointerEvents="none" style={styles.attributionWrap}><Text style={styles.attribution}>© OpenStreetMap contributors{mapTilerKey ? ' • MapTiler' : ''}</Text></View>
                 </View>
@@ -513,18 +492,6 @@ export default function LocalParcelScreen() {
                             ))}
                         </View>
                     )}
-                </View>
-                <View style={styles.mapWrap}>
-                    <MapView 
-                        ref={deliveryMapRef}
-                        style={styles.map} 
-                        initialRegion={region} 
-                        onPress={(e) => onMapPress('delivery', e)}
-                    >
-                        <UrlTile urlTemplate={tileUrl} maximumZ={19} flipY={false} />
-                        {delivery ? <Marker coordinate={{ latitude: delivery.lat, longitude: delivery.lng }} title="Delivery" /> : null}
-                    </MapView>
-                    <View pointerEvents="none" style={styles.attributionWrap}><Text style={styles.attribution}>© OpenStreetMap contributors{mapTilerKey ? ' • MapTiler' : ''}</Text></View>
                 </View>
 
                 <Text style={styles.section}>Package</Text>

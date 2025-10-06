@@ -60,3 +60,18 @@ export async function getParcelTracking(id) {
     return request(`/api/parcels/${id}/tracking`, { method: 'GET' });
 }
 
+// Attempt to fetch captain/agent profile by id
+export async function getCaptainById(id) {
+    try {
+        return await request(`/api/captains/${id}`, { method: 'GET' });
+    } catch (e) {
+        // try agents plural
+        try {
+            return await request(`/api/agents/${id}`, { method: 'GET' });
+        } catch (e2) {
+            // try agent singular
+            return await request(`/api/agent/${id}`, { method: 'GET' });
+        }
+    }
+}
+

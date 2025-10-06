@@ -55,7 +55,13 @@ export default function ParcelHistory({ serviceType = 'parcel' }) {
                 })));
             } else {
                 const data = await getParcelHistory(serviceType);
-                setParcels(data.parcels || []);
+                const normalized = (data.parcels || []).map((p) => {
+                    if (p.accepted && p.status !== 'accepted') {
+                        return { ...p, status: 'accepted' };
+                    }
+                    return p;
+                });
+                setParcels(normalized);
             }
         } catch (e) {
             console.error('Error loading parcel history:', e);
@@ -75,7 +81,11 @@ export default function ParcelHistory({ serviceType = 'parcel' }) {
     };
 
     const onParcelPress = (parcelId) => {
-        router.push({ pathname: '/parcel-tracking', params: { id: parcelId } });
+        if (serviceType === 'transport' || serviceType === 'cab' || serviceType === 'bike') {
+            router.push({ pathname: '/transport-tracking', params: { id: parcelId } });
+        } else {
+            router.push({ pathname: '/parcel-tracking', params: { id: parcelId } });
+        }
     };
 
     const getStatusConfig = (status) => {

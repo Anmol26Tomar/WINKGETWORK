@@ -1,11 +1,16 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, Radius } from '../constants/colors';
 
-export default function ServiceCard({ title, subtitle, onPress, backgroundColor }) {
+export default function ServiceCard({ title, subtitle, onPress, backgroundColor, iconName, iconColor, iconSize }) {
 	return (
 		<TouchableOpacity style={[styles.card, backgroundColor ? { backgroundColor } : null]} onPress={onPress} activeOpacity={0.9}>
-			<View style={styles.badge} />
+			{iconName ? (
+				<View style={styles.iconWrap}>
+					<Ionicons name={iconName} size={iconSize || 40} color={iconColor || Colors.primary} />
+				</View>
+			) : null}
 			<Text style={styles.title}>{title}</Text>
 			{subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
 		</TouchableOpacity>
@@ -29,13 +34,20 @@ const styles = StyleSheet.create({
 		elevation: 2,
 	},
 	badge: {
-		position: 'absolute',
-		top: Spacing.md,
-		right: Spacing.md,
 		width: 10,
 		height: 10,
 		borderRadius: 6,
 		backgroundColor: Colors.warning,
+	},
+	iconWrap: {
+		width: 48,
+		height: 48,
+		borderRadius: 14,
+		backgroundColor: 'rgba(0,0,0,0.06)',
+		alignItems: 'center',
+		justifyContent: 'center',
+		marginBottom: Spacing.md,
+		alignSelf: 'flex-start',
 	},
 	title: {
 		color: Colors.text,
