@@ -11,9 +11,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
 } from "react-native"
 import { useRouter, Link } from "expo-router"
-import { useAuth } from "../context/AuthContext" // Adjust path if needed
+import { useAuth } from "../context/AuthContext" // adjust path if needed
 
 type Role = "User" | "Captain"
 type VehicleType = "bike" | "cab" | "truck"
@@ -28,7 +29,7 @@ type VehicleSubtype =
   | "truck_full_size"
 type ServiceScope = "intra-city" | "inter-city"
 
-export default function SignupScreen() {
+export default function SignupScreen(): JSX.Element {
   const router = useRouter()
   const { register, signupCaptain } = useAuth()
 
@@ -44,11 +45,12 @@ export default function SignupScreen() {
   // Captain fields
   const [city, setCity] = useState("")
   const [vehicleType, setVehicleType] = useState<VehicleType>("bike")
-  const [vehicleSubtype, setVehicleSubtype] = useState<VehicleSubtype | undefined>("bike_standard")
+  const [vehicleSubtype, setVehicleSubtype] = useState<VehicleSubtype>("bike_standard")
   const [serviceScope, setServiceScope] = useState<ServiceScope>("intra-city")
 
   const [loading, setLoading] = useState(false)
 
+  // Dynamic vehicle subtype options
   const subtypeOptions = useMemo(() => {
     if (vehicleType === "truck") {
       return [
@@ -68,6 +70,7 @@ export default function SignupScreen() {
     return [{ value: "bike_standard" as VehicleSubtype, label: "Standard" }]
   }, [vehicleType])
 
+  // Validation
   const validate = () => {
     if (!name || !email || !phone || !password || !confirmPassword) {
       Alert.alert("Missing fields", "Please fill all required fields")
@@ -81,12 +84,16 @@ export default function SignupScreen() {
       Alert.alert("Password mismatch", "Passwords do not match")
       return false
     }
+    if (!/^\d{10,15}$/.test(phone)) {
+      Alert.alert("Invalid phone", "Please enter a valid phone number")
+      return false
+    }
     if (role === "Captain") {
       if (!city) {
         Alert.alert("Missing fields", "Please enter your city")
         return false
       }
-      if ((vehicleType === "cab" || vehicleType === "truck") && !vehicleSubtype) {
+      if (!vehicleSubtype) {
         Alert.alert("Missing fields", "Please choose a vehicle subtype")
         return false
       }
@@ -94,6 +101,7 @@ export default function SignupScreen() {
     return true
   }
 
+  // Submit handler
   const onSubmit = async () => {
     if (!validate()) return
     setLoading(true)
@@ -113,7 +121,7 @@ export default function SignupScreen() {
           city,
           confirmPassword,
         })
-        router.push({ pathname: "/verify-otp", params: { phone } })
+        router.push({ pathname: "/captain/app/verify-otp", params: { phone } })
       }
     } catch (e: any) {
       Alert.alert("Signup failed", e?.response?.data?.message || e?.message || "Please try again")
@@ -124,70 +132,164 @@ export default function SignupScreen() {
 
   return (
     <KeyboardAvoidingView
-  behavior={Platform.OS === "ios" ? "padding" : "height"}
-  style={styles.container}
->
-  <ScrollView
-    contentContainerStyle={styles.scrollContent}
-    keyboardShouldPersistTaps="handled"
-  >
-    <View style={styles.formWrapper}>
-      <Text style={styles.title}>Create account</Text>
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.container}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.formWrapper}>
+          <Text style={styles.title}>Create account</Text>
 
-      {/* Role toggle */}
-      <View style={styles.toggleRow}>
-        <RoleTag label="User" active={role === "User"} onPress={() => setRole("User")} />
-        <RoleTag label="Captain" active={role === "Captain"} onPress={() => setRole("Captain")} />
-      </View>
+          {/* Role toggle */}
+          <View style={styles.toggleRow}>
+            <RoleTag label="User" active={role === "User"} onPress={() => setRole("User")} />
+            <RoleTag label="Captain" active={role === "Captain"} onPress={() => setRole("Captain")} />
+          </View>
 
-      {/* Form fields */}
-      <TextInput style={styles.input} placeholder="Full Name" value={name} onChangeText={setName} />
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-      <TextInput style={styles.input} placeholder="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-      <TextInput style={styles.input} placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
-      <TextInput style={styles.input} placeholder="Confirm Password" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
+          {/* Common fields */}
+          <TextInput style={styles.input} placeholder="Full Name" value={name} onChangeText={setName} />
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Phone"
+            value={phone}
+            onChangeText={setPhone}
+            keyboardType="phone-pad"
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Confirm Password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+          />
 
-      {/* Captain additional fields */}
-      {role === "Captain" && (
-        <View>
-          <TextInput style={styles.input} placeholder="City" value={city} onChangeText={setCity} />
-          {/* Vehicle and service scope options ... */}
+          {/* Captain-specific fields */}
+          {role === "Captain" && (
+            <View>
+              <TextInput
+                style={styles.input}
+                placeholder="City"
+                value={city}
+                onChangeText={setCity}
+              />
+
+              <Text style={styles.sectionLabel}>Vehicle Type</Text>
+              <View style={styles.row}>
+                {(["bike", "cab", "truck"] as VehicleType[]).map((type) => (
+                  <OptionButton
+                    key={type}
+                    label={type}
+                    active={vehicleType === type}
+                    onPress={() => setVehicleType(type)}
+                  />
+                ))}
+              </View>
+
+              <Text style={styles.sectionLabel}>Vehicle Subtype</Text>
+              <View style={styles.wrapRow}>
+                {subtypeOptions.map((opt) => (
+                  <OptionButton
+                    key={opt.value}
+                    label={opt.label}
+                    active={vehicleSubtype === opt.value}
+                    onPress={() => setVehicleSubtype(opt.value)}
+                  />
+                ))}
+              </View>
+
+              <Text style={styles.sectionLabel}>Service Scope</Text>
+              <View style={styles.row}>
+                {(["intra-city", "inter-city"] as ServiceScope[]).map((scope) => (
+                  <OptionButton
+                    key={scope}
+                    label={scope}
+                    active={serviceScope === scope}
+                    onPress={() => setServiceScope(scope)}
+                  />
+                ))}
+              </View>
+            </View>
+          )}
+
+          <TouchableOpacity
+            style={[styles.btn, loading && styles.btnDisabled]}
+            disabled={loading}
+            onPress={onSubmit}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.btnTxt}>Sign up</Text>
+            )}
+          </TouchableOpacity>
+
+          <Text style={styles.switchTxt}>
+            Already have an account?{" "}
+            <Link href="/login" style={styles.link}>
+              Login
+            </Link>
+          </Text>
         </View>
-      )}
-
-      <TouchableOpacity style={[styles.btn, loading && styles.btnDisabled]} disabled={loading} onPress={onSubmit}>
-        <Text style={styles.btnTxt}>{loading ? "Please wait…" : "Sign up"}</Text>
-      </TouchableOpacity>
-
-      <Text style={styles.switchTxt}>
-        Already have an account? <Link href="/login" style={styles.link}>Login</Link>
-      </Text>
-    </View>
-  </ScrollView>
-</KeyboardAvoidingView>
-
+      </ScrollView>
+    </KeyboardAvoidingView>
   )
 }
 
-function RoleTag({ label, active, onPress }: { label: Role; active: boolean; onPress: () => void }) {
+function RoleTag({
+  label,
+  active,
+  onPress,
+}: {
+  label: Role
+  active: boolean
+  onPress: () => void
+}) {
   return (
-    <TouchableOpacity onPress={onPress} style={[styles.tag, active ? styles.tagActive : null]}>
-      <Text style={[styles.tagTxt, active ? styles.tagTxtActive : null]}>{label}</Text>
+    <TouchableOpacity
+      onPress={onPress}
+      style={[styles.tag, active ? styles.tagActive : null]}
+    >
+      <Text style={[styles.tagTxt, active ? styles.tagTxtActive : null]}>
+        {label}
+      </Text>
     </TouchableOpacity>
   )
 }
 
-function OptionButton({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+function OptionButton({
+  label,
+  active,
+  onPress,
+}: {
+  label: string
+  active: boolean
+  onPress: () => void
+}) {
   return (
-    <TouchableOpacity onPress={onPress} style={[styles.optionBtn, active ? styles.optionBtnActive : null]}>
-      <Text style={[styles.optionTxt, active ? styles.optionTxtActive : null]}>{label}</Text>
+    <TouchableOpacity
+      onPress={onPress}
+      style={[styles.optionBtn, active ? styles.optionBtnActive : null]}
+    >
+      <Text style={[styles.optionTxt, active ? styles.optionTxtActive : null]}>
+        {label}
+      </Text>
     </TouchableOpacity>
   )
 }
@@ -195,6 +297,7 @@ function OptionButton({ label, active, onPress }: { label: string; active: boole
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F9FAFB" },
   scrollContent: { flexGrow: 1, padding: 24, paddingTop: 48 },
+  formWrapper: { flex: 1 },
   title: { fontSize: 28, fontWeight: "800", color: "#111827", marginBottom: 20 },
   toggleRow: { flexDirection: "row", gap: 8, marginBottom: 12 },
   tag: {
@@ -219,8 +322,14 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 
-  sectionLabel: { fontSize: 14, fontWeight: "700", color: "#1F2937", marginTop: 8, marginBottom: 8 },
-  row: { flexDirection: "row", gap: 10 },
+  sectionLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1F2937",
+    marginTop: 10,
+    marginBottom: 6,
+  },
+  row: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
   wrapRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
 
   optionBtn: {
@@ -235,7 +344,13 @@ const styles = StyleSheet.create({
   optionTxt: { fontSize: 14, fontWeight: "600", color: "#6B7280" },
   optionTxtActive: { color: "#2563EB" },
 
-  btn: { backgroundColor: "#2563EB", padding: 14, borderRadius: 12, alignItems: "center", marginTop: 8 },
+  btn: {
+    backgroundColor: "#2563EB",
+    padding: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 12,
+  },
   btnDisabled: { opacity: 0.7 },
   btnTxt: { color: "#fff", fontWeight: "700" },
 

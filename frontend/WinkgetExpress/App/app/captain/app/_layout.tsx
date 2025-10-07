@@ -13,6 +13,7 @@ export default function RootLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="(captabs)" />
         <Stack.Screen name="+not-found" />
+        <Stack.Screen name="verify-otp" />
       </Stack>
       <StatusBar style="auto" />
     </AuthProvider>

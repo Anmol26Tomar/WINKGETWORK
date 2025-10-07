@@ -187,6 +187,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     signupCaptain: async (payload: CaptainSignupPayload) => {
       setIsLoading(true);
+      console.log(payload);
       try {
         const res = await fetch(`${BASE_URL}/api/auth/agent/captainsignup`, {
           method: 'POST',
@@ -198,6 +199,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           throw new Error(err.message || 'Captain signup failed');
         }
         const data = await res.json();
+        console.log(data);
         setCaptain(data.agent);
         setToken(data.token);
         setRole('captain');

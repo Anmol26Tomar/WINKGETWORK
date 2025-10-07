@@ -46,7 +46,8 @@ async function profile(req, res) {
 // captain controller
 
 // Signup
-async function CaptainSignup (req, res){
+// Signup
+async function CaptainSignup(req, res) {
   try {
     const {
       fullName,
@@ -57,29 +58,33 @@ async function CaptainSignup (req, res){
       serviceType,
       password,
       confirmPassword,
-      vehicleSubType
+      vehicleSubType,
     } = req.body;
 
-    // Check required fields
-    if (!fullName || !email || !phone || !city || !vehicleType || !serviceType || !password || !confirmPassword) {
+    if (
+      !fullName ||
+      !email ||
+      !phone ||
+      !city ||
+      !vehicleType ||
+      !serviceType ||
+      !password ||
+      !confirmPassword
+    ) {
       return res.status(400).json({ success: false, message: "All fields are required." });
     }
 
-    // Password match check
     if (password !== confirmPassword) {
       return res.status(400).json({ success: false, message: "Passwords do not match." });
     }
 
-    // Check if agent already exists
     const existingAgent = await Agent.findOne({ email });
     if (existingAgent) {
       return res.status(400).json({ success: false, message: "Agent already exists." });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create agent
     const agent = await Agent.create({
       fullName,
       email,
@@ -88,20 +93,30 @@ async function CaptainSignup (req, res){
       vehicleType,
       serviceType,
       password: hashedPassword,
-      vehicleSubType
+      vehicleSubType,
     });
+
+    // ✅ Generate token immediately after signup
+    const token = jwt.sign(
+      { id: agent._id, email: agent.email },
+      process.env.JWT_SECRET || "dev_secret",
+      { expiresIn: "7d" }
+    );
+
+    const agentData = agent.toObject();
+    delete agentData.password;
 
     return res.status(201).json({
       success: true,
       message: "Agent created successfully.",
-      data: agent,
+      agent: agentData,
+      token, // ✅ Send token here
     });
-
   } catch (error) {
     console.error("Signup error:", error);
     return res.status(500).json({ success: false, message: "Server error." });
   }
-};
+}
 
 // Login
 async function CaptainLogin  (req, res)  {
