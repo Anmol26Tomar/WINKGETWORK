@@ -1,4 +1,4 @@
-export const API_BASE_URL = 'http://localhost:3001/api';
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE || 'http://localhost:5000/api';
 // Toggle this to true to use built-in dummy data without a backend
 export const USE_MOCK_API = true;
 export const API_ENDPOINTS = {
