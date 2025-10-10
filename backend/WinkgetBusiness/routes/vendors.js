@@ -1,10 +1,31 @@
 const express = require('express');
+<<<<<<< HEAD
+=======
+const { verifyToken, requireRole } = require('../middleware/auth');
+const {
+  getVendors,
+  getVendorById,
+  getCurrentVendor,
+  updateCurrentVendor,
+  uploadDocument,
+  updateBusinessImages,
+  approveVendor,
+  rejectVendor,
+  createVendor,
+  updateVendor,
+  deleteVendor,
+  getVendorStats,
+  getVendorCategoryPublic
+} = require('../controllers/vendorController');
+
+>>>>>>> 6677c8d276d8c9b89d6ef012931118cf693e9498
 const router = express.Router();
 const { getVendorById, getVendorProducts, getVendorReviews } = require('../controllers/vendorController');
 const { verifyToken, requireRole } = require('../middleware/auth');
 const Vendor = require('../models/Vendor');
 
 // Public routes
+<<<<<<< HEAD
 router.get('/:vendorId', getVendorById);
 router.get('/:vendorId/products', getVendorProducts);
 router.get('/:vendorId/reviews', getVendorReviews);
@@ -70,6 +91,32 @@ router.delete('/:id', requireRole('admin'), async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+=======
+router.get('/public', getVendors); // Public vendor listing
+router.get('/public/:id', getVendorById); // Public vendor profile
+router.get('/public/:id/category', getVendorCategoryPublic); // Public: vendor category only
+
+// Vendor authenticated routes
+router.use(verifyToken);
+
+// Vendor dashboard routes
+router.get('/profile', requireRole('vendor'), getCurrentVendor);
+router.put('/profile', requireRole('vendor'), updateCurrentVendor);
+router.get('/stats', requireRole('vendor'), getVendorStats);
+
+// Vendor document and image management
+router.post('/documents', requireRole('vendor'), uploadDocument);
+router.put('/images', requireRole('vendor'), updateBusinessImages);
+
+// Admin routes
+router.get('/', requireRole('admin'), getVendors);
+router.post('/', requireRole('admin'), createVendor);
+router.get('/:id', requireRole('admin'), getVendorById);
+router.put('/:id', requireRole('admin'), updateVendor);
+router.delete('/:id', requireRole('admin'), deleteVendor);
+router.patch('/:id/approve', requireRole('admin'), approveVendor);
+router.patch('/:id/reject', requireRole('admin'), rejectVendor);
+>>>>>>> 6677c8d276d8c9b89d6ef012931118cf693e9498
 
 module.exports = router;
 

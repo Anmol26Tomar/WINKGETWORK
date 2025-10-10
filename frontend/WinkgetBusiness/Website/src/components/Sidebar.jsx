@@ -11,6 +11,8 @@ export default function Sidebar() {
   const { state } = useApp()
   const { vendor } = state.auth
 
+  const dashboardPath = vendor?.role === 'admin' ? '/admin/dashboard' : '/vendor/dashboard'
+
   return (
     <aside className="hidden md:flex md:flex-col w-64 border-r bg-white">
       <div className="p-4 border-b">
@@ -25,7 +27,7 @@ export default function Sidebar() {
         </div>
       </div>
       <nav className="flex-1 p-3 space-y-1">
-        <NavLink to="/dashboard" className={navLinkClasses}>Dashboard</NavLink>
+        <NavLink to={dashboardPath} className={navLinkClasses}>Dashboard</NavLink>
         <NavLink to="/products" className={navLinkClasses}>Products</NavLink>
         <NavLink to="/inventory" className={navLinkClasses}>Inventory</NavLink>
         <NavLink to="/orders" className={navLinkClasses}>Orders</NavLink>
