@@ -1,18 +1,40 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Agent = require('../models/Agent');
 
-const Agent=require('../models/Agent')
 async function register(req, res) {
 	try {
-		const { name, email, password } = req.body;
-		if (!name || !email || !password) return res.status(400).json({ message: 'Missing fields' });
+		const { name, email, password, phone, address } = req.body;
+		if (!name || !email || !password) return res.status(400).json({ message: 'Missing required fields' });
+		
 		const existing = await User.findOne({ email });
 		if (existing) return res.status(409).json({ message: 'Email already registered' });
-		const hashed = await bcrypt.hash(password, 10);
-		const user = await User.create({ name, email, password: hashed, role: 'user' });
-		return res.status(201).json({ id: user._id, name: user.name, email: user.email, role: user.role });
+		
+		const hashed = await bcrypt.hash(password, 12);
+		const user = await User.create({ 
+			name, 
+			email, 
+			password: hashed, 
+			phone,
+			address,
+			role: 'user',
+			lastLogin: new Date(),
+			loginCount: 1
+		});
+
+		// Generate JWT token
+		const token = jwt.sign(
+			{ 
+				id: user._id, 
+				email: user.email, 
+				role: user.role 
+			}, 
+			process.env.JWT_SECRET || 'dev_secret', 
+			{ expiresIn: '7d' }
+		);
 	} catch (err) {
+		console.error('Registration error:', err);
 		return res.status(500).json({ message: 'Server error' });
 	}
 }
@@ -20,29 +42,103 @@ async function register(req, res) {
 async function login(req, res) {
 	try {
 		const { email, password } = req.body;
-		if (!email || !password) return res.status(400).json({ message: 'Missing fields' });
-		const user = await User.findOne({ email });
+		console.log(email);
+		console.log(password);
+		
+		if (!email || !password) return res.status(400).json({ message: 'Missing credentials' });
+		
+		const user = await User.findOne({ email});
+		console.log(user);
+		
 		if (!user) return res.status(401).json({ message: 'Invalid credentials' });
 		const ok = await bcrypt.compare(password, user.password);
 		if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
-		const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET || 'dev_secret', { expiresIn: '7d' });
-		return res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
+
+		// Update login tracking
+		await User.findByIdAndUpdate(user._id, {
+			lastLogin: new Date(),
+			$inc: { loginCount: 1 }
+		});
+
+		// Generate JWT token
+		const token = jwt.sign(
+			{ 
+				id: user._id, 
+				email: user.email, 
+				role: user.role 
+			}, 
+			process.env.JWT_SECRET || 'dev_secret', 
+			{ expiresIn: '7d' }
+		);
+
+		return res.json({ 
+			success: true,
+			token, 
+			user: { 
+				id: user._id, 
+				name: user.name, 
+				email: user.email, 
+				role: user.role,
+				phone: user.phone,
+				profileImage: user.profileImage,
+				businessAccess: user.businessAccess,
+				preferences: user.preferences
+			},
+		});
 	} catch (err) {
+		console.error('Login error:', err);
 		return res.status(500).json({ message: 'Server error' });
 	}
 }
 
 async function profile(req, res) {
 	try {
-		const user = await User.findById(req.user.id).select('-password');
+		const user = await User.findById(req.user.id)
+			.select('-password')
+			.populate('businessAccess.businessId', 'name slug category logo primaryColor');
+		
 		if (!user) return res.status(404).json({ message: 'User not found' });
-		return res.json(user);
+		
+		return res.json({ 
+			success: true,
+			user 
+		});
 	} catch (err) {
+		console.error('Profile error:', err);
 		return res.status(500).json({ message: 'Server error' });
 	}
 }
 
+// Update user profile
+async function updateProfile(req, res) {
+	try {
+		const { name, phone, address, preferences } = req.body;
+		const userId = req.user.id;
 
+		const updateData = {};
+		if (name) updateData.name = name;
+		if (phone) updateData.phone = phone;
+		if (address) updateData.address = address;
+		if (preferences) updateData.preferences = { ...req.user.preferences, ...preferences };
+
+		const user = await User.findByIdAndUpdate(
+			userId, 
+			updateData, 
+			{ new: true, select: '-password' }
+		);
+
+		if (!user) return res.status(404).json({ message: 'User not found' });
+
+		return res.json({ 
+			success: true,
+			message: 'Profile updated successfully',
+			user 
+		});
+	} catch (err) {
+		console.error('Update profile error:', err);
+		return res.status(500).json({ message: 'Server error' });
+	}
+}
 // captain controller
 
 // Signup
@@ -166,5 +262,13 @@ async function CaptainProfile(req, res) {
 }
 
 
-module.exports = { register, login, profile,CaptainLogin,CaptainSignup,CaptainProfile };
+module.exports = { 
+	register, 
+	login, 
+	profile, 
+	updateProfile,
+	CaptainLogin,
+	CaptainSignup,
+	CaptainProfile 
+};
 

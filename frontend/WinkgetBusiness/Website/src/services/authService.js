@@ -8,13 +8,15 @@ async function request(path, options = {}) {
   // Fallback to alternate common dev port if first fails
   try {
     const u = new URL(API_BASE_URL)
-    const altPort = u.port === '5000' ? '4000' : '5000'
+    const altPort = u.port === '5000' ? '5000' : '4000'
     u.port = altPort
     urlsToTry.push(`${u.toString().replace(/\/$/, '')}${path}`)
   } catch {}
   let lastErr
   for (const url of urlsToTry) {
     try {
+      console.log(url);
+      
       const res = await fetch(url, { ...options, headers })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.message || `Request failed (${res.status})`)
