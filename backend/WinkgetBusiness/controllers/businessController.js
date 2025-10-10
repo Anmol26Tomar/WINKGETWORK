@@ -1,0 +1,266 @@
+const Business = require('../models/businessModel');
+const Vendor = require('../models/Vendor');
+const Product = require('../models/Product');
+const Order = require('../models/Order');
+const Review = require('../models/Review');
+
+// Get all active businesses
+async function getAllBusinesses(req, res) {
+	try {
+		const { category, limit = 20, page = 1 } = req.query;
+		
+		const filter = { 'settings.isActive': true };
+		if (category) filter.category = category;
+
+		const businesses = await Business.find(filter)
+			.select('name slug description category logo heroImage primaryColor secondaryColor stats')
+			.sort({ 'stats.totalVendors': -1 })
+			.limit(limit * 1)
+			.skip((page - 1) * limit);
+
+		const total = await Business.countDocuments(filter);
+
+		return res.json({
+			success: true,
+			businesses,
+			pagination: {
+				current: parseInt(page),
+				pages: Math.ceil(total / limit),
+				total
+			}
+		});
+	} catch (err) {
+		console.error('Get businesses error:', err);
+		return res.status(500).json({ message: 'Server error' });
+	}
+}
+
+// Get business by slug
+async function getBusinessBySlug(req, res) {
+	try {
+		const { slug } = req.params;
+		
+		const business = await Business.findOne({ 
+			slug, 
+			'settings.isActive': true 
+		}).populate('owner', 'name email');
+
+		if (!business) {
+			return res.status(404).json({ message: 'Business not found' });
+		}
+
+		// Get featured vendors for this business
+		const vendors = await Vendor.find({ 
+			businessId: business._id, 
+			approved: true, 
+			isActive: true 
+		})
+		.select('name storeName logo rating categories address')
+		.sort({ 'rating.average': -1 })
+		.limit(10);
+
+		// Get featured products
+		const products = await Product.find({ 
+			businessId: business._id, 
+			isActive: true,
+			isFeatured: true 
+		})
+		.populate('vendorId', 'name storeName')
+		.select('name price thumbnail rating images')
+		.sort({ 'rating.average': -1 })
+		.limit(12);
+
+		return res.json({
+			success: true,
+			business,
+			vendors,
+			products
+		});
+	} catch (err) {
+		console.error('Get business error:', err);
+		return res.status(500).json({ message: 'Server error' });
+	}
+}
+
+// Get vendors for a business
+async function getBusinessVendors(req, res) {
+	try {
+		const { slug } = req.params;
+		const { category, limit = 20, page = 1, sort = 'rating' } = req.query;
+
+		const business = await Business.findOne({ slug, 'settings.isActive': true });
+		if (!business) {
+			return res.status(404).json({ message: 'Business not found' });
+		}
+
+		const filter = { 
+			businessId: business._id, 
+			approved: true, 
+			isActive: true 
+		};
+		
+		if (category) filter.categories = category;
+
+		let sortOption = {};
+		switch (sort) {
+			case 'rating':
+				sortOption = { 'rating.average': -1 };
+				break;
+			case 'name':
+				sortOption = { storeName: 1 };
+				break;
+			case 'newest':
+				sortOption = { createdAt: -1 };
+				break;
+			default:
+				sortOption = { 'rating.average': -1 };
+		}
+
+		const vendors = await Vendor.find(filter)
+			.select('name storeName logo rating categories address operatingHours')
+			.sort(sortOption)
+			.limit(limit * 1)
+			.skip((page - 1) * limit);
+
+		const total = await Vendor.countDocuments(filter);
+
+		return res.json({
+			success: true,
+			vendors,
+			pagination: {
+				current: parseInt(page),
+				pages: Math.ceil(total / limit),
+				total
+			}
+		});
+	} catch (err) {
+		console.error('Get vendors error:', err);
+		return res.status(500).json({ message: 'Server error' });
+	}
+}
+
+// Get products for a business
+async function getBusinessProducts(req, res) {
+	try {
+		const { slug } = req.params;
+		const { category, vendor, limit = 20, page = 1, sort = 'rating', minPrice, maxPrice } = req.query;
+
+		const business = await Business.findOne({ slug, 'settings.isActive': true });
+		if (!business) {
+			return res.status(404).json({ message: 'Business not found' });
+		}
+
+		const filter = { 
+			businessId: business._id, 
+			isActive: true 
+		};
+		
+		if (category) filter.category = category;
+		if (vendor) filter.vendorId = vendor;
+		if (minPrice || maxPrice) {
+			filter.price = {};
+			if (minPrice) filter.price.$gte = parseFloat(minPrice);
+			if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
+		}
+
+		let sortOption = {};
+		switch (sort) {
+			case 'rating':
+				sortOption = { 'rating.average': -1 };
+				break;
+			case 'price_low':
+				sortOption = { price: 1 };
+				break;
+			case 'price_high':
+				sortOption = { price: -1 };
+				break;
+			case 'newest':
+				sortOption = { createdAt: -1 };
+				break;
+			case 'popular':
+				sortOption = { 'stats.orders': -1 };
+				break;
+			default:
+				sortOption = { 'rating.average': -1 };
+		}
+
+		const products = await Product.find(filter)
+			.populate('vendorId', 'name storeName logo')
+			.select('name price thumbnail rating images tags category')
+			.sort(sortOption)
+			.limit(limit * 1)
+			.skip((page - 1) * limit);
+
+		const total = await Product.countDocuments(filter);
+
+		return res.json({
+			success: true,
+			products,
+			pagination: {
+				current: parseInt(page),
+				pages: Math.ceil(total / limit),
+				total
+			}
+		});
+	} catch (err) {
+		console.error('Get products error:', err);
+		return res.status(500).json({ message: 'Server error' });
+	}
+}
+
+// Get business categories
+async function getBusinessCategories(req, res) {
+	try {
+		const { slug } = req.params;
+
+		const business = await Business.findOne({ slug, 'settings.isActive': true });
+		if (!business) {
+			return res.status(404).json({ message: 'Business not found' });
+		}
+
+		const categories = await Product.distinct('category', { 
+			businessId: business._id, 
+			isActive: true 
+		});
+
+		return res.json({
+			success: true,
+			categories
+		});
+	} catch (err) {
+		console.error('Get categories error:', err);
+		return res.status(500).json({ message: 'Server error' });
+	}
+}
+
+// Get business stats
+async function getBusinessStats(req, res) {
+	try {
+		const { slug } = req.params;
+
+		const business = await Business.findOne({ slug, 'settings.isActive': true });
+		if (!business) {
+			return res.status(404).json({ message: 'Business not found' });
+		}
+
+		const stats = await Business.findById(business._id)
+			.select('stats');
+
+		return res.json({
+			success: true,
+			stats: stats.stats
+		});
+	} catch (err) {
+		console.error('Get stats error:', err);
+		return res.status(500).json({ message: 'Server error' });
+	}
+}
+
+module.exports = {
+	getAllBusinesses,
+	getBusinessBySlug,
+	getBusinessVendors,
+	getBusinessProducts,
+	getBusinessCategories,
+	getBusinessStats
+};

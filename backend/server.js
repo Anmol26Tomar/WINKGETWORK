@@ -32,7 +32,7 @@ app.use('/api/auth', require('./WinkgetExpress/routes/auth'));
 app.use('/api/parcels', require('./WinkgetExpress/routes/parcelRoutes'));
 app.use('/api/transport', require('./WinkgetExpress/routes/transportRoutes'));
 // Winkget Business APIs
-app.use('/api/business', require('./WinkgetBusiness/routes/businessRoutes'));
+// app.use('/api/business', require('./WinkgetBusiness/routes/businessRoutes'));
 
 //captain routing
 
