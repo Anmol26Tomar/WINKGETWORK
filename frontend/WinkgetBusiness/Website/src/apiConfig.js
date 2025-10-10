@@ -4,6 +4,8 @@ export const endpoints = {
   business: {
     auth: {
       login: '/api/business/auth/login',
+      logout: '/api/business/auth/logout',
+      me: '/api/business/auth/me',
       signup: '/api/business/auth/signup',
     },
     vendors: '/api/business/vendors',

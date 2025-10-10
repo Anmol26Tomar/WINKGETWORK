@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const path = require('path');
 const { connectDB } = require('./WinkgetExpress/config/db');
 
@@ -10,8 +11,16 @@ const { Server } = require('socket.io');
 const { setIO } = require('./WinkgetExpress/utils/socket');
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+// Configure CORS to allow credentials
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Set-Cookie']
+}));
 app.use(express.json());
+app.use(cookieParser());
 
 connectDB();
 

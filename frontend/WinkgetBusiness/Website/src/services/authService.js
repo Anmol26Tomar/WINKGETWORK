@@ -4,6 +4,13 @@ async function request(path, options = {}) {
   const token = localStorage.getItem('wb_token')
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) }
   if (token) headers.Authorization = `Bearer ${token}`
+  
+  const fetchOptions = {
+    ...options,
+    headers,
+    credentials: 'include' // Include cookies for authentication
+  }
+  
   const urlsToTry = [ `${API_BASE_URL}${path}` ]
   // Fallback to alternate common dev port if first fails
   try {
@@ -15,7 +22,7 @@ async function request(path, options = {}) {
   let lastErr
   for (const url of urlsToTry) {
     try {
-      const res = await fetch(url, { ...options, headers })
+      const res = await fetch(url, fetchOptions)
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.message || `Request failed (${res.status})`)
       return data
@@ -27,11 +34,19 @@ async function request(path, options = {}) {
 }
 
 export async function login({ email, password, role }) {
-  if (!email || !password) throw new Error('Missing credentials')
-  const data = await request(endpoints.business.auth.login, {
+  if (!email || !password || !role) throw new Error('Missing credentials')
+  
+  const response = await fetch(`${API_BASE_URL}${endpoints.business.auth.login}`, {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include', // Include cookies
     body: JSON.stringify({ email, password, role }),
   })
+  
+  const data = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(data.message || 'Login failed')
+  
+  // Store token in localStorage for backward compatibility
   if (data.token) localStorage.setItem('wb_token', data.token)
   localStorage.setItem('wb_user', JSON.stringify(data.user))
   return data.user
@@ -56,9 +71,27 @@ export function getStoredUser() {
   }
 }
 
-export function logout() {
-  localStorage.removeItem('wb_token')
-  localStorage.removeItem('wb_user')
+export async function logout() {
+  try {
+    // Call logout endpoint to clear server-side cookie
+    await request(endpoints.business.auth.logout, { method: 'POST' })
+  } catch (error) {
+    console.error('Logout error:', error)
+  } finally {
+    // Clear local storage regardless
+    localStorage.removeItem('wb_token')
+    localStorage.removeItem('wb_user')
+  }
+}
+
+export async function getCurrentUser() {
+  try {
+    const data = await request(endpoints.business.auth.me)
+    return data.user
+  } catch (error) {
+    console.error('Get current user error:', error)
+    throw error
+  }
 }
 
 

@@ -16,9 +16,32 @@ import Home from './pages/Home.jsx'
 import AdminVendors from './pages/AdminVendors.jsx'
 import ContactExpress from './pages/ContactExpress.jsx'
 
+function AuthRedirect() {
+  const { state } = useApp()
+  const { isAuthenticated, vendor } = state.auth
+
+  if (!state.initialized) {
+    return <div className="p-6">Loading...</div>
+  }
+
+  if (isAuthenticated) {
+    if (vendor?.role === 'vendor') {
+      return <Navigate to="/vendor/dashboard" replace />
+    } else if (vendor?.role === 'admin') {
+      return <Navigate to="/admin/dashboard" replace />
+    }
+  }
+  return <Navigate to="/home" replace />
+}
+
 function ProtectedRoute() {
   const { state } = useApp()
   const location = useLocation()
+
+  if (!state.initialized) {
+    return <div className="p-6">Loading...</div>
+  }
+
   if (!state.auth.isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location }} />
   }
@@ -27,6 +50,9 @@ function ProtectedRoute() {
 
 function AdminRoute() {
   const { state } = useApp()
+  if (!state.initialized) {
+    return <div className="p-6">Loading...</div>
+  }
   if (!state.auth.isAuthenticated) return <Navigate to="/login" replace />
   if (state.auth.vendor?.role !== 'admin') return <Navigate to="/vendor/dashboard" replace />
   return <Outlet />
@@ -52,9 +78,9 @@ export default function App() {
   return (
     <AppProvider>
       <Routes>
-        <Route element={<ProtectedRoute />}> 
+        <Route path="/" element={<AuthRedirect />} />
+        <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/vendor/dashboard" element={<Dashboard />} />
             <Route path="/products" element={<Products />} />
             <Route path="/orders" element={<Orders />} />
@@ -66,9 +92,9 @@ export default function App() {
         </Route>
         <Route path="/login" element={<Login />} />
         <Route path="/home" element={<Home />} />
-        <Route element={<AdminRoute />}> 
+        <Route element={<AdminRoute />}>
           <Route path="/admin/vendors" element={<AdminVendors />} />
-          <Route path="/admin/dashboard" element={<AdminVendors />} />
+          <Route path="/admin/dashboard" element={<Dashboard />} />
           <Route path="/admin/contact" element={<ContactExpress />} />
         </Route>
         <Route path="/signup" element={<Signup />} />
