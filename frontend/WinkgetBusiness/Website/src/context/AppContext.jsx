@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useMemo, useReducer } from 'react'
+import { getCurrentUser } from '../services/authService.js'
 
 const AppContext = createContext(null)
 
@@ -7,6 +8,7 @@ const initialState = {
     isAuthenticated: false,
     vendor: null, // { id, name, email, avatarUrl }
   },
+  initialized: false,
   products: [
     {
       id: 'p1',
@@ -65,6 +67,9 @@ function reducer(state, action) {
     case 'UPDATE_VENDOR': {
       return { ...state, auth: { ...state.auth, vendor: action.payload } }
     }
+    case 'INITIALIZED': {
+      return { ...state, initialized: true }
+    }
 
     // Products
     case 'ADD_PRODUCT': {
@@ -120,13 +125,22 @@ export function AppProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState)
 
   React.useEffect(() => {
-    try {
-      const raw = localStorage.getItem('wb_user')
-      if (raw) {
-        const user = JSON.parse(raw)
-        dispatch({ type: 'LOGIN_SUCCESS', payload: user })
+    let cancelled = false
+    ;(async () => {
+      try {
+        const user = await getCurrentUser() // relies on HttpOnly cookie via credentials: 'include'
+        if (!cancelled && user) {
+          dispatch({ type: 'LOGIN_SUCCESS', payload: user })
+        }
+      } catch (error) {
+        if (!cancelled) {
+          dispatch({ type: 'LOGOUT' })
+        }
+      } finally {
+        if (!cancelled) dispatch({ type: 'INITIALIZED' })
       }
-    } catch {}
+    })()
+    return () => { cancelled = true }
   }, [])
 
   const value = useMemo(() => ({ state, dispatch }), [state])
