@@ -1,13 +1,14 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const { connectDB } = require('./WinkgetExpress/config/db');
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const path = require("path");
+const { connectDB } = require("./WinkgetExpress/config/db");
+const adminAuthRoutes = require("./WinkgetExpress/routes/AdminAuth");
 
 const app = express();
-const http = require('http').createServer(app);
-const { Server } = require('socket.io');
-const { setIO } = require('./WinkgetExpress/utils/socket');
+const http = require("http").createServer(app);
+const { Server } = require("socket.io");
+const { setIO } = require("./WinkgetExpress/utils/socket");
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
@@ -15,31 +16,32 @@ app.use(express.json());
 
 connectDB();
 
-const agentRoutes=require("./WinkgetExpress/routes/agent");
+const agentRoutes = require("./WinkgetExpress/routes/agent");
 
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
+app.get("/health", (req, res) => res.json({ status: "ok" }));
 
-app.use('/api/auth', require('./WinkgetExpress/routes/auth'));
-app.use('/api/parcels', require('./WinkgetExpress/routes/parcelRoutes'));
-app.use('/api/transport', require('./WinkgetExpress/routes/transportRoutes'));
+app.use("/api/auth", require("./WinkgetExpress/routes/auth"));
+app.use("/api/parcels", require("./WinkgetExpress/routes/parcelRoutes"));
+app.use("/api/transport", require("./WinkgetExpress/routes/transportRoutes"));
 
 //captain routing
 
-app.use('/api/auth/agent',agentRoutes);
-app.use('/api/agents', require('./WinkgetExpress/routes/agents'));
-app.use('/api/agent', require('./WinkgetExpress/routes/agents'));
+app.use("/api/auth/agent", agentRoutes);
+app.use("/api/agents", require("./WinkgetExpress/routes/agents"));
+app.use("/api/agent", require("./WinkgetExpress/routes/agent"));
+app.use("/api/auth/admin", adminAuthRoutes);
 
-const io = new Server(http, { cors: { origin: '*'} });
+// express admin routing
+
+const io = new Server(http, { cors: { origin: "*" } });
 setIO(io);
 
-io.on('connection', (socket) => {
-	socket.on('user:subscribe-ride', ({ rideId }) => {
-		socket.join(`ride:${rideId}`);
-	});
-	socket.on('join-ride', ({ rideId }) => socket.join(`ride:${rideId}`));
-	socket.on('subscribe-ride', ({ rideId }) => socket.join(`ride:${rideId}`));
+io.on("connection", (socket) => {
+  socket.on("user:subscribe-ride", ({ rideId }) => {
+    socket.join(`ride:${rideId}`);
+  });
+  socket.on("join-ride", ({ rideId }) => socket.join(`ride:${rideId}`));
+  socket.on("subscribe-ride", ({ rideId }) => socket.join(`ride:${rideId}`));
 });
 
 http.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
-
