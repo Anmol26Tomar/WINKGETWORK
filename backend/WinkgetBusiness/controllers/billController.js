@@ -100,7 +100,11 @@ const getVendorBills = async (req, res) => {
     const vendorId = req.user.id;
     const { status, billType, page = 1, limit = 10 } = req.query;
     
-    const filter = { vendor: vendorId };
+    // Convert vendorId to ObjectId for proper matching
+    const mongoose = require('mongoose');
+    const vendorObjectId = new mongoose.Types.ObjectId(vendorId);
+    
+    const filter = { vendor: vendorObjectId };
     if (status) filter.status = status;
     if (billType) filter.billType = billType;
 
@@ -135,12 +139,35 @@ const getVendorBills = async (req, res) => {
 const getBillById = async (req, res) => {
   try {
     const { id } = req.params;
-    const vendorId = req.user.id;
+    const vendorId = req.user?.id;
 
-    const bill = await Bill.findOne({ _id: id, vendor: vendorId })
+    console.log('Getting bill by ID:', { id, vendorId });
+
+    if (!vendorId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Vendor not authenticated'
+      });
+    }
+
+    // Validate ObjectId format
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid bill ID format'
+      });
+    }
+
+    // Convert vendorId to ObjectId for proper matching
+    const mongoose = require('mongoose');
+    const vendorObjectId = new mongoose.Types.ObjectId(vendorId);
+
+    const bill = await Bill.findOne({ _id: id, vendor: vendorObjectId })
       .populate('customer', 'name email phone')
       .populate('order')
       .populate('items.productId', 'name description image');
+
+    console.log('Bill found:', bill ? 'Yes' : 'No');
 
     if (!bill) {
       return res.status(404).json({
@@ -154,6 +181,7 @@ const getBillById = async (req, res) => {
       bill
     });
   } catch (error) {
+    console.error('Error in getBillById:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch bill',
@@ -169,7 +197,11 @@ const updateBillStatus = async (req, res) => {
     const { status, paymentMethod } = req.body;
     const vendorId = req.user.id;
 
-    const bill = await Bill.findOne({ _id: id, vendor: vendorId });
+    // Convert vendorId to ObjectId for proper matching
+    const mongoose = require('mongoose');
+    const vendorObjectId = new mongoose.Types.ObjectId(vendorId);
+
+    const bill = await Bill.findOne({ _id: id, vendor: vendorObjectId });
     
     if (!bill) {
       return res.status(404).json({
@@ -278,7 +310,11 @@ const updateBill = async (req, res) => {
     const { id } = req.params;
     const vendorId = req.user.id;
 
-    const bill = await Bill.findOne({ _id: id, vendor: vendorId });
+    // Convert vendorId to ObjectId for proper matching
+    const mongoose = require('mongoose');
+    const vendorObjectId = new mongoose.Types.ObjectId(vendorId);
+
+    const bill = await Bill.findOne({ _id: id, vendor: vendorObjectId });
     
     if (!bill) {
       return res.status(404).json({
@@ -314,7 +350,11 @@ const deleteBill = async (req, res) => {
     const { id } = req.params;
     const vendorId = req.user.id;
 
-    const bill = await Bill.findOne({ _id: id, vendor: vendorId });
+    // Convert vendorId to ObjectId for proper matching
+    const mongoose = require('mongoose');
+    const vendorObjectId = new mongoose.Types.ObjectId(vendorId);
+
+    const bill = await Bill.findOne({ _id: id, vendor: vendorObjectId });
     
     if (!bill) {
       return res.status(404).json({
@@ -353,10 +393,28 @@ const deleteBill = async (req, res) => {
 // Get bill statistics
 const getBillStats = async (req, res) => {
   try {
-    const vendorId = req.user.id;
-    
+    const vendorId = req.user?.id;
+    console.log('Getting bill stats for vendor:', vendorId);
+
+    if (!vendorId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Vendor not authenticated'
+      });
+    }
+
+    // Convert vendorId to ObjectId for proper matching
+    const mongoose = require('mongoose');
+    const vendorObjectId = new mongoose.Types.ObjectId(vendorId);
+    const isValidObjectId = mongoose.Types.ObjectId.isValid(vendorId);
+    console.log('Vendor ID is valid ObjectId:', isValidObjectId);
+
+    // First, let's check if there are any bills for this vendor
+    const totalBillsCount = await Bill.countDocuments({ vendor: vendorObjectId });
+    console.log('Total bills for vendor:', totalBillsCount);
+
     const stats = await Bill.aggregate([
-      { $match: { vendor: vendorId } },
+      { $match: { vendor: vendorObjectId } },
       {
         $group: {
           _id: null,
@@ -376,12 +434,14 @@ const getBillStats = async (req, res) => {
       }
     ]);
 
+    console.log('Aggregation result:', stats);
+
     const statusCounts = await Bill.aggregate([
-      { $match: { vendor: vendorId } },
+      { $match: { vendor: vendorObjectId } },
       { $group: { _id: '$status', count: { $sum: 1 } } }
     ]);
 
-    res.json({
+    const result = {
       success: true,
       stats: stats[0] || {
         totalBills: 0,
@@ -390,8 +450,12 @@ const getBillStats = async (req, res) => {
         pendingAmount: 0
       },
       statusCounts
-    });
+    };
+
+    console.log('Sending stats response:', result);
+    res.json(result);
   } catch (error) {
+    console.error('Error in getBillStats:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch bill statistics',

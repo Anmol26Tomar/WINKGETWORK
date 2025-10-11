@@ -176,9 +176,9 @@ const billSchema = new mongoose.Schema({
 // Indexes for better performance
 billSchema.index({ vendor: 1, billDate: -1 });
 billSchema.index({ customer: 1 });
-billSchema.index({ billNumber: 1 });
 billSchema.index({ status: 1 });
 billSchema.index({ billType: 1 });
+// Note: billNumber already has unique: true, so no need for separate index
 
 // Virtual for formatted bill number
 billSchema.virtual('formattedBillNumber').get(function() {
