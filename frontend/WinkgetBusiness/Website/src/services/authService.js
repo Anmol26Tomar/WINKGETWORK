@@ -22,13 +22,7 @@ async function request(path, options = {}) {
   let lastErr
   for (const url of urlsToTry) {
     try {
-<<<<<<< HEAD
-      console.log(url);
-      
-      const res = await fetch(url, { ...options, headers })
-=======
       const res = await fetch(url, fetchOptions)
->>>>>>> 6677c8d276d8c9b89d6ef012931118cf693e9498
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.message || `Request failed (${res.status})`)
       return data

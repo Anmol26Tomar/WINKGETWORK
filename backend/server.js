@@ -31,8 +31,12 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 app.use('/api/auth', require('./WinkgetExpress/routes/auth'));
 app.use('/api/parcels', require('./WinkgetExpress/routes/parcelRoutes'));
 app.use('/api/transport', require('./WinkgetExpress/routes/transportRoutes'));
+
 // Winkget Business APIs
-// app.use('/api/business', require('./WinkgetBusiness/routes/businessRoutes'));
+app.use('/api/business/auth', require('./WinkgetBusiness/routes/auth'));
+app.use('/api/business/vendors', require('./WinkgetBusiness/routes/vendors'));
+app.use('/api/business/products', require('./WinkgetBusiness/routes/products'));
+app.use('/api/business/contact', require('./WinkgetBusiness/routes/contact'));
 
 //captain routing
 
