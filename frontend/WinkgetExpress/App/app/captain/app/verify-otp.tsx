@@ -9,21 +9,25 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Button } from '../components/Button';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '@/context/AuthContext';
 
 export default function VerifyOTPScreen() {
   const router = useRouter();
   const { phone } = useLocalSearchParams<{ phone: string }>();
+  const { verifyOTP } = useAuth();
 
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
+  const [pendingPhone, setPendingPhone] = useState<string | null>(null);
   const inputRefs = useRef<TextInput[]>(Array(6).fill(null));
 
   useEffect(() => {
-    if (!phone) {
-      Alert.alert('Error', 'No phone number provided');
-      router.back();
-    }
+    (async () => {
+      const pending = await AsyncStorage.getItem('pending_captain_phone');
+      setPendingPhone(pending);
+    })();
   }, []);
 
   const handleOtpChange = (value: string, index: number) => {
@@ -50,16 +54,19 @@ export default function VerifyOTPScreen() {
       Alert.alert('Error', 'Please enter a valid 6-digit OTP');
       return;
     }
+    const targetPhone = phone || pendingPhone;
+    if (!targetPhone) {
+      Alert.alert('Error', 'Missing phone for OTP verification');
+      return;
+    }
 
     setLoading(true);
     try {
-      // 🟢 Mock verification delay (simulating API call)
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
+      router.replace('/captain/app/(captabs)');
+      // await verifyOTP(targetPhone, otpCode);
       Alert.alert('Success', 'OTP verified successfully!');
-      router.replace('/captain/app/(captabs)'); // go to main app screen
-    } catch (error) {
-      Alert.alert('Verification Failed', 'An unexpected error occurred.');
+    } catch (error: any) {
+      Alert.alert('Verification Failed', error?.message || 'Failed to verify OTP');
     } finally {
       setLoading(false);
     }
@@ -68,7 +75,10 @@ export default function VerifyOTPScreen() {
   const handleResendOTP = async () => {
     setResending(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // mock resend
+      const targetPhone = phone || pendingPhone;
+      if (!targetPhone) throw new Error('Missing phone');
+      const base = process.env.EXPO_PUBLIC_API_BASE || 'http://10.85.122.137:3001';
+      await fetch(`${base}/api/auth/agent/resend-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: targetPhone }) });
       Alert.alert('Success', 'OTP has been resent to your phone');
       setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
@@ -84,8 +94,8 @@ export default function VerifyOTPScreen() {
       <View style={styles.content}>
         <Text style={styles.title}>Verify OTP</Text>
         <Text style={styles.subtitle}>
-          Enter the 6-digit code sent to{'\n'}
-          {phone}
+          Enter the 6-digit code sent to{"\n"}
+          {pendingPhone || phone}
         </Text>
 
         <View style={styles.otpContainer}>

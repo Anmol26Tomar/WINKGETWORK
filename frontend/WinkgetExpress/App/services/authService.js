@@ -1,10 +1,11 @@
 import { saveToken, getToken, deleteToken } from '../utils/secureStore';
 import { Platform } from 'react-native';
 
-const DEFAULT_BASE = 'http://10.85.122.137:3001';
+const DEFAULT_BASE = 'http://10.233.13.139:3001';
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || DEFAULT_BASE;
 
 async function request(path, { method = 'GET', body, auth = false } = {}) {
+	console.log("API_BASE",API_BASE);
 	const headers = { 'Content-Type': 'application/json' };
 	if (auth) {
 		const token = await getToken();
@@ -15,7 +16,9 @@ async function request(path, { method = 'GET', body, auth = false } = {}) {
 		headers,
 		body: body ? JSON.stringify(body) : undefined,
 	});
+	console.log("request to",`${API_BASE}${path}`,{ method, headers, body });
 	const data = await res.json().catch(() => ({}));
+	console.log("data from auth service",data);
 	if (!res.ok) {
 		throw new Error(data.message || 'Request failed');
 	}
