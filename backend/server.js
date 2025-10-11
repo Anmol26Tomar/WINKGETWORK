@@ -37,6 +37,7 @@ app.use('/api/business/auth', require('./WinkgetBusiness/routes/auth'));
 app.use('/api/business/vendors', require('./WinkgetBusiness/routes/vendors'));
 app.use('/api/business/products', require('./WinkgetBusiness/routes/products'));
 app.use('/api/business/contact', require('./WinkgetBusiness/routes/contact'));
+app.use('/api/business/bills', require('./WinkgetBusiness/routes/bills'));
 
 //captain routing
 

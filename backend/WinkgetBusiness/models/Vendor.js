@@ -45,6 +45,7 @@ const vendorSchema = new mongoose.Schema(
     
     // Business Information
     category: { type: String, trim: true, index: true }, // Main business category for search optimization
+    bills: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Bill' }], // Reference to bills
     documents: [{
       type: { type: String, enum: ['gst', 'pan', 'aadhar', 'business_license', 'other'] },
       documentUrl: { type: String, required: true },
