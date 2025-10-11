@@ -27,20 +27,75 @@ const CategoryBusinessListScreen = ({ route, navigation }) => {
   const loadBusinesses = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`${API_ENDPOINTS.VENDORS.BY_CATEGORY}/${category}`);
       
-      if (response.data && response.data.vendors) {
-        setBusinesses(response.data.vendors);
+      // Debug: Log the API endpoint being called
+      const endpoint = `${API_ENDPOINTS.VENDORS.BY_CATEGORY}/${encodeURIComponent(category)}`;
+      console.log('🔍 API Endpoint:', endpoint);
+      console.log('📡 Base URL:', api.defaults.baseURL);
+      console.log('🎯 Full URL:', `${api.defaults.baseURL}${endpoint}`);
+      
+      // Send request to backend with category parameter
+      const response = await api.get(endpoint);
+      
+      console.log('✅ Response received:', response.data);
+      
+      // Handle the enhanced backend response
+      if (response.data && response.data.success) {
+        const { vendors, totalFound, message } = response.data;
+        
+        // Display vendor details dynamically
+        setBusinesses(vendors || []);
+        
+        // Show success message if no vendors found (empty results)
+        if (totalFound === 0) {
+          Alert.alert(
+            'No Results',
+            message || `No businesses found in the ${category} category.`,
+            [{ text: 'OK' }]
+          );
+        }
       } else {
+        // Handle backend error response
+        const errorMessage = response.data?.message || 'Failed to load businesses';
         setBusinesses([]);
+        Alert.alert('Error', errorMessage, [{ text: 'OK' }]);
       }
     } catch (error) {
-      console.error('Error loading businesses:', error);
-      Alert.alert(
-        'Error',
-        'Failed to load businesses. Please try again.',
-        [{ text: 'OK' }]
-      );
+      console.error('❌ Error loading businesses:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        code: error.code,
+        response: error.response?.data,
+        status: error.response?.status,
+        config: error.config?.url
+      });
+      
+      // Proper error handling for different error types
+      let errorMessage = 'Failed to load businesses. Please try again.';
+      
+      if (error.response) {
+        // Server responded with error status
+        const { status, data } = error.response;
+        
+        if (status === 400) {
+          errorMessage = data?.message || 'Invalid category parameter';
+        } else if (status === 404) {
+          errorMessage = `Category "${category}" not found or API endpoint not available`;
+        } else if (status === 500) {
+          errorMessage = 'Server error. Please try again later.';
+        } else {
+          errorMessage = data?.message || `Server error (${status})`;
+        }
+      } else if (error.request) {
+        // Network error
+        errorMessage = `Network error. Please check if the server is running at ${api.defaults.baseURL}`;
+      } else {
+        // Other error
+        errorMessage = error.message || 'An unexpected error occurred';
+      }
+      
+      setBusinesses([]);
+      Alert.alert('Error', errorMessage, [{ text: 'OK' }]);
     } finally {
       setLoading(false);
     }
@@ -69,7 +124,7 @@ const CategoryBusinessListScreen = ({ route, navigation }) => {
         <View style={styles.businessHeader}>
           <View style={styles.businessInfo}>
             <Title style={styles.businessName}>
-              {business.shopName || business.storeName || 'Business Name'}
+              {business.shopName || business.storeName || business.name || 'Business Name'}
             </Title>
             <Paragraph style={styles.businessDescription}>
               {business.aboutBusiness || business.briefInfo || 'No description available'}
@@ -84,13 +139,26 @@ const CategoryBusinessListScreen = ({ route, navigation }) => {
         </View>
         
         <View style={styles.businessDetails}>
+          {/* Owner Name */}
+          {business.ownerName && (
+            <View style={styles.detailRow}>
+              <Ionicons name="person" size={16} color="#6B7280" />
+              <Text style={styles.detailText}>Owner: {business.ownerName}</Text>
+            </View>
+          )}
+          
+          {/* Address */}
           <View style={styles.detailRow}>
             <Ionicons name="location" size={16} color="#6B7280" />
             <Text style={styles.detailText}>
-              {business.businessAddress?.city || 'City not specified'}, {business.businessAddress?.state || 'State not specified'}
+              {business.businessAddress?.street && `${business.businessAddress.street}, `}
+              {business.businessAddress?.city || 'City not specified'}
+              {business.businessAddress?.state && `, ${business.businessAddress.state}`}
+              {business.businessAddress?.pincode && ` - ${business.businessAddress.pincode}`}
             </Text>
           </View>
           
+          {/* Contact Information */}
           {business.businessContact && (
             <View style={styles.detailRow}>
               <Ionicons name="call" size={16} color="#6B7280" />
@@ -98,12 +166,28 @@ const CategoryBusinessListScreen = ({ route, navigation }) => {
             </View>
           )}
           
+          {business.businessEmail && (
+            <View style={styles.detailRow}>
+              <Ionicons name="mail" size={16} color="#6B7280" />
+              <Text style={styles.detailText}>{business.businessEmail}</Text>
+            </View>
+          )}
+          
+          {/* Rating */}
           {business.averageRating > 0 && (
             <View style={styles.detailRow}>
               <Ionicons name="star" size={16} color="#F59E0B" />
               <Text style={styles.detailText}>
                 {business.averageRating.toFixed(1)} ({business.totalReviews} reviews)
               </Text>
+            </View>
+          )}
+          
+          {/* Website */}
+          {business.websiteLink && (
+            <View style={styles.detailRow}>
+              <Ionicons name="globe" size={16} color="#6B7280" />
+              <Text style={[styles.detailText, styles.linkText]}>Visit Website</Text>
             </View>
           )}
         </View>
@@ -114,7 +198,7 @@ const CategoryBusinessListScreen = ({ route, navigation }) => {
             style={styles.actionButton}
             onPress={() => {
               // Navigate to business details
-              Alert.alert('Coming Soon', 'Business details will be available soon!');
+              Alert.alert('Business Details', `Name: ${business.shopName}\nOwner: ${business.ownerName}\nCategory: ${business.category}`, [{ text: 'OK' }]);
             }}
           >
             View Details
@@ -123,8 +207,22 @@ const CategoryBusinessListScreen = ({ route, navigation }) => {
             mode="contained" 
             style={styles.actionButton}
             onPress={() => {
-              // Navigate to contact
-              Alert.alert('Coming Soon', 'Contact functionality will be available soon!');
+              // Contact functionality
+              if (business.businessContact) {
+                Alert.alert(
+                  'Contact Business',
+                  `Call ${business.shopName} at ${business.businessContact}?`,
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Call', onPress: () => {
+                      // In a real app, you would use Linking to make a phone call
+                      Alert.alert('Call', `Would call ${business.businessContact}`);
+                    }}
+                  ]
+                );
+              } else {
+                Alert.alert('No Contact', 'Contact information not available for this business.');
+              }
             }}
           >
             Contact
@@ -329,6 +427,10 @@ const styles = StyleSheet.create({
     color: '#374151',
     marginLeft: 8,
     flex: 1,
+  },
+  linkText: {
+    color: '#3B82F6',
+    textDecorationLine: 'underline',
   },
   businessActions: {
     flexDirection: 'row',
