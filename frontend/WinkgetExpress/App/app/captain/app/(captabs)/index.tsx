@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,48 +11,236 @@ import {
   Platform,
   Animated,
 } from 'react-native';
+import MapView, { Marker, Polyline } from 'react-native-maps';
+import * as Location from 'expo-location';
 import { TripCard } from '../../components/TripCard';
+import { TripWorkflow } from '../../components/TripWorkflow';
 import { Modal } from '../../components/Modal';
 import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
-import { OrderDetailsInput } from '../../components/OrderDetailsInput';
-
-import { tripService } from '../../services/api';
-import type { Trip } from '../../types';
-import { Navigation, Zap, Clock } from 'lucide-react-native';
-import { useDummyData } from '../../services/dummyData';
+import { tripService, getRoutePolyline } from '../../services/api';
 import { useAuth } from '@/context/AuthContext';
+import { Navigation, Zap, Clock } from 'lucide-react-native';
+import type { Trip } from '../../types';
+import { getSocket } from '../../../../services/socket';
 
 export default function HomeScreen() {
-  const { captain, loading: authLoading } = useAuth();
-  const dummyData = useDummyData();
+  const { captain } = useAuth();
+  const mapRef = useRef<MapView>(null);
 
-  const [pendingTrips, setPendingTrips] = useState<Trip[]>(dummyData.pendingTrips);
-  const [activeTrip, setActiveTrip] = useState<Trip | null>(dummyData.activeTrip);
+  const [pendingTrips, setPendingTrips] = useState<Trip[]>([]);
+  const [activeTrip, setActiveTrip] = useState<Trip | null>(null);
+  const [userLoc, setUserLoc] = useState<{ lat: number; lng: number } | null>(null);
+  const [region, setRegion] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
-  const [otpModalVisible, setOtpModalVisible] = useState(false);
-  const [pickupOtpModalVisible, setPickupOtpModalVisible] = useState(false);
-  const [orderDetailsModalVisible, setOrderDetailsModalVisible] = useState(false);
-  const [selectedTripId, setSelectedTripId] = useState<string>('');
-  const [cancelReason, setCancelReason] = useState('');
+  const [routeCoords, setRouteCoords] = useState<{ latitude: number; longitude: number }[] | null>(null);
+  const [incomingTrip, setIncomingTrip] = useState<Trip | null>(null);
+  const [selectedTripId, setSelectedTripId] = useState('');
   const [rejectReason, setRejectReason] = useState('');
-  const [tripOtp, setTripOtp] = useState('');
-  const [pickupOtp, setPickupOtp] = useState('');
-  const [tempOrderDetails, setTempOrderDetails] = useState({});
+  const [orderPreviewVisible, setOrderPreviewVisible] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Trip | null>(null);
+  const [previewDistanceKm, setPreviewDistanceKm] = useState<number | null>(null);
+  const [previewDurationMin, setPreviewDurationMin] = useState<number | null>(null);
+
   const pulseAnim = useState(new Animated.Value(1))[0];
 
-  const displayCaptain = captain || dummyData.captain;
+  const displayCaptain = captain;
+  const firstName = displayCaptain?.fullName?.split(' ')[0] || 'Captain';
+  const vehicleType = displayCaptain?.vehicleType?.toUpperCase() || '';
+  const serviceScope = displayCaptain?.serviceType?.replace('-', ' ').toUpperCase() || '';
+  const rating = displayCaptain?.rating?.toFixed(1) || '0';
+  const totalTrips = displayCaptain?.totalTrips || 0;
 
-  
-  const firstName = displayCaptain.full_name?.split(' ')[0] || 'Captain';
-  const vehicleType = displayCaptain.vehicle_type?.toUpperCase() || '';
-  const serviceScope = displayCaptain.service_scope?.replace('_', ' ').toUpperCase() || '';
-  const rating = displayCaptain.rating?.toFixed(1) || '0';
-  const totalTrips = displayCaptain.total_trips || 0;
+  // Haversine distance
+  const haversineKmLocal = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+    const toRad = (d: number) => (d * Math.PI) / 180;
+    const R = 6371;
+    const dLat = toRad(b.lat - a.lat);
+    const dLon = toRad(b.lng - a.lng);
+    const lat1 = toRad(a.lat);
+    const lat2 = toRad(b.lat);
+    const h =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+  };
 
+  // Filter trips based on vehicle type
+  const filterEligibleTrips = (trips: Trip[]) => {
+    if (!displayCaptain) return trips;
+    return trips.filter((trip) => trip.vehicleType === displayCaptain.vehicleType);
+  };
+
+  // Centralized fetch
+  const loadTrips = useCallback(
+    async (lat?: number, lng?: number) => {
+      if (!displayCaptain || !lat || !lng) return;
+
+      setLoading(true);
+      try {
+        const [pending, active] = await Promise.all([
+          tripService.getPendingRequests(lat, lng, {
+            vehicleType: displayCaptain.vehicleType,
+            serviceType: displayCaptain.serviceType,
+            vehicleSubType: displayCaptain.vehicleSubType,
+          }),
+          tripService.getActiveTrip(),
+        ]);
+
+        setPendingTrips(filterEligibleTrips(pending));
+        setActiveTrip(active);
+
+        if (active?.pickup && mapRef.current) {
+          mapRef.current.animateToRegion({
+            latitude: active.pickup.lat,
+            longitude: active.pickup.lng,
+            latitudeDelta: 0.02,
+            longitudeDelta: 0.02,
+          });
+        }
+      } catch (error) {
+        console.log('Fetch trips error:', error);
+        Alert.alert('Error', 'Failed to fetch trips.');
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [displayCaptain]
+  );
+
+  // Get user location once
+  useEffect(() => {
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return Alert.alert('Permission denied', 'Location permission is required');
+
+      const pos = await Location.getCurrentPositionAsync({});
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+
+      setUserLoc({ lat, lng });
+      setRegion({ latitude: lat, longitude: lng, latitudeDelta: 0.02, longitudeDelta: 0.02 });
+
+      loadTrips(lat, lng);
+    })();
+  }, [loadTrips]);
+
+  // Real-time socket
+  useEffect(() => {
+    if (!displayCaptain || !userLoc) return;
+
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleNewTrip = (trip: Trip) => {
+      if (!displayCaptain.isAvailable || trip.vehicleType !== displayCaptain.vehicleType) return;
+
+      const dist = haversineKmLocal(userLoc, trip.pickup);
+      if (dist > 10) return;
+
+      setIncomingTrip(trip);
+
+      setPendingTrips((prev) => {
+        const exists = prev.some((t) => t.id === trip.id || t._id === trip._id);
+        if (exists) return prev;
+        return filterEligibleTrips([trip, ...prev]);
+      });
+    };
+
+    socket.on('new-trip', handleNewTrip);
+    socket.on('order:update', (payload: any) => {
+      setActiveTrip((prev) =>
+        prev && (prev.id === payload.id || prev._id === payload._id)
+          ? { ...prev, status: payload.status }
+          : prev
+      );
+      setPendingTrips((prev) =>
+        prev.map((t) =>
+          t.id === payload.id || t._id === payload._id ? { ...t, status: payload.status } : t
+        )
+      );
+    });
+
+    return () => {
+      socket.off('new-trip', handleNewTrip);
+      socket.disconnect();
+    };
+  }, [displayCaptain, userLoc]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    if (userLoc) loadTrips(userLoc.lat, userLoc.lng);
+  }, [userLoc, loadTrips]);
+
+  const handleAcceptTrip = async (tripId: string) => {
+    try {
+      const trip = await tripService.acceptTrip(tripId);
+      console.log('Trip accepted:', trip);
+      setActiveTrip(trip);
+      setPendingTrips((prev) => prev.filter((t) => t.id !== tripId && t._id !== tripId));
+
+      if (userLoc && trip.pickup) {
+        const poly = await getRoutePolyline(userLoc, { lat: trip.pickup.lat, lng: trip.pickup.lng });
+        setRouteCoords(poly.coordinates.map(([lng, lat]) => ({ latitude: lat, longitude: lng })));
+      }
+
+      Alert.alert('Success', 'Trip accepted successfully');
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.message || 'Failed to accept trip');
+    }
+  };
+
+  const handleRejectTrip = async () => {
+    if (!rejectReason.trim()) return Alert.alert('Error', 'Please provide a reason');
+    try {
+      await tripService.rejectTrip(selectedTripId, rejectReason);
+      setPendingTrips((prev) => prev.filter((t) => t.id !== selectedTripId && t._id !== selectedTripId));
+      setRejectModalVisible(false);
+      setRejectReason('');
+      Alert.alert('Success', 'Trip rejected');
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.message || 'Failed to reject trip');
+    }
+  };
+
+  const handleStartTrip = async (tripId: string) => {
+    try {
+      await tripService.startTrip(tripId);
+      // Refresh the active trip to get updated status
+      const updatedTrip = await tripService.getActiveTrip();
+      setActiveTrip(updatedTrip);
+      Alert.alert('Success', 'Trip started successfully');
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.message || 'Failed to start trip');
+    }
+  };
+
+  const handleEndTrip = async (tripId: string) => {
+    try {
+      // First mark as reached destination to get OTP
+      await tripService.reachDestination(tripId);
+      Alert.alert('Success', 'Trip completed successfully');
+      setActiveTrip(null);
+      setRouteCoords(null);
+      loadTrips(userLoc?.lat, userLoc?.lng);
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.message || 'Failed to complete trip');
+    }
+  };
+
+  const openMaps = (lat: number, lng: number) => {
+    const url = Platform.select({
+      ios: `maps:0,0?q=${lat},${lng}`,
+      android: `geo:${lat},${lng}`,
+      default: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
+    })!;
+    Linking.openURL(url);
+  };
+
+  // Animated pulse
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
@@ -62,182 +250,6 @@ export default function HomeScreen() {
     ).start();
   }, []);
 
-
-
-  const getServiceCategories = () => {
-    const { vehicle_type, service_scope } = displayCaptain;
-
-    if (vehicle_type === 'bike' && service_scope === 'intra_city') {
-      return ['Local Parcel Delivery', 'Bike Ride'];
-    }
-    if (vehicle_type === 'cab') {
-      return service_scope === 'intra_city'
-        ? ['Cab Booking (Intra City)']
-        : ['Cab Booking (Inter City)'];
-    }
-    if (vehicle_type === 'truck') {
-      return service_scope === 'intra_city'
-        ? ['Truck Booking']
-        : ['Packers & Movers', 'All India Parcel'];
-    }
-    return [];
-  };
-
-  const fetchTrips = async () => {
-    try {
-      const [pending, active] = await Promise.all([
-        tripService.getPendingRequests(),
-        tripService.getActiveTrip(),
-      ]);
-      setPendingTrips(pending);
-      setActiveTrip(active);
-    } catch (error: any) {
-      console.log('Using dummy data');
-      setPendingTrips(dummyData.pendingTrips);
-      setActiveTrip(dummyData.activeTrip);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchTrips();
-    const interval = setInterval(fetchTrips, 10000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    fetchTrips();
-  }, []);
-
-  const handleAcceptTrip = async (tripId: string) => {
-    try {
-      const trip = await tripService.acceptTrip(tripId);
-      setActiveTrip(trip);
-      setPendingTrips((prev) => prev.filter((t) => t.id !== tripId));
-      Alert.alert('Success', 'Trip accepted successfully');
-    } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to accept trip');
-    }
-  };
-
-  const handleRejectTrip = async () => {
-    if (!rejectReason.trim()) {
-      Alert.alert('Error', 'Please provide a reason for rejection');
-      return;
-    }
-
-    try {
-      await tripService.rejectTrip(selectedTripId, rejectReason);
-      setPendingTrips((prev) => prev.filter((t) => t.id !== selectedTripId));
-      setRejectModalVisible(false);
-      setRejectReason('');
-      Alert.alert('Success', 'Trip rejected');
-    } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to reject trip');
-    }
-  };
-
-  const handleReachedPickup = async () => {
-    if (!activeTrip) return;
-    try {
-      const updatedTrip = { ...activeTrip, status: 'reached_pickup' as const };
-      setActiveTrip(updatedTrip);
-      Alert.alert('Success', 'Customer notified of your arrival');
-      setPickupOtpModalVisible(true);
-    } catch (error: any) {
-      Alert.alert('Error', 'Failed to update status');
-    }
-  };
-
-  const handleVerifyPickupOtp = async () => {
-    if (!pickupOtp.trim() || pickupOtp.length !== 4) {
-      Alert.alert('Error', 'Please enter a valid 4-digit pickup OTP');
-      return;
-    }
-
-    try {
-      if (activeTrip && activeTrip.pickup_otp === pickupOtp) {
-        setPickupOtpModalVisible(false);
-        setOrderDetailsModalVisible(true);
-        setPickupOtp('');
-      } else {
-        Alert.alert('Error', 'Invalid pickup OTP');
-      }
-    } catch (error: any) {
-      Alert.alert('Error', 'Failed to verify OTP');
-    }
-  };
-
-  const handleStartTrip = async () => {
-    if (!activeTrip) return;
-    try {
-      const trip = await tripService.startTrip(activeTrip.id);
-      setActiveTrip({ ...trip, status: 'in_progress' });
-      setOrderDetailsModalVisible(false);
-      openMaps(trip.dropoff_lat, trip.dropoff_lng);
-      Alert.alert('Trip Started', 'Navigate to dropoff location');
-    } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to start trip');
-    }
-  };
-
-  const handleEndTrip = async () => {
-    if (!tripOtp.trim() || tripOtp.length !== 4) {
-      Alert.alert('Error', 'Please enter a valid 4-digit OTP');
-      return;
-    }
-
-    try {
-      if (activeTrip) {
-        await tripService.endTrip(activeTrip.id, tripOtp);
-        setActiveTrip(null);
-        setOtpModalVisible(false);
-        setTripOtp('');
-        Alert.alert('Success', 'Trip completed successfully');
-        fetchTrips();
-      }
-    } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Invalid OTP');
-    }
-  };
-
-  const handleCancelTrip = async () => {
-    if (!cancelReason.trim()) {
-      Alert.alert('Error', 'Please provide a reason for cancellation');
-      return;
-    }
-
-    try {
-      if (activeTrip) {
-        await tripService.cancelTrip(activeTrip.id, cancelReason);
-        setActiveTrip(null);
-        setCancelModalVisible(false);
-        setCancelReason('');
-        Alert.alert('Success', 'Trip cancelled');
-        fetchTrips();
-      }
-    } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to cancel trip');
-    }
-  };
-
-  const openMaps = (lat: number, lng: number) => {
-    const scheme = Platform.select({
-      ios: 'maps:',
-      android: 'geo:',
-      default: 'https:',
-    });
-    const url = Platform.select({
-      ios: `${scheme}?q=${lat},${lng}`,
-      android: `${scheme}${lat},${lng}`,
-      default: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
-    });
-    Linking.openURL(url);
-  };
-
   return (
     <View style={styles.container}>
       {loading ? (
@@ -245,241 +257,155 @@ export default function HomeScreen() {
           <Text style={styles.loadingText}>Loading...</Text>
         </View>
       ) : (
-        <>
-          {/* Your entire JSX here */}
-       
-      
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <View>
+        <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+          {/* Header */}
+          <View style={styles.header}>
             <Text style={styles.greeting}>Hello, {firstName} 👋</Text>
-            <Text style={styles.serviceInfo}>
-              {vehicleType} • {serviceScope}
-            </Text>
+            <Text>{vehicleType} • {serviceScope}</Text>
+            <Text>⭐ {rating} | {totalTrips} trips</Text>
           </View>
-          <View style={styles.statsContainer}>
-            <View style={styles.statBadge}>
-              <Text style={styles.statValue}>⭐ {rating}</Text>
+
+          {/* Quick Stats */}
+          <View style={styles.quickStats}>
+            <View style={styles.quickStatCard}>
+              <Zap size={20} color="#10B981" />
+              <Text>{pendingTrips.length}</Text>
+              <Text>New Requests</Text>
             </View>
-            <View style={styles.statBadge}>
-              <Text style={styles.statValue}>{totalTrips}</Text>
-              <Text style={styles.statLabel}>trips</Text>
+            <View style={styles.quickStatCard}>
+              <Clock size={20} color="#2563EB" />
+              <Text>{activeTrip ? '1' : '0'}</Text>
+              <Text>Active Trip</Text>
             </View>
           </View>
-        </View>
-      </View>
 
-
-      <View style={styles.quickStats}>
-        <View style={styles.quickStatCard}>
-          <View style={styles.quickStatIcon}>
-            <Zap size={20} color="#10B981" />
-          </View>
-          <View>
-            <Text style={styles.quickStatValue}>{pendingTrips.length}</Text>
-            <Text style={styles.quickStatLabel}>New Requests</Text>
-          </View>
-        </View>
-        <View style={styles.quickStatCard}>
-          <View style={[styles.quickStatIcon, { backgroundColor: '#DBEAFE' }]}>
-            <Clock size={20} color="#2563EB" />
-          </View>
-          <View>
-            <Text style={styles.quickStatValue}>{activeTrip ? '1' : '0'}</Text>
-            <Text style={styles.quickStatLabel}>Active Trip</Text>
-          </View>
-        </View>
-      </View>
-
-      <ScrollView
-        style={styles.scrollView}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {activeTrip && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
+          {/* Active Trip */}
+          {activeTrip && (
+            <View style={styles.section}>
               <Text style={styles.sectionTitle}>Active Trip</Text>
-              <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-                <View style={styles.liveBadge}>
-                  <View style={styles.liveDot} />
-                  <Text style={styles.liveText}>LIVE</Text>
-                </View>
-              </Animated.View>
+              <TripCard 
+                trip={activeTrip} 
+                onStart={handleStartTrip}
+                onEnd={handleEndTrip}
+              />
+              <TripWorkflow
+                trip={activeTrip}
+                onTripComplete={() => { setActiveTrip(null); setRouteCoords(null); loadTrips(userLoc?.lat, userLoc?.lng); }}
+                onTripCancel={() => { setActiveTrip(null); setRouteCoords(null); loadTrips(userLoc?.lat, userLoc?.lng); }}
+              />
             </View>
-            <TripCard
-              trip={activeTrip}
-              onStart={() => openMaps(activeTrip.pickup_lat, activeTrip.pickup_lng)}
-              onEnd={() => setOtpModalVisible(true)}
-            />
-            {activeTrip.status === 'accepted' && (
-              <View style={styles.tripActions}>
-                <TouchableOpacity
-                  style={styles.navigateButton}
-                  onPress={() => openMaps(activeTrip.pickup_lat, activeTrip.pickup_lng)}
-                >
-                  <Navigation size={20} color="#FFFFFF" />
-                  <Text style={styles.navigateButtonText}>Navigate to Pickup</Text>
-                </TouchableOpacity>
-                <Button
-                  title="Reached Pickup"
-                  onPress={handleReachedPickup}
-                  style={styles.reachedButton}
-                />
-              </View>
+          )}
+
+          {/* Pending Trips */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Incoming Requests ({pendingTrips.length})</Text>
+            {region && (
+              <MapView ref={mapRef} style={{ height: 260 }} initialRegion={region}>
+                {userLoc && <Marker coordinate={{ latitude: userLoc.lat, longitude: userLoc.lng }} title="You" />}
+                {pendingTrips.map((o) => (
+                  <Marker
+                    key={o.id || o._id}
+                    coordinate={{ latitude: o.pickup.lat, longitude: o.pickup.lng }}
+                    title={`₹${o.fareEstimate || o.fare}`}
+                    description={`${(o.distanceKm || 0).toFixed(1)} km away`}
+                    onPress={async () => {
+                      setSelectedOrder(o);
+                      if (userLoc) {
+                        const poly = await getRoutePolyline(userLoc, { lat: o.pickup.lat, lng: o.pickup.lng });
+                        setPreviewDistanceKm(poly.distance / 1000);
+                        setPreviewDurationMin(poly.duration / 60);
+                      }
+                      setOrderPreviewVisible(true);
+                    }}
+                  />
+                ))}
+                {routeCoords && <Polyline coordinates={routeCoords} strokeColor="#2563EB" strokeWidth={4} />}
+              </MapView>
             )}
 
-            {activeTrip.status === 'in_progress' && (
-              <View style={styles.tripActions}>
-                <TouchableOpacity
-                  style={styles.navigateButton}
-                  onPress={() => openMaps(activeTrip.dropoff_lat, activeTrip.dropoff_lng)}
-                >
-                  <Navigation size={20} color="#FFFFFF" />
-                  <Text style={styles.navigateButtonText}>Navigate to Dropoff</Text>
-                </TouchableOpacity>
-                <Button
-                  title="Cancel Trip"
-                  onPress={() => setCancelModalVisible(true)}
-                  variant="danger"
-                  style={styles.cancelButton}
-                />
-              </View>
-            )}
-          </View>
-        )}
-
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Incoming Requests</Text>
-            {pendingTrips.length > 0 && (
-              <View style={styles.countBadge}>
-                <Text style={styles.countBadgeText}>{pendingTrips.length}</Text>
-              </View>
-            )}
-          </View>
-          {pendingTrips.length === 0 ? (
-            <View style={styles.emptyState}>
-              <View style={styles.emptyIcon}>
+            {pendingTrips.length === 0 && (
+              <View style={styles.emptyState}>
                 <Navigation size={48} color="#D1D5DB" />
+                <Text>No pending requests</Text>
               </View>
-              <Text style={styles.emptyText}>No pending requests</Text>
-              <Text style={styles.emptySubtext}>
-                New trip requests will appear here
-              </Text>
-            </View>
-          ) : (
-            pendingTrips.map((trip) => (
+            )}
+
+            {pendingTrips.map((trip) => (
               <TripCard
-                key={trip.id}
+                key={trip.id || trip._id}
                 trip={trip}
                 onAccept={handleAcceptTrip}
-                onReject={(id) => {
-                  setSelectedTripId(id);
-                  setRejectModalVisible(true);
-                }}
+                onReject={(id) => { setSelectedTripId(id); setRejectModalVisible(true); }}
               />
-            ))
-          )}
-        </View>
-      </ScrollView>
+            ))}
+          </View>
+        </ScrollView>
+      )}
 
-      <Modal
-        visible={rejectModalVisible}
-        onClose={() => setRejectModalVisible(false)}
-        title="Reject Trip"
-      >
-        <Input
-          label="Reason for Rejection"
-          placeholder="Enter reason..."
-          value={rejectReason}
-          onChangeText={setRejectReason}
-          multiline
-          numberOfLines={4}
-          style={{ height: 100, textAlignVertical: 'top' }}
-        />
+      {/* Modals */}
+      <Modal visible={rejectModalVisible} onClose={() => setRejectModalVisible(false)} title="Reject Trip">
+        <Input label="Reason" value={rejectReason} onChangeText={setRejectReason} multiline numberOfLines={4} />
         <Button title="Submit" onPress={handleRejectTrip} />
       </Modal>
 
-      <Modal
-        visible={cancelModalVisible}
-        onClose={() => setCancelModalVisible(false)}
-        title="Cancel Trip"
-      >
-        <Input
-          label="Reason for Cancellation"
-          placeholder="Enter reason..."
-          value={cancelReason}
-          onChangeText={setCancelReason}
-          multiline
-          numberOfLines={4}
-          style={{ height: 100, textAlignVertical: 'top' }}
-        />
-        <Button title="Cancel Trip" onPress={handleCancelTrip} variant="danger" />
+      <Modal visible={orderPreviewVisible} onClose={() => setOrderPreviewVisible(false)} title="Order Details">
+        <Text>Order #{selectedOrder?.id || selectedOrder?._id}</Text>
+        <Text>Distance: {previewDistanceKm?.toFixed(1)} km</Text>
+        <Text>ETA: {previewDurationMin ? Math.round(previewDurationMin) : '-'} min</Text>
+        <Text>Fare: ₹{selectedOrder?.fareEstimate || selectedOrder?.fare}</Text>
+        <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+          <Button title="Ignore" onPress={() => setOrderPreviewVisible(false)} variant="secondary" />
+          <Button title="Accept" onPress={() => { setOrderPreviewVisible(false); handleAcceptTrip(selectedOrder!.id || selectedOrder!._id || ''); }} />
+        </View>
       </Modal>
 
-      <Modal
-        visible={pickupOtpModalVisible}
-        onClose={() => setPickupOtpModalVisible(false)}
-        title="Verify Pickup OTP"
-      >
-        <Text style={styles.otpInstruction}>
-          Enter the 4-digit pickup OTP provided by the customer.
-        </Text>
-        <Input
-          label="Pickup OTP"
-          placeholder="Enter 4-digit OTP"
-          value={pickupOtp}
-          onChangeText={setPickupOtp}
-          keyboardType="number-pad"
-          maxLength={4}
-        />
-        <Button title="Verify & Continue" onPress={handleVerifyPickupOtp} />
+      <Modal visible={!!incomingTrip} onClose={() => setIncomingTrip(null)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>New Trip Available!</Text>
+            <Text>Pickup: {incomingTrip?.pickup.address}</Text>
+            <Text>Destination: {incomingTrip?.destination?.address || incomingTrip?.delivery?.address}</Text>
+            <Text>Fare: ₹{incomingTrip?.fare}</Text>
+            <View style={{ flexDirection: 'row', marginTop: 16, justifyContent: 'space-between' }}>
+              <TouchableOpacity
+                style={[styles.modalBtn, { backgroundColor: '#10B981' }]}
+                onPress={async () => {
+                  await handleAcceptTrip(incomingTrip!.id || incomingTrip!._id || '');
+                  setIncomingTrip(null);
+                }}
+              >
+                <Text style={{ color: '#fff', fontWeight: '700' }}>Accept</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalBtn, { backgroundColor: '#EF4444' }]}
+                onPress={() => setIncomingTrip(null)}
+              >
+                <Text style={{ color: '#fff', fontWeight: '700' }}>Decline</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
-
-      <Modal
-        visible={orderDetailsModalVisible}
-        onClose={() => setOrderDetailsModalVisible(false)}
-        title="Enter Order Details"
-      >
-        <OrderDetailsInput
-          serviceType={activeTrip?.service_type || ''}
-          value={tempOrderDetails}
-          onChange={setTempOrderDetails}
-        />
-        <Button
-          title="Start Trip"
-          onPress={handleStartTrip}
-          style={{ marginTop: 16 }}
-        />
-      </Modal>
-
-      <Modal
-        visible={otpModalVisible}
-        onClose={() => setOtpModalVisible(false)}
-        title="End Trip"
-      >
-        <Text style={styles.otpInstruction}>
-          Enter the 4-digit OTP provided by the customer to complete the trip.
-        </Text>
-        <Input
-          label="Trip OTP"
-          placeholder="Enter 4-digit OTP"
-          value={tripOtp}
-          onChangeText={setTripOtp}
-          keyboardType="number-pad"
-          maxLength={4}
-        />
-        <Button title="Complete Trip" onPress={handleEndTrip} />
-      </Modal>
-      </>
-      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    backgroundColor: '#fff',
+    padding: 24,
+    borderRadius: 16,
+    width: '80%',
+  },
+  modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12 },
+  modalBtn: { flex: 1, padding: 12, borderRadius: 8, alignItems: 'center', marginHorizontal: 4 },
+
   container: {
     flex: 1,
     backgroundColor: '#F5F7FA',
@@ -701,5 +627,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     marginBottom: 16,
+  },
+  stickyControls: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
   },
 });

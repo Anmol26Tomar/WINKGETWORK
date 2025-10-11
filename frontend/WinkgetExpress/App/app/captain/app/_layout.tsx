@@ -11,9 +11,9 @@ export default function RootLayout() {
     <AuthProvider>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
+
         <Stack.Screen name="(captabs)" />
         <Stack.Screen name="+not-found" />
-        <Stack.Screen name="verify-otp" />
       </Stack>
       <StatusBar style="auto" />
     </AuthProvider>

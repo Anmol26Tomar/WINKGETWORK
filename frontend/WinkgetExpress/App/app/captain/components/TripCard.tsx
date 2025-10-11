@@ -36,7 +36,7 @@ export const TripCard: React.FC<TripCardProps> = ({
     <View style={styles.card}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.serviceType}>{trip.service_type}</Text>
+          <Text style={styles.serviceType}>{trip.type || trip.serviceType || 'Transport'}</Text>
           {trip.status === 'pending' && (
             <View style={styles.timeInfo}>
               <Clock size={12} color="#9CA3AF" />
@@ -59,7 +59,7 @@ export const TripCard: React.FC<TripCardProps> = ({
           <View style={styles.locationText}>
             <Text style={styles.locationLabel}>Pickup</Text>
             <Text style={styles.locationAddress} numberOfLines={1}>
-              {trip.pickup_location}
+              {trip.pickup?.address || 'Pickup location'}
             </Text>
           </View>
         </View>
@@ -73,7 +73,7 @@ export const TripCard: React.FC<TripCardProps> = ({
           <View style={styles.locationText}>
             <Text style={styles.locationLabel}>Drop-off</Text>
             <Text style={styles.locationAddress} numberOfLines={1}>
-              {trip.dropoff_location}
+              {trip.destination?.address || trip.delivery?.address || 'Destination'}
             </Text>
           </View>
         </View>
@@ -82,11 +82,11 @@ export const TripCard: React.FC<TripCardProps> = ({
       <View style={styles.detailsRow}>
         <View style={styles.detailCard}>
           <Navigation size={16} color="#2563EB" />
-          <Text style={styles.detailText}>{trip.distance.toFixed(1)} km</Text>
+          <Text style={styles.detailText}>{(trip.distanceKm || trip.distance || 0).toFixed(1)} km</Text>
         </View>
         <View style={[styles.detailCard, styles.fareCard]}>
           <DollarSign size={16} color="#10B981" />
-          <Text style={[styles.detailText, styles.fareText]}>₹{trip.estimated_fare}</Text>
+          <Text style={[styles.detailText, styles.fareText]}>₹{trip.fareEstimate || trip.fare || trip.estimatedFare || 0}</Text>
         </View>
       </View>
 
@@ -94,13 +94,13 @@ export const TripCard: React.FC<TripCardProps> = ({
         <View style={styles.actions}>
           <TouchableOpacity
             style={[styles.actionButton, styles.rejectButton]}
-            onPress={() => onReject?.(trip.id)}
+            onPress={() => onReject?.(trip.id || trip._id)}
           >
             <Text style={styles.rejectButtonText}>Reject</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionButton, styles.acceptButton]}
-            onPress={() => onAccept?.(trip.id)}
+            onPress={() => onAccept?.(trip.id || trip._id)}
           >
             <Text style={styles.acceptButtonText}>Accept</Text>
           </TouchableOpacity>
@@ -110,7 +110,7 @@ export const TripCard: React.FC<TripCardProps> = ({
       {showActions && trip.status === 'accepted' && (
         <TouchableOpacity
           style={styles.startButton}
-          onPress={() => onStart?.(trip.id)}
+          onPress={() => onStart?.(trip.id || trip._id)}
         >
           <Text style={styles.startButtonText}>Start Trip</Text>
         </TouchableOpacity>
@@ -119,7 +119,7 @@ export const TripCard: React.FC<TripCardProps> = ({
       {showActions && trip.status === 'in_progress' && (
         <TouchableOpacity
           style={styles.endButton}
-          onPress={() => onEnd?.(trip.id)}
+          onPress={() => onEnd?.(trip.id || trip._id)}
         >
           <Text style={styles.endButtonText}>End Trip</Text>
         </TouchableOpacity>
@@ -127,6 +127,8 @@ export const TripCard: React.FC<TripCardProps> = ({
     </View>
   );
 };
+
+export default TripCard;
 
 const styles = StyleSheet.create({
   card: {

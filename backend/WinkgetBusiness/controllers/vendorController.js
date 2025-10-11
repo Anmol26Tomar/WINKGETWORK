@@ -362,6 +362,7 @@ const getVendorCategoryPublic = async (req, res) => {
     res.status(500).json({ message: 'Server error' })
   }
 }
+<<<<<<< HEAD
 
 // Public: Get vendors by category
 const getVendorsByCategory = async (req, res) => {
@@ -399,3 +400,5 @@ const getVendorsByCategory = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+=======
+>>>>>>> 17a61c345afa87eb4304d529a410f1b049e9f3cf

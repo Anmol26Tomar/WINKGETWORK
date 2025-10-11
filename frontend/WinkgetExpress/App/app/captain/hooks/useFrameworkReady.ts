@@ -11,3 +11,6 @@ export function useFrameworkReady() {
     window.frameworkReady?.();
   });
 }
+
+// Default export to appease Expo Router route resolution
+export default function CaptainHooksRoute() { return null as any; }

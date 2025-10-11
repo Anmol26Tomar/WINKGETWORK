@@ -18,9 +18,6 @@ const {
 } = require('../controllers/vendorController');
 
 const router = express.Router();
-const { getVendorById, getVendorProducts, getVendorReviews } = require('../controllers/vendorController');
-const { verifyToken, requireRole } = require('../middleware/auth');
-const Vendor = require('../models/Vendor');
 
 // Public routes
 router.get('/public', getVendors); // Public vendor listing

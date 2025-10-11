@@ -31,7 +31,7 @@ function AuthRedirect() {
       return <Navigate to="/admin/dashboard" replace />
     }
   }
-  return <Navigate to="/home" replace />
+  return <Navigate to="/login" replace />
 }
 
 function ProtectedRoute() {
@@ -98,7 +98,7 @@ export default function App() {
           <Route path="/admin/contact" element={<ContactExpress />} />
         </Route>
         <Route path="/signup" element={<Signup />} />
-        <Route path="*" element={<Navigate to="/home" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </AppProvider>
   )
