@@ -15,6 +15,9 @@ import Signup from './pages/Signup.jsx'
 import Home from './pages/Home.jsx'
 import AdminVendors from './pages/AdminVendors.jsx'
 import ContactExpress from './pages/ContactExpress.jsx'
+import CategoryList from './components/CategoryList.jsx'
+import BusinessList from './components/BusinessList.jsx'
+import VendorDetail from './components/VendorDetail.jsx'
 
 function AuthRedirect() {
   const { state } = useApp()
@@ -92,6 +95,9 @@ export default function App() {
         </Route>
         <Route path="/login" element={<Login />} />
         <Route path="/home" element={<Home />} />
+        <Route path="/categories" element={<CategoryList />} />
+        <Route path="/businesses/:categorySlug" element={<BusinessList />} />
+        <Route path="/vendor/:vendorId" element={<VendorDetail />} />
         <Route element={<AdminRoute />}>
           <Route path="/admin/vendors" element={<AdminVendors />} />
           <Route path="/admin/dashboard" element={<Dashboard />} />
