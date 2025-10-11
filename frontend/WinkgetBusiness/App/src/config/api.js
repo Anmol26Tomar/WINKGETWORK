@@ -72,6 +72,11 @@ export const API_ENDPOINTS = {
     PROFILE: '/auth/profile',
     UPDATE_PROFILE: '/auth/profile',
   },
+  VENDORS: {
+    LIST: '/vendors/public',
+    BY_CATEGORY: '/vendors/category',
+    DETAILS: '/vendors/public',
+  },
 };
 
 export default api;
