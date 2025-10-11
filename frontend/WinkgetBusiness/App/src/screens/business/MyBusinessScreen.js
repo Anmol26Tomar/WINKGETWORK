@@ -8,54 +8,52 @@ import {
 import { Card, Title, Paragraph, Button } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../../context/AuthContext';
 
-const HomeScreen = () => {
-  const { user } = useAuth();
-
+const MyBusinessScreen = () => {
   return (
     <ScrollView style={styles.container}>
       <LinearGradient
-        colors={['#3B82F6', '#1D4ED8']}
+        colors={['#8B5CF6', '#7C3AED']}
         style={styles.headerGradient}
       >
         <View style={styles.header}>
-          <View style={styles.welcomeContainer}>
-            <Ionicons name="home" size={64} color="white" />
-            <Title style={styles.welcomeTitle}>Dashboard</Title>
-            <Text style={styles.welcomeSubtitle}>
-              Welcome back, {user?.name || 'User'}!
-            </Text>
+          <View style={styles.titleContainer}>
+            <Ionicons name="business" size={48} color="white" />
+            <Title style={styles.title}>My Business</Title>
+            <Text style={styles.subtitle}>Manage your business operations</Text>
           </View>
         </View>
       </LinearGradient>
 
       <View style={styles.content}>
-        <Card style={styles.overviewCard}>
+        <Card style={styles.infoCard}>
           <Card.Content>
-            <Title style={styles.overviewTitle}>📊 Business Overview</Title>
-            <Paragraph style={styles.overviewText}>
-              Your business dashboard provides a comprehensive view of your operations, 
-              sales performance, and key metrics.
+            <Title style={styles.infoTitle}>🏢 Business Management</Title>
+            <Paragraph style={styles.infoText}>
+              This is your business dashboard where you can manage your business profile, 
+              settings, analytics, and overall business operations.
             </Paragraph>
+            <Button mode="contained" style={styles.button}>
+              Business Settings
+            </Button>
           </Card.Content>
         </Card>
 
-        <Card style={styles.statsCard}>
+        <Card style={styles.analyticsCard}>
           <Card.Content>
-            <Title style={styles.statsTitle}>Quick Stats</Title>
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>0</Text>
-                <Text style={styles.statLabel}>Total Orders</Text>
+            <Title style={styles.analyticsTitle}>Business Analytics</Title>
+            <View style={styles.analyticsRow}>
+              <View style={styles.analyticsItem}>
+                <Text style={styles.analyticsNumber}>0</Text>
+                <Text style={styles.analyticsLabel}>Total Sales</Text>
               </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>₹0</Text>
-                <Text style={styles.statLabel}>Revenue</Text>
+              <View style={styles.analyticsItem}>
+                <Text style={styles.analyticsNumber}>0</Text>
+                <Text style={styles.analyticsLabel}>Customers</Text>
               </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>0</Text>
-                <Text style={styles.statLabel}>Products</Text>
+              <View style={styles.analyticsItem}>
+                <Text style={styles.analyticsNumber}>0%</Text>
+                <Text style={styles.analyticsLabel}>Growth</Text>
               </View>
             </View>
           </Card.Content>
@@ -65,21 +63,17 @@ const HomeScreen = () => {
           <Card.Content>
             <Title style={styles.quickActionsTitle}>Quick Actions</Title>
             <View style={styles.actionsGrid}>
-              <Button mode="contained" style={styles.actionButton}>
-                <Ionicons name="add" size={16} color="white" />
-                <Text style={styles.actionText}>Add Product</Text>
+              <Button mode="outlined" style={styles.actionButton}>
+                View Reports
               </Button>
               <Button mode="outlined" style={styles.actionButton}>
-                <Ionicons name="list" size={16} color="#3B82F6" />
-                <Text style={styles.actionText}>View Orders</Text>
+                Manage Staff
               </Button>
               <Button mode="outlined" style={styles.actionButton}>
-                <Ionicons name="analytics" size={16} color="#3B82F6" />
-                <Text style={styles.actionText}>Analytics</Text>
+                Business Hours
               </Button>
               <Button mode="outlined" style={styles.actionButton}>
-                <Ionicons name="settings" size={16} color="#3B82F6" />
-                <Text style={styles.actionText}>Settings</Text>
+                Notifications
               </Button>
             </View>
           </Card.Content>
@@ -101,63 +95,67 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
   },
-  welcomeContainer: {
+  titleContainer: {
     alignItems: 'center',
   },
-  welcomeTitle: {
+  title: {
     fontSize: 28,
     fontWeight: 'bold',
     color: 'white',
     marginTop: 16,
     marginBottom: 8,
   },
-  welcomeSubtitle: {
+  subtitle: {
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.9)',
   },
   content: {
     padding: 20,
   },
-  overviewCard: {
+  infoCard: {
     marginBottom: 20,
     elevation: 2,
     borderRadius: 12,
   },
-  overviewTitle: {
+  infoTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#1F2937',
     marginBottom: 12,
   },
-  overviewText: {
+  infoText: {
     fontSize: 16,
     color: '#6B7280',
     lineHeight: 24,
+    marginBottom: 16,
   },
-  statsCard: {
+  button: {
+    marginTop: 8,
+  },
+  analyticsCard: {
     marginBottom: 20,
     elevation: 2,
     borderRadius: 12,
   },
-  statsTitle: {
+  analyticsTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#1F2937',
     marginBottom: 16,
   },
-  statsRow: {
+  analyticsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
   },
-  statItem: {
+  analyticsItem: {
     alignItems: 'center',
   },
-  statNumber: {
+  analyticsNumber: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#3B82F6',
+    color: '#8B5CF6',
   },
-  statLabel: {
+  analyticsLabel: {
     fontSize: 14,
     color: '#6B7280',
     marginTop: 4,
@@ -180,15 +178,7 @@ const styles = StyleSheet.create({
   actionButton: {
     width: '48%',
     marginBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionText: {
-    marginLeft: 4,
-    fontSize: 14,
-    fontWeight: '600',
   },
 });
 
-export default HomeScreen;
+export default MyBusinessScreen;

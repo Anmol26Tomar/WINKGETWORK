@@ -7,7 +7,6 @@ const AuthContext = createContext();
 const initialState = {
   user: null,
   token: null,
-  businesses: [],
   isLoading: true,
   isAuthenticated: false,
 };
@@ -21,7 +20,6 @@ const authReducer = (state, action) => {
         ...state,
         user: action.payload.user,
         token: action.payload.token,
-        businesses: action.payload.businesses || [],
         isAuthenticated: true,
         isLoading: false,
       };
@@ -30,7 +28,6 @@ const authReducer = (state, action) => {
         ...state,
         user: null,
         token: null,
-        businesses: [],
         isAuthenticated: false,
         isLoading: false,
       };
@@ -38,11 +35,6 @@ const authReducer = (state, action) => {
       return {
         ...state,
         user: { ...state.user, ...action.payload },
-      };
-    case 'SET_BUSINESSES':
-      return {
-        ...state,
-        businesses: action.payload,
       };
     default:
       return state;
@@ -66,7 +58,7 @@ export const AuthProvider = ({ children }) => {
         const user = JSON.parse(userData);
         dispatch({
           type: 'LOGIN_SUCCESS',
-          payload: { user, token, businesses: [] },
+          payload: { user, token },
         });
       } else {
         dispatch({ type: 'SET_LOADING', payload: false });
@@ -86,7 +78,7 @@ export const AuthProvider = ({ children }) => {
         password,
       });
 
-      const { token, user, businesses } = response.data;
+      const { token, user } = response.data;
 
       // Store token and user data
       await AsyncStorage.setItem('authToken', token);
@@ -94,7 +86,7 @@ export const AuthProvider = ({ children }) => {
 
       dispatch({
         type: 'LOGIN_SUCCESS',
-        payload: { user, token, businesses },
+        payload: { user, token },
       });
 
       return { success: true };
@@ -120,7 +112,7 @@ export const AuthProvider = ({ children }) => {
       };
       const response = await api.post(API_ENDPOINTS.AUTH.REGISTER, payload);
 
-      const { token, user, businesses } = response.data;
+      const { token, user } = response.data;
 
       // Store token and user data
       await AsyncStorage.setItem('authToken', token);
@@ -128,7 +120,7 @@ export const AuthProvider = ({ children }) => {
 
       dispatch({
         type: 'LOGIN_SUCCESS',
-        payload: { user, token, businesses },
+        payload: { user, token },
       });
 
       return { success: true };
@@ -173,32 +165,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const getBusinesses = async () => {
-    try {
-      const response = await api.get(API_ENDPOINTS.BUSINESS.LIST);
-      const businesses = response.data.businesses;
-      
-      dispatch({
-        type: 'SET_BUSINESSES',
-        payload: businesses,
-      });
-
-      return { success: true, businesses };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.response?.data?.message || 'Failed to fetch businesses',
-      };
-    }
-  };
-
   const value = {
     ...state,
     login,
     register,
     logout,
     updateProfile,
-    getBusinesses,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
