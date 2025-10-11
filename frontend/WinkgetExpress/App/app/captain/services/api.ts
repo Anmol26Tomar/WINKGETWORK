@@ -1,6 +1,13 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_BASE_URL, API_ENDPOINTS } from '../constants/api';
+// Removed secureStore import - using AsyncStorage instead
+import { 
+  API_BASE_URL, 
+  API_ENDPOINTS, 
+  MAPTILER_BASE_URL, 
+  MAPTILER_PROFILE, 
+  MAPTILER_KEY 
+} from '../constants/api';
 import type {
   LoginCredentials,
   SignupData,
@@ -11,21 +18,18 @@ import type {
   EarningSummary,
 } from '../types';
 
+// Axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
 });
 
-// Automatically attach auth token if present
+// Attach token automatically
 api.interceptors.request.use(
   async (config) => {
-    const token = await AsyncStorage.getItem('auth_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    const token = await AsyncStorage.getItem('token');
+    if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   },
   (error) => Promise.reject(error)
@@ -36,37 +40,51 @@ api.interceptors.request.use(
 // ========================
 export const authService = {
   login: async (credentials: LoginCredentials) => {
-  try {
-    const response = await api.post(API_ENDPOINTS.LOGIN, credentials);
-    if (response.data.token) await AsyncStorage.setItem('auth_token', response.data.token);
-    return response.data;
-  } catch (error: any) {
-    console.error("Login error:", error);
-    return { success: false, message: error.response?.data?.message || error.message };
-  }
-},
+    try {
+      const { data } = await api.post(API_ENDPOINTS.LOGIN, credentials);
+      if (data.token) await AsyncStorage.setItem('token', data.token);
+      return data;
+    } catch (error: any) {
+      console.error('Login error:', error);
+      return { success: false, message: error.response?.data?.message || error.message };
+    }
+  },
 
   signup: async (data: SignupData) => {
-    const response = await api.post(API_ENDPOINTS.SIGNUP, data);
-    return response.data;
+    try {
+      const { data: res } = await api.post(API_ENDPOINTS.SIGNUP, data);
+      if (res.token) await AsyncStorage.setItem('token', res.token);
+      return res;
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      throw error;
+    }
   },
 
   verifyOTP: async (data: OTPVerification) => {
-    const response = await api.post(API_ENDPOINTS.VERIFY_OTP, data);
-    if (response.data.token) {
-      await AsyncStorage.setItem('auth_token', response.data.token);
+    try {
+      const { data: res } = await api.post(API_ENDPOINTS.VERIFY_OTP, data);
+      if (!res.success) throw new Error(res.message || 'OTP verification failed');
+      if (res.token) await AsyncStorage.setItem('token', res.token);
+      return res;
+    } catch (error: any) {
+      console.error('OTP verification error:', error);
+      throw error;
     }
-    return response.data;
   },
 
   resendOTP: async (phone: string) => {
-    const response = await api.post(API_ENDPOINTS.RESEND_OTP, { phone });
-    return response.data;
+    const { data } = await api.post(API_ENDPOINTS.RESEND_OTP, { phone });
+    return data;
+  },
+
+  getProfile: async (): Promise<Captain> => {
+    const { data } = await api.get(API_ENDPOINTS.GET_CAPTAIN_PROFILE);
+    return data;
   },
 
   logout: async () => {
-    await AsyncStorage.removeItem('auth_token');
-    await AsyncStorage.removeItem('captain_data');
+    await AsyncStorage.multiRemove(['captain_data', 'pending_captain_phone']);
   },
 };
 
@@ -75,13 +93,13 @@ export const authService = {
 // ========================
 export const captainService = {
   getProfile: async (): Promise<Captain> => {
-    const response = await api.get(API_ENDPOINTS.GET_CAPTAIN_PROFILE);
-    return response.data;
+    const { data } = await api.get(API_ENDPOINTS.GET_CAPTAIN_PROFILE);
+    return data;
   },
 
   updateProfile: async (data: Partial<Captain>): Promise<Captain> => {
-    const response = await api.put(API_ENDPOINTS.UPDATE_CAPTAIN_PROFILE, data);
-    return response.data;
+    const { data: res } = await api.put(API_ENDPOINTS.UPDATE_CAPTAIN_PROFILE, data);
+    return res;
   },
 
   updateAvailability: async (isAvailable: boolean): Promise<void> => {
@@ -93,37 +111,64 @@ export const captainService = {
 // TRIP SERVICE
 // ========================
 export const tripService = {
-  getPendingRequests: async (): Promise<Trip[]> => {
-    const response = await api.get(API_ENDPOINTS.GET_PENDING_REQUESTS);
-    return response.data;
+  getPendingRequests: async (
+    lat?: number,
+    lng?: number,
+    opts?: { vehicleType?: string; serviceType?: string; vehicleSubType?: string }
+  ): Promise<Trip[]> => {
+    const { data } = await api.get(API_ENDPOINTS.GET_PENDING_REQUESTS, {
+      params: { lat, lng, rangeKm: 10, vehicleType: opts?.vehicleType, serviceType: opts?.serviceType, vehicleSubType: opts?.vehicleSubType },
+    });
+    console.log("pending requests",data);
+    return data.orders as Trip[];
   },
 
   getActiveTrip: async (): Promise<Trip | null> => {
-    const response = await api.get(API_ENDPOINTS.GET_ACTIVE_TRIP);
-    return response.data;
+    const { data } = await api.get(API_ENDPOINTS.GET_ACTIVE_TRIP);
+    return data;
   },
 
   acceptTrip: async (tripId: string): Promise<Trip> => {
-    const response = await api.post(API_ENDPOINTS.ACCEPT_TRIP, { trip_id: tripId });
-    return response.data;
+    const url = API_ENDPOINTS.ACCEPT_TRIP.replace(':id', tripId);
+    const { data } = await api.post(url);
+    return data.parcel as Trip;
+  },
+
+  reachTrip: async (tripId: string): Promise<void> => {
+    const url = API_ENDPOINTS.REACH_TRIP.replace(':id', tripId);
+    await api.post(url);
+  },
+
+  reachDestination: async (tripId: string): Promise<void> => {
+    const url = API_ENDPOINTS.REACH_DEST.replace(':id', tripId);
+    await api.post(url);
+  },
+
+  verifyPickupOtp: async (tripId: string, code: string): Promise<void> => {
+    const url = API_ENDPOINTS.VERIFY_PICKUP_OTP.replace(':id', tripId);
+    await api.post(url, { code });
   },
 
   rejectTrip: async (tripId: string, reason: string): Promise<void> => {
-    await api.post(API_ENDPOINTS.REJECT_TRIP, { trip_id: tripId, reason });
+    const url = API_ENDPOINTS.REJECT_TRIP.replace(':id', tripId);
+    await api.post(url, { reason });
   },
 
   startTrip: async (tripId: string): Promise<Trip> => {
-    const response = await api.post(API_ENDPOINTS.START_TRIP, { trip_id: tripId });
-    return response.data;
+    const url = API_ENDPOINTS.START_TRIP.replace(':id', tripId);
+    const { data } = await api.post(url);
+    return data;
   },
 
   endTrip: async (tripId: string, otp: string): Promise<Trip> => {
-    const response = await api.post(API_ENDPOINTS.END_TRIP, { trip_id: tripId, otp });
-    return response.data;
+    const url = API_ENDPOINTS.END_TRIP.replace(':id', tripId);
+    const { data } = await api.post(url, { code: otp });
+    return data;
   },
 
   cancelTrip: async (tripId: string, reason: string): Promise<void> => {
-    await api.post(API_ENDPOINTS.CANCEL_TRIP, { trip_id: tripId, reason });
+    const url = API_ENDPOINTS.CANCEL_TRIP.replace(':id', tripId);
+    await api.post(url, { reason });
   },
 };
 
@@ -132,16 +177,34 @@ export const tripService = {
 // ========================
 export const earningsService = {
   getEarnings: async (startDate?: string, endDate?: string): Promise<Earning[]> => {
-    const response = await api.get(API_ENDPOINTS.GET_EARNINGS, {
-      params: { start_date: startDate, end_date: endDate },
-    });
-    return response.data;
+    const { data } = await api.get(API_ENDPOINTS.GET_EARNINGS, { params: { start_date: startDate, end_date: endDate } });
+    return data;
   },
 
   getSummary: async (): Promise<EarningSummary> => {
-    const response = await api.get(API_ENDPOINTS.GET_EARNINGS_SUMMARY);
-    return response.data;
+    const { data } = await api.get(API_ENDPOINTS.GET_EARNINGS_SUMMARY);
+    return data;
   },
 };
 
 export default api;
+
+// ========================
+// MAP/DIRECTIONS SERVICE
+// ========================
+export async function getRoutePolyline(
+  from: { lat: number; lng: number },
+  to: { lat: number; lng: number }
+): Promise<{ coordinates: [number, number][]; distance: number; duration: number }> {
+  const coords = `${from.lng},${from.lat};${to.lng},${to.lat}`;
+  const url = `${MAPTILER_BASE_URL}/${MAPTILER_PROFILE}/${coords}?key=${MAPTILER_KEY}&geometries=geojson&overview=full`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Failed to fetch directions');
+  const data = await res.json();
+  const route = data?.routes?.[0];
+  return {
+    coordinates: route?.geometry?.coordinates || [],
+    distance: route?.distance || 0,
+    duration: route?.duration || 0,
+  };
+}

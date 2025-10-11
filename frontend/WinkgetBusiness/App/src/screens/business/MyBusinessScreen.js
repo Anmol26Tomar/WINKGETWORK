@@ -463,7 +463,10 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginBottom: 16,
   },
-  button: {
+  comingSoonText: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    fontStyle: 'italic',
     marginTop: 8,
   },
   analyticsCard: {

@@ -19,7 +19,8 @@ const agentSchema = new mongoose.Schema({
       validator: function (v) {
         return /^\d{10}$/.test(v); // exactly 10 digits
       },
-      message: (props) => `${props.value} is not a valid 10-digit phone number!`,
+      message: (props) =>
+        `${props.value} is not a valid 10-digit phone number!`,
     },
   },
   city: {
@@ -43,7 +44,7 @@ const agentSchema = new mongoose.Schema({
     required: true,
     validate: {
       validator: function (v) {
-        // Fix: match enum values exactly
+        // Ensure bikes can only do intra-city services
         if (this.vehicleType === "bike" && v !== "intra-city") {
           return false;
         }
@@ -55,6 +56,10 @@ const agentSchema = new mongoose.Schema({
   password: {
     type: String,
     required: true,
+  },
+  approved: {
+    type: Boolean,
+    default: false,
   },
 });
 

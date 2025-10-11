@@ -1,6 +1,6 @@
 import io from 'socket.io-client';
 
-const DEFAULT_BASE = 'http://10.170.131.51:5000';
+const DEFAULT_BASE = 'http://172.20.49.88:5000';
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || DEFAULT_BASE;
 
 let socketInstance = null;

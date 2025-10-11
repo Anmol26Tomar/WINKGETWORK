@@ -1,7 +1,10 @@
 import React, { useState } from 'react'
 import { vendorSignup } from '../services/vendorService'
+import { rawCategories } from '../utils/categories'
+import { useApp } from '../context/AppContext'
 
 export default function VendorSignupForm({ onSuccess, onError }) {
+  const { dispatch } = useApp()
   const [formData, setFormData] = useState({
     // Basic Information
     ownerName: '',
@@ -123,7 +126,11 @@ export default function VendorSignupForm({ onSuccess, onError }) {
         delete signupData.websiteLink
       }
       
-      await vendorSignup(signupData)
+      const user = await vendorSignup(signupData)
+      
+      // Update auth context to mark user as authenticated
+      dispatch({ type: 'LOGIN_SUCCESS', payload: user })
+      
       onSuccess?.()
     } catch (error) {
       // Handle specific field errors
@@ -137,19 +144,8 @@ export default function VendorSignupForm({ onSuccess, onError }) {
     }
   }
 
-  const businessCategories = [
-    'Electronics',
-    'Clothing & Fashion',
-    'Home & Garden',
-    'Sports & Outdoors',
-    'Health & Beauty',
-    'Automotive',
-    'Books & Media',
-    'Food & Beverage',
-    'Jewelry & Accessories',
-    'Toys & Games',
-    'Other'
-  ]
+  // Extract main categories from rawCategories
+  const businessCategories = rawCategories.map(category => category.category)
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">

@@ -999,7 +999,22 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 20,
   },
-  retryButton: {
+  infoTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 12,
+  },
+  infoText: {
+    fontSize: 16,
+    color: '#6B7280',
+    lineHeight: 24,
+    marginBottom: 16,
+  },
+  comingSoonText: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    fontStyle: 'italic',
     marginTop: 8,
   },
   // Empty State

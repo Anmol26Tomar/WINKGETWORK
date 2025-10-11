@@ -1,32 +1,25 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const cookieParser = require("cookie-parser");
 const path = require("path");
 const { connectDB } = require("./WinkgetExpress/config/db");
+const adminAuthRoutes = require("./WinkgetExpress/routes/AdminAuth");
 
 const app = express();
 const http = require("http").createServer(app);
 const { Server } = require("socket.io");
 const { setIO } = require("./WinkgetExpress/utils/socket");
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 5000;
 
 // Configure CORS to allow credentials
-app.use(
-  cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:3000",
-      "http://localhost:3001",
-    ],
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-    exposedHeaders: ["Set-Cookie"],
-  })
-);
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001','*'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Set-Cookie']
+}));
 app.use(express.json());
-app.use(cookieParser());
 
 connectDB();
 
@@ -39,16 +32,20 @@ app.use("/api/parcels", require("./WinkgetExpress/routes/parcelRoutes"));
 app.use("/api/transport", require("./WinkgetExpress/routes/transportRoutes"));
 
 // Winkget Business APIs
-app.use("/api/business/auth", require("./WinkgetBusiness/routes/auth"));
-app.use("/api/business/vendors", require("./WinkgetBusiness/routes/vendors"));
-app.use("/api/business/products", require("./WinkgetBusiness/routes/products"));
-app.use("/api/business/contact", require("./WinkgetBusiness/routes/contact"));
+app.use('/api/business/auth', require('./WinkgetBusiness/routes/auth'));
+app.use('/api/business/vendors', require('./WinkgetBusiness/routes/vendors'));
+app.use('/api/business/products', require('./WinkgetBusiness/routes/products'));
+app.use('/api/business/contact', require('./WinkgetBusiness/routes/contact'));
+app.use('/api/business/bills', require('./WinkgetBusiness/routes/bills'));
 
 //captain routing
 
 app.use("/api/auth/agent", agentRoutes);
 app.use("/api/agents", require("./WinkgetExpress/routes/agents"));
-app.use("/api/agent", require("./WinkgetExpress/routes/agents"));
+app.use("/api/agent", require("./WinkgetExpress/routes/agent"));
+app.use("/api/auth/admin", adminAuthRoutes);
+
+// express admin routing
 
 const io = new Server(http, { cors: { origin: "*" } });
 setIO(io);

@@ -11,6 +11,7 @@ export const endpoints = {
     vendors: '/api/business/vendors',
     products: '/api/business/products',
     contact: '/api/business/contact',
+    bills: '/api/business/bills',
   },
 };
 
