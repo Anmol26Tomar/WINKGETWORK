@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
 // Import screens
-import HomeScreen from '../screens/home/HomeScreen';
+import DashboardStack from './DashboardStack';
 import MyStoreScreen from '../screens/store/MyStoreScreen';
 import MyBusinessScreen from '../screens/business/MyBusinessScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
@@ -47,8 +47,8 @@ const TabNavigator = () => {
       })}
     >
       <Tab.Screen 
-        name="Home" 
-        component={HomeScreen}
+        name="Dashboard" 
+        component={DashboardStack}
         options={{
           tabBarLabel: 'Dashboard',
         }}

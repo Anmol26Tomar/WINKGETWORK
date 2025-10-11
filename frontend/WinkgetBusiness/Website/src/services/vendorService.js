@@ -94,3 +94,15 @@ export async function getPublicVendorProfile(vendorId, includeProducts = false) 
   if (!res.ok) throw new Error(data.message || 'Failed to fetch vendor profile')
   return data
 }
+
+export async function getVendorsByCategory(category, filters = {}) {
+  const url = new URL(`${API_BASE_URL}${endpoints.business.vendors}/public/category/${category}`)
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value) url.searchParams.set(key, value)
+  })
+  
+  const res = await fetch(url, { credentials: 'include' })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.message || 'Failed to fetch vendors by category')
+  return data
+}

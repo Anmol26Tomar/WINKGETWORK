@@ -15,6 +15,9 @@ import Signup from './pages/Signup.jsx'
 import Home from './pages/Home.jsx'
 import AdminVendors from './pages/AdminVendors.jsx'
 import ContactExpress from './pages/ContactExpress.jsx'
+import CategoryList from './components/CategoryList.jsx'
+import BusinessList from './components/BusinessList.jsx'
+import VendorDetail from './components/VendorDetail.jsx'
 
 function AuthRedirect() {
   const { state } = useApp()
@@ -31,7 +34,7 @@ function AuthRedirect() {
       return <Navigate to="/admin/dashboard" replace />
     }
   }
-  return <Navigate to="/home" replace />
+  return <Navigate to="/login" replace />
 }
 
 function ProtectedRoute() {
@@ -92,13 +95,16 @@ export default function App() {
         </Route>
         <Route path="/login" element={<Login />} />
         <Route path="/home" element={<Home />} />
+        <Route path="/categories" element={<CategoryList />} />
+        <Route path="/businesses/:categorySlug" element={<BusinessList />} />
+        <Route path="/vendor/:vendorId" element={<VendorDetail />} />
         <Route element={<AdminRoute />}>
           <Route path="/admin/vendors" element={<AdminVendors />} />
           <Route path="/admin/dashboard" element={<Dashboard />} />
           <Route path="/admin/contact" element={<ContactExpress />} />
         </Route>
         <Route path="/signup" element={<Signup />} />
-        <Route path="*" element={<Navigate to="/home" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </AppProvider>
   )

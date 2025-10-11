@@ -135,6 +135,8 @@ export const OrderDetailsInput: React.FC<OrderDetailsInputProps> = ({
   );
 };
 
+export default OrderDetailsInput;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,

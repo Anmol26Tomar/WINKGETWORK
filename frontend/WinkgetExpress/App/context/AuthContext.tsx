@@ -1,7 +1,7 @@
 'use client';
-
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { saveToken, getToken, deleteToken } from '../utils/secureStore';
 import {
   getProfile,
   loginUser as apiLogin,
@@ -9,7 +9,7 @@ import {
   logoutUser as apiLogout,
 } from '../services/authService';
 
-const DEFAULT_BASE = 'http://10.85.122.137:3001';
+const DEFAULT_BASE = 'http://10.233.13.139:3001';
 const BASE_URL = process.env.EXPO_PUBLIC_API_BASE || DEFAULT_BASE;
 
 type Role = 'user' | 'captain' | null;
@@ -83,10 +83,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (storedRole === 'captain') setCaptain(parsed);
           else setUser(parsed);
         } else {
-          const me = await getProfile();
-          if (me) {
-            setUser(me);
-            setRole('user');
+          // Try to get profile if token exists but no stored data
+          if (storedToken) {
+            try {
+              const me = await getProfile();
+              if (me) {
+                setUser(me);
+                setRole('user');
+              }
+            } catch (err) {
+              console.warn('Profile fetch failed, clearing token', err);
+              await deleteToken();
+            }
           }
         }
       } catch (err) {
@@ -100,6 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshProfile = async () => {
     if (role === 'captain' && token) {
       setIsLoading(true);
+     
       try {
         const res = await fetch(`${BASE_URL}/api/auth/agent/profile`, {
           method: 'GET',
@@ -128,6 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isLoading,
 
     login: async (email: string, password: string) => {
+      
       setIsLoading(true);
       try {
         const u = await apiLogin(email, password); // <-- returns only user
@@ -176,6 +186,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const data = await res.json();
         setCaptain(data.agent);
         setToken(data.token);
+        console.log(data);
         setRole('captain');
         await AsyncStorage.setItem('token', data.token);
         await AsyncStorage.setItem('role', 'captain');

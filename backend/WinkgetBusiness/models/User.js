@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: ['admin', 'user'], required: true, default: 'user' },
     approved: { type: Boolean, default: true },
     lastLogin: { type: Date },
+    bills: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Bill' }], // Reference to bills
   },
   { timestamps: true }
 );

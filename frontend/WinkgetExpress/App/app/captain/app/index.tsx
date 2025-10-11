@@ -11,7 +11,7 @@ export default function Index() {
     if (!isLoading) {
       requestAnimationFrame(() => {
         if (isAuthenticated) {
-          router.replace('/(tabs)');
+          router.replace('/captain/app/(captabs)');
         } else {
           router.replace('/login');
         }

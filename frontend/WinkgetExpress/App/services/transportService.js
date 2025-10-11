@@ -1,6 +1,6 @@
 import { getToken } from "../utils/secureStore";
 
-const DEFAULT_BASE = "http://10.85.122.137:3001";
+const DEFAULT_BASE = "http://172.20.49.88:3001";
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || DEFAULT_BASE;
 
 async function request(path, { method = "GET", body } = {}) {
