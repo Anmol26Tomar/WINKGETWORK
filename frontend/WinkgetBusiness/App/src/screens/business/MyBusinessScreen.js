@@ -28,14 +28,13 @@ const MyBusinessScreen = () => {
       <View style={styles.content}>
         <Card style={styles.infoCard}>
           <Card.Content>
-            <Title style={styles.infoTitle}>🏢 Business Management</Title>
+            <Title style={styles.infoTitle}>🏢 My Business</Title>
             <Paragraph style={styles.infoText}>
-              This is your business dashboard where you can manage your business profile, 
-              settings, analytics, and overall business operations.
+              Business Insights Coming Soon
             </Paragraph>
-            <Button mode="contained" style={styles.button}>
-              Business Settings
-            </Button>
+            <Paragraph style={styles.comingSoonText}>
+              Business management features will be available in future updates.
+            </Paragraph>
           </Card.Content>
         </Card>
 
@@ -129,7 +128,10 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginBottom: 16,
   },
-  button: {
+  comingSoonText: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    fontStyle: 'italic',
     marginTop: 8,
   },
   analyticsCard: {

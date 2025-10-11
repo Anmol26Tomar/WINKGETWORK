@@ -13,7 +13,8 @@ const {
   updateVendor,
   deleteVendor,
   getVendorStats,
-  getVendorCategoryPublic
+  getVendorCategoryPublic,
+  getVendorsByCategory
 } = require('../controllers/vendorController');
 
 const router = express.Router();
@@ -22,6 +23,7 @@ const router = express.Router();
 router.get('/public', getVendors); // Public vendor listing
 router.get('/public/:id', getVendorById); // Public vendor profile
 router.get('/public/:id/category', getVendorCategoryPublic); // Public: vendor category only
+router.get('/category/:category', getVendorsByCategory); // Public: vendors by category
 
 // Vendor authenticated routes
 router.use(verifyToken);

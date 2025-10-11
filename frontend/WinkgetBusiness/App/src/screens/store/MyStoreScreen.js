@@ -28,14 +28,13 @@ const MyStoreScreen = () => {
       <View style={styles.content}>
         <Card style={styles.infoCard}>
           <Card.Content>
-            <Title style={styles.infoTitle}>🏪 Store Management</Title>
+            <Title style={styles.infoTitle}>🏪 My Store</Title>
             <Paragraph style={styles.infoText}>
-              This is your store dashboard where you can manage your products, 
-              inventory, orders, and store settings.
+              My Store Coming Soon
             </Paragraph>
-            <Button mode="contained" style={styles.button}>
-              Add New Product
-            </Button>
+            <Paragraph style={styles.comingSoonText}>
+              Store management features will be available in future updates.
+            </Paragraph>
           </Card.Content>
         </Card>
 
@@ -109,7 +108,10 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginBottom: 16,
   },
-  button: {
+  comingSoonText: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    fontStyle: 'italic',
     marginTop: 8,
   },
   statsCard: {

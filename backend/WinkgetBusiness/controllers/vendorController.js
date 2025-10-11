@@ -346,12 +346,13 @@ module.exports = {
   createVendor,
   updateVendor,
   deleteVendor,
-  getVendorStats
+  getVendorStats,
+  getVendorCategoryPublic,
+  getVendorsByCategory
 };
 
 // Public: Get only vendor category by ID
-// Keeping export at bottom to avoid changing existing exports structure
-module.exports.getVendorCategoryPublic = async (req, res) => {
+const getVendorCategoryPublic = async (req, res) => {
   try {
     const vendor = await Vendor.findById(req.params.id).select('category')
     if (!vendor) return res.status(404).json({ message: 'Vendor not found' })
@@ -361,3 +362,43 @@ module.exports.getVendorCategoryPublic = async (req, res) => {
     res.status(500).json({ message: 'Server error' })
   }
 }
+<<<<<<< HEAD
+
+// Public: Get vendors by category
+const getVendorsByCategory = async (req, res) => {
+  try {
+    const { category } = req.params;
+    const { limit = 20, page = 1, city } = req.query;
+    
+    const filter = { 
+      category: category,
+      isApproved: true // Only show approved vendors
+    };
+    
+    if (city) filter['businessAddress.city'] = city;
+    
+    const skip = (page - 1) * limit;
+    const vendors = await Vendor.find(filter)
+      .select('-password -passwordHash') // Exclude password fields
+      .sort({ averageRating: -1, createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+    
+    const total = await Vendor.countDocuments(filter);
+    
+    res.json({
+      vendors,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching vendors by category:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+=======
+>>>>>>> 17a61c345afa87eb4304d529a410f1b049e9f3cf
