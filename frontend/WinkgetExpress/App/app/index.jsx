@@ -46,10 +46,23 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
 	safe: { flex: 1, backgroundColor: Colors.background },
-	container: { flex: 1, padding: Spacing.xl },
-	heading: { fontSize: 22, fontWeight: '800', color: Colors.text, marginBottom: Spacing.lg },
-	row: { gap: Spacing.md, marginBottom: Spacing.md },
-	cardWrap: { flex: 1 },
+	container: { flex: 1, padding: 24, paddingTop: 32 },
+	heading: { 
+		fontSize: 28, 
+		fontWeight: '800', 
+		color: Colors.text, 
+		marginBottom: 24,
+		textAlign: 'center',
+	},
+	row: { 
+		gap: 16, 
+		marginBottom: 16,
+		paddingHorizontal: 4,
+	},
+	cardWrap: { 
+		flex: 1,
+		marginHorizontal: 2,
+	},
 });
 
 
