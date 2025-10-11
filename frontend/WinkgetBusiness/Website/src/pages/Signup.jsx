@@ -51,7 +51,7 @@ export default function Signup() {
   const handleVendorSuccess = () => {
     setSuccess('Vendor account created successfully! Redirecting to dashboard...')
     setTimeout(() => {
-      navigate('/dashboard', { replace: true })
+      navigate('/vendor/dashboard', { replace: true })
     }, 2000)
   }
 

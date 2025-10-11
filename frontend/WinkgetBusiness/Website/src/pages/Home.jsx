@@ -1,7 +1,34 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
+import React, { useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useApp } from '../context/AppContext.jsx'
 
 export default function Home() {
+  const { state } = useApp()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    // If user is authenticated, redirect to their dashboard
+    if (state.initialized && state.auth.isAuthenticated) {
+      if (state.auth.vendor?.role === 'vendor') {
+        navigate('/vendor/dashboard', { replace: true })
+      } else if (state.auth.vendor?.role === 'admin') {
+        navigate('/admin/dashboard', { replace: true })
+      }
+    }
+  }, [state.initialized, state.auth.isAuthenticated, state.auth.vendor?.role, navigate])
+
+  // Show loading while checking authentication
+  if (!state.initialized) {
+    return (
+      <div className="min-h-screen grid place-items-center bg-gray-50 p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen grid place-items-center bg-gray-50 p-4">
       <div className="w-full max-w-md bg-white border rounded-lg p-6 text-center space-y-4">
