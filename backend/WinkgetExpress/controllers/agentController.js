@@ -11,6 +11,17 @@ async function getAgentById(req, res) {
     return res.status(500).json({ message: "Server error" });
   }
 }
+async function getCaptainOrders(req, res) {
+	try {
+		const { id } = req.params;
+		if (!id) return res.status(400).json({ message: 'Agent id is required' });
+		const agent = await Agent.findById(id).select('-password').populate('orders');
+		if (!agent) return res.status(404).json({ message: 'Agent not found' });
+		return res.json({ orders: agent.orders });
+	} catch (err) {
+		return res.status(500).json({ message: 'Server error' });
+	}
+}
 
 async function getAgents(req, res) {
   try {

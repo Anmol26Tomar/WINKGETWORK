@@ -52,7 +52,8 @@
         {
           "locationAlwaysAndWhenInUsePermission": "This app needs access to location to set pickup and delivery addresses."
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,

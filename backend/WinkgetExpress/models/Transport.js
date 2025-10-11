@@ -21,10 +21,15 @@ const transportSchema = new mongoose.Schema(
 		rideAccepted: { type: Boolean, default: false },
 		status: { type: String, enum: ['pending', 'accepted', 'in_progress', 'completed', 'cancelled'], default: 'pending' },
 		paymentStatus: { type: String, enum: ['unpaid', 'paid', 'refunded'], default: 'unpaid' },
+		completionOtp: { type: String },
+		rejectionReason: { type: String },
+		cancellationReason: { type: String },
+		startedAt: { type: Date },
+		completedAt: { type: Date },
+		cancelledAt: { type: Date },
 	},
 	{ timestamps: { createdAt: true, updatedAt: true } }
 );
 
 module.exports = mongoose.model('Transport', transportSchema);
-
 

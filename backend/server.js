@@ -11,7 +11,14 @@ const { Server } = require("socket.io");
 const { setIO } = require("./WinkgetExpress/utils/socket");
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+// Configure CORS to allow credentials
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001','*'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Set-Cookie']
+}));
 app.use(express.json());
 
 connectDB();
@@ -23,6 +30,13 @@ app.get("/health", (req, res) => res.json({ status: "ok" }));
 app.use("/api/auth", require("./WinkgetExpress/routes/auth"));
 app.use("/api/parcels", require("./WinkgetExpress/routes/parcelRoutes"));
 app.use("/api/transport", require("./WinkgetExpress/routes/transportRoutes"));
+
+// Winkget Business APIs
+app.use('/api/business/auth', require('./WinkgetBusiness/routes/auth'));
+app.use('/api/business/vendors', require('./WinkgetBusiness/routes/vendors'));
+app.use('/api/business/products', require('./WinkgetBusiness/routes/products'));
+app.use('/api/business/contact', require('./WinkgetBusiness/routes/contact'));
+app.use('/api/business/bills', require('./WinkgetBusiness/routes/bills'));
 
 //captain routing
 
