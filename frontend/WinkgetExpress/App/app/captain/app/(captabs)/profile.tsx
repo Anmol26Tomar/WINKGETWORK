@@ -26,14 +26,14 @@ import { captainService } from '../../services/api';
 import { Modal } from '../../components/Modal';
 import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
-import { useDummyData } from '../../services/dummyData';
 import { useAuth } from '@/context/AuthContext';
+import { SERVICE_CONFIGS } from '../../config/serviceConfig';
+import { ServiceType } from '../../types';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { captain, logout, refreshProfile } = useAuth();
-  const dummyData = useDummyData();
-  const displayCaptain = captain || dummyData.captain;
+  const displayCaptain = captain;
   const [isAvailable, setIsAvailable] = useState(displayCaptain?.is_available || false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [city, setCity] = useState(displayCaptain?.city || '');
@@ -55,7 +55,6 @@ export default function ProfileScreen() {
       Alert.alert('Error', 'City cannot be empty');
       return;
     }
-
     setUpdating(true);
     try {
       await captainService.updateProfile({ city });
@@ -143,7 +142,8 @@ export default function ProfileScreen() {
         <Text style={styles.headerSubtitle}>Manage your account</Text>
       </View>
 
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: 40 }}>
+        {/* Profile Card */}
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
@@ -163,33 +163,41 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* Real-World Stats */}
         <View style={styles.statsContainer}>
           <StatCard
             icon={Star}
             label="Rating"
-            value={displayCaptain?.rating.toFixed(1) || '0.0'}
+            value={typeof displayCaptain?.rating === 'number' ? displayCaptain.rating.toFixed(1) : '0.0'}
             color="#F59E0B"
           />
           <StatCard
             icon={TrendingUp}
             label="Total Trips"
-            value={displayCaptain?.total_trips.toString() || '0'}
+            value={typeof displayCaptain?.total_trips === 'number' ? String(displayCaptain.total_trips) : '0'}
             color="#10B981"
           />
           <StatCard
             icon={Award}
             label="Experience"
-            value="2Y"
+            value={`${displayCaptain?.experience_years || 2}Y`}
             color="#8B5CF6"
+          />
+          <StatCard
+            icon={Truck}
+            label="Today"
+            value={`${displayCaptain?.trips_today || 0}`}
+            color="#2563EB"
           />
         </View>
 
+        {/* Availability */}
         <View style={styles.section}>
           <View style={styles.availabilityRow}>
             <View>
               <Text style={styles.availabilityTitle}>Available for Trips</Text>
               <Text style={styles.availabilitySubtext}>
-                Toggle to accept trip requests
+                {isAvailable ? 'You are online' : 'You are offline'}
               </Text>
             </View>
             <Switch
@@ -201,6 +209,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* Personal Info */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Personal Information</Text>
           <View style={styles.infoContainer}>
@@ -215,6 +224,27 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* Services */}
+        {displayCaptain?.service_types?.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Services Provided</Text>
+            <View style={styles.servicesContainer}>
+              {displayCaptain.service_types.map((serviceType: ServiceType) => {
+                const config = SERVICE_CONFIGS[serviceType];
+                return (
+                  <View key={serviceType} style={styles.serviceItem}>
+                    <View style={styles.serviceIcon}>
+                      <Truck size={16} color="#2563EB" />
+                    </View>
+                    <Text style={styles.serviceText}>{config?.name || serviceType}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {/* Logout */}
         <View style={styles.section}>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <LogOut size={20} color="#EF4444" />
@@ -228,6 +258,7 @@ export default function ProfileScreen() {
         </View>
       </ScrollView>
 
+      {/* Edit Modal */}
       <Modal
         visible={editModalVisible}
         onClose={() => setEditModalVisible(false)}
@@ -248,6 +279,7 @@ export default function ProfileScreen() {
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
@@ -494,5 +526,36 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 12,
     color: '#9CA3AF',
+  },
+  servicesContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  serviceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
+  },
+  serviceIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  serviceText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+    flex: 1,
   },
 });

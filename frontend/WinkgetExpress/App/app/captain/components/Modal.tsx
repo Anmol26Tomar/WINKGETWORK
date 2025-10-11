@@ -53,6 +53,8 @@ export const Modal: React.FC<ModalProps> = ({
   );
 };
 
+export default Modal;
+
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,

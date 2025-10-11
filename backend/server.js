@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 3001;
 
 // Configure CORS to allow credentials
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001'],
+  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001','*'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -36,7 +36,7 @@ app.use('/api/transport', require('./WinkgetExpress/routes/transportRoutes'));
 
 //captain routing
 
-app.use('/api/auth/agent',agentRoutes);
+app.use('/api/auth/agent', agentRoutes);
 app.use('/api/agents', require('./WinkgetExpress/routes/agents'));
 app.use('/api/agent', require('./WinkgetExpress/routes/agents'));
 

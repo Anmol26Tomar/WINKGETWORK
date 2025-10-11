@@ -38,6 +38,8 @@ export const Input: React.FC<InputProps> = ({
   );
 };
 
+export default Input;
+
 const styles = StyleSheet.create({
   container: {
     marginBottom: 20,

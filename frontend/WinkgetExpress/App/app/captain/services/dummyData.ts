@@ -160,3 +160,6 @@ export const useDummyData = () => {
     earningSummary: dummyEarningSummary,
   };
 };
+
+// Default export to appease Expo Router route resolution
+export default function CaptainServicesDummyRoute() { return null as any; }
