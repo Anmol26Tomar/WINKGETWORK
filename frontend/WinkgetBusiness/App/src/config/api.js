@@ -14,7 +14,7 @@ const getBaseUrl = () => {
   }
 
   // Android emulator: 10.0.2.2 connects to host machine
-  if (Platform.OS === 'android') return 'http://10.0.2.2:5000/api';
+  if (Platform.OS === 'android') return 'http://10.146.76.162:5000/api';
 
   // iOS simulator / web: localhost works
   return 'http://localhost:5000/api';
