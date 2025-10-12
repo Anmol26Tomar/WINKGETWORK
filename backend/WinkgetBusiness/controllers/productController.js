@@ -1,5 +1,6 @@
 const Product = require("../models/Product");
 const Vendor = require("../models/Vendor");
+const mongoose = require("mongoose");
 const multer = require("multer");
 const { uploadBuffer } = require("../utils/cloudinary");
 
@@ -318,6 +319,13 @@ const getProductsByVendorRef = async (req, res) => {
     if (!vendorRef)
       return res.status(400).json({ message: "vendorRef required" });
 
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(vendorRef)) {
+      return res.status(400).json({
+        message: "Invalid vendorRef format. Must be a valid ObjectId.",
+      });
+    }
+
     const filter = { vendorRef };
     if (isActive !== undefined) filter.isActive = isActive === "true";
 
@@ -355,6 +363,13 @@ const getProductsByVendorRef = async (req, res) => {
     });
   } catch (err) {
     console.error("Error fetching products by vendorRef:", err);
+
+    if (err.name === "CastError") {
+      return res.status(400).json({
+        message: "Invalid vendorRef format. Must be a valid ObjectId.",
+      });
+    }
+
     res.status(500).json({ message: "Server error" });
   }
 };
