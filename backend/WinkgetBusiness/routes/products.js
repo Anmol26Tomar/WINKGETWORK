@@ -28,15 +28,16 @@ router.get("/", getProducts); // Get all products with filtering
 router.get("/search", searchProducts); // Search products with autocomplete
 router.get("/categories", getProductCategories); // Get product categories
 router.get("/:id", getProductById); // Get single product by ID
-// Get products by vendorRef (public)
-router.get("/vendor/:vendorRef", getProductsByVendorRef);
 router.post("/:id/rating", verifyToken, addProductRating); // Add product rating (authenticated users)
 
 // Vendor authenticated routes
 router.use(verifyToken);
 
-// Vendor product management
+// Vendor product management - MUST come before /vendor/:vendorRef route
 router.get("/vendor/my-products", requireRole("vendor"), getVendorProducts);
+
+// Get products by vendorRef (public) - MUST come after specific routes
+router.get("/vendor/:vendorRef", getProductsByVendorRef);
 router.post(
   "/",
   requireRole("vendor"),
