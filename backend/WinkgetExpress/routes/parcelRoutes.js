@@ -14,9 +14,9 @@ const {
   getParcelHistory,
   updateParcelStatus,
   getParcelTracking,
-  testEndpoint,
   getAllIndiaParcel,
   adminCreateParcel,
+  getPendingParcelsForTruck,
 } = require("../controllers/parcelController");
 
 router.post("/estimate", auth, estimate);
@@ -28,8 +28,8 @@ router.post(
   adminCreateParcel
 );
 router.get("/", getAllIndiaParcel);
+router.get("/pending-truck", auth, getPendingParcelsForTruck);
 router.get("/history", auth, getParcelHistory);
-router.get("/test", auth, testEndpoint);
 router.get("/:id", auth, getParcel);
 router.get("/:id/tracking", auth, getParcelTracking);
 router.post("/:id/verify-otp", auth, verifyOtp);

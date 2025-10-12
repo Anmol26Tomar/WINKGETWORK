@@ -76,8 +76,15 @@ async function createParcel(req, res) {
     });
     const { notifyCaptainsNewParcel } = require("../utils/notificationService");
     notifyCaptainsNewParcel(doc._id.toString(), {
-      vehicleType: "admin",
+      vehicleType: doc.vehicleType,
       fareEstimate: doc.fareEstimate,
+      pickup: doc.pickup,
+      delivery: doc.delivery,
+      package: doc.package,
+      receiverName: doc.receiverName,
+      receiverContact: doc.receiverContact,
+      status: doc.status,
+      userRef: doc.userRef
     });
     return res.status(201).json(doc);
   } catch (err) {
@@ -199,6 +206,40 @@ async function getAllIndiaParcel(req, res) {
     return res.status(500).json({ message: "Server error" });
   }
 }
+
+async function getPendingParcelsForTruck(req, res) {
+  try {
+    const { lat, lng, radius = 50 } = req.query; // radius in km
+    
+    if (!lat || !lng) {
+      return res.status(400).json({ message: "Location coordinates required" });
+    }
+
+    // Find all pending parcels for truck delivery
+    const parcels = await Parcel.find({ 
+      vehicleType: "truck", 
+      status: "pending" 
+    }).sort({ createdAt: -1 });
+
+    // Filter by distance if location provided
+    const filteredParcels = parcels.filter(parcel => {
+      const distance = haversineKm(
+        { lat: parseFloat(lat), lng: parseFloat(lng) },
+        parcel.pickup
+      );
+      return distance <= radius;
+    });
+
+    return res.json({ 
+      parcels: filteredParcels,
+      total: filteredParcels.length 
+    });
+  } catch (err) {
+    console.error("Error fetching pending parcels:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
 
 async function verifyOtp(req, res) {
   try {
@@ -378,21 +419,6 @@ async function getParcelTracking(req, res) {
   }
 }
 
-async function testEndpoint(req, res) {
-  try {
-    console.log("Test endpoint called by user:", req.user.id);
-    const totalParcels = await Parcel.countDocuments({ userRef: req.user.id });
-    return res.json({
-      message: "Test successful",
-      userId: req.user.id,
-      totalParcels,
-      userRole: req.user.role,
-    });
-  } catch (err) {
-    console.error("Test endpoint error:", err);
-    return res.status(500).json({ message: "Test failed" });
-  }
-}
 
 module.exports = {
   estimate,
@@ -403,7 +429,7 @@ module.exports = {
   getParcelHistory,
   updateParcelStatus,
   getParcelTracking,
-  testEndpoint,
   getAllIndiaParcel,
   adminCreateParcel,
+  getPendingParcelsForTruck,
 };

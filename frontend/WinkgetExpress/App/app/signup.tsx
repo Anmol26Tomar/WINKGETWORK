@@ -110,7 +110,7 @@ export default function SignupScreen(): JSX.Element {
         await register(name, email.trim(), password)
         router.replace("/(tabs)")
       } else {
-        await signupCaptain({
+        const result = await signupCaptain({
           fullName: name,
           email,
           phone,
@@ -121,7 +121,18 @@ export default function SignupScreen(): JSX.Element {
           city,
           confirmPassword,
         })
-        router.push({ pathname: "/captain/app/verify-otp", params: { phone } })
+        
+        // Show success message for captain signup
+        Alert.alert(
+          "Registration Successful! 🎉",
+          "Your account has been created and is pending admin approval. You will be notified once approved.",
+          [
+            {
+              text: "OK",
+              onPress: () => router.replace("/login")
+            }
+          ]
+        )
       }
     } catch (e: any) {
       Alert.alert("Signup failed", e?.response?.data?.message || e?.message || "Please try again")

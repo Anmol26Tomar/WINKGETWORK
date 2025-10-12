@@ -34,8 +34,15 @@ export default function LoginScreen() {
         await login(email.trim(), password);
         router.replace("/(tabs)"); // navigate to a real user tab screen
       } else {
-        await loginCaptain({ email: email.trim(), password });
-        router.replace("/captain/app/(captabs)"); // navigate to captain index screen
+        const result = await loginCaptain({ email: email.trim(), password });
+        
+        // Check if captain requires approval
+        if (result && result.requiresApproval) {
+          // Stay on login screen, approval pending will be shown by index.tsx
+          router.replace("/captain/app");
+        } else {
+          router.replace("/captain/app/(captabs)"); // navigate to captain index screen
+        }
       }
     } catch (e: any) {
       Alert.alert("Login failed", e?.message || "Please try again");

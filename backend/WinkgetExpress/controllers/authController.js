@@ -218,23 +218,18 @@ async function CaptainSignup(req, res) {
       serviceType,
       password: hashedPassword,
       vehicleSubType,
+      approved: false, // Default to false, requires admin approval
     });
-
-    // ✅ Generate token immediately after signup
-    const token = jwt.sign(
-      { id: agent._id, email: agent.email },
-      process.env.JWT_SECRET || "dev_secret",
-      { expiresIn: "7d" }
-    );
 
     const agentData = agent.toObject();
     delete agentData.password;
 
     return res.status(201).json({
       success: true,
-      message: "Agent created successfully.",
+      message: "Registration successful! Your account is pending admin approval. You will be notified once approved.",
       agent: agentData,
-      token, // ✅ Send token here
+      approved: false,
+      requiresApproval: true,
     });
   } catch (error) {
     console.error("Signup error:", error);
@@ -267,7 +262,27 @@ async function CaptainLogin(req, res) {
         .json({ success: false, message: "Incorrect password." });
     }
 
-    // Generate JWT
+    // Check if agent is approved
+    if (!agent.approved) {
+      return res.status(403).json({
+        success: false,
+        message: "Your account is pending approval. Please wait for admin approval.",
+        approved: false,
+        agent: {
+          id: agent._id,
+          fullName: agent.fullName,
+          email: agent.email,
+          phone: agent.phone,
+          city: agent.city,
+          vehicleType: agent.vehicleType,
+          serviceType: agent.serviceType,
+          vehicleSubType: agent.vehicleSubType,
+          approved: agent.approved,
+        }
+      });
+    }
+
+    // Generate JWT only for approved agents
     const token = jwt.sign(
       { id: agent._id, email: agent.email },
       process.env.JWT_SECRET || "dev_secret",
@@ -280,7 +295,12 @@ async function CaptainLogin(req, res) {
     const agentData = agent.toObject();
     delete agentData.password;
 
-    return res.status(200).json({ success: true, token, agent: agentData });
+    return res.status(200).json({ 
+      success: true, 
+      token, 
+      agent: agentData,
+      approved: true 
+    });
   } catch (error) {
     console.error("Login error:", error);
     return res.status(500).json({ success: false, message: "Server error." });
