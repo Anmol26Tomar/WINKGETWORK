@@ -308,6 +308,7 @@ const getVendorProducts = async (req, res) => {
 const getProductsByVendorRef = async (req, res) => {
   try {
     const { vendorRef } = req.params;
+    console.log(vendorRef);
     const {
       limit = 20,
       page = 1,

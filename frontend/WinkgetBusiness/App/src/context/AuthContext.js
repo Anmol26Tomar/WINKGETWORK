@@ -110,14 +110,23 @@ export const AuthProvider = ({ children }) => {
         password: userData?.password,
         phone: userData?.phone || undefined,
       };
+      console.log('📤 Sending registration request:', payload);
+      
       const response = await api.post(API_ENDPOINTS.AUTH.REGISTER, payload);
+      console.log('✅ API call successful, received response:', response.status);
 
       const { token, user } = response.data;
+
+      console.log('📋 Full response data:', response.data);
+      console.log('🔑 Extracted token and user:', {token: !!token, user: !!user});
+      
+      
 
       // Store token and user data
       await AsyncStorage.setItem('authToken', token);
       await AsyncStorage.setItem('userData', JSON.stringify(user));
 
+      // Dispatch LOGIN_SUCCESS to set isAuthenticated to true
       dispatch({
         type: 'LOGIN_SUCCESS',
         payload: { user, token },
@@ -125,6 +134,16 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true };
     } catch (error) {
+      console.error('❌ Registration API call failed:', error);
+      console.error('❌ Error details:', {
+        message: error?.message,
+        status: error?.response?.status,
+        statusText: error?.response?.statusText,
+        data: error?.response?.data,
+        url: error?.config?.url,
+        baseURL: error?.config?.baseURL
+      });
+      
       dispatch({ type: 'SET_LOADING', payload: false });
       const message = error?.response?.data?.message
         || error?.response?.data?.error

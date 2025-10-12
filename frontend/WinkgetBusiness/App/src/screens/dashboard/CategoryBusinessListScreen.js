@@ -197,8 +197,11 @@ const CategoryBusinessListScreen = ({ route, navigation }) => {
             mode="outlined" 
             style={styles.actionButton}
             onPress={() => {
-              // Navigate to business details
-              Alert.alert('Business Details', `Name: ${business.shopName}\nOwner: ${business.ownerName}\nCategory: ${business.category}`, [{ text: 'OK' }]);
+              // Navigate to MyBusinessScreen with business ID
+              navigation.navigate('MyBusiness', { 
+                businessId: business._id,
+                businessName: business.shopName || business.storeName || business.name
+              });
             }}
           >
             View Details

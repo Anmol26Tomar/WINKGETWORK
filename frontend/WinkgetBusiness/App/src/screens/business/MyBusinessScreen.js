@@ -11,11 +11,20 @@ import {
 import { Card, Title, Paragraph, Button, Chip } from "react-native-paper";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation, useRoute } from '@react-navigation/native';
 
-const API_BASE_URL = `http://192.168.1.4:5000/api/business/vendors/public`;
-const BUSINESS_ID = "68e7999efd643432376e3214";
+const API_BASE_URL = `${process.env.EXPO_PUBLIC_API_BASE_URL}/api/business/vendors/public` || `http://10.170.131.55:5000/api/business/vendors/public`;
+// Default business ID (fallback)
+const DEFAULT_BUSINESS_ID = "68ea2cd8f7aa5ea6fe6e4070";
 
 const MyBusinessScreen = () => {
+  const navigation = useNavigation();
+  const route = useRoute();
+  const { businessId, businessName } = route.params || {};
+  
+  // Use the businessId from navigation params, fallback to default
+  const currentBusinessId = businessId || DEFAULT_BUSINESS_ID;
+  
   const [businessData, setBusinessData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -25,9 +34,9 @@ const MyBusinessScreen = () => {
       setLoading(true);
       setError(null);
 
-      console.log("Fetching from:", `${API_BASE_URL}/${BUSINESS_ID}`);
+      console.log("Fetching from:", `${API_BASE_URL}/${currentBusinessId}`);
 
-      const response = await fetch(`${API_BASE_URL}/${BUSINESS_ID}`, {
+      const response = await fetch(`${API_BASE_URL}/${currentBusinessId}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -80,7 +89,7 @@ const MyBusinessScreen = () => {
 
   useEffect(() => {
     fetchBusinessData();
-  }, []);
+  }, [currentBusinessId]); // Refetch when businessId changes
 
   const handleSocialLink = (url) => {
     if (url) {
@@ -88,11 +97,18 @@ const MyBusinessScreen = () => {
     }
   };
 
-  const handleWebsiteLink = () => {
-    if (businessData?.websiteLink) {
-      Linking.openURL(businessData.websiteLink);
+  const openMystoreScreen = () => {
+    if (businessData && businessData._id) {
+      // Navigate to MyStore tab with the business ID as parameter
+      navigation.navigate('MyStore', { 
+        vendorId: businessData._id,
+        businessName: businessData.shopName || businessData.storeName || businessData.name
+      });
+    } else {
+      Alert.alert('Error', 'Business data not loaded yet. Please try again.');
     }
   };
+  
 
   const formatAddress = (address) => {
     if (!address) return "Not provided";
@@ -173,9 +189,11 @@ const MyBusinessScreen = () => {
           <View style={styles.titleContainer}>
             <Ionicons name="business" size={48} color="white" />
             <Title style={styles.title}>
-              {businessData.shopName ||
-                businessData.storeName ||
-                businessData.name}
+              {businessName || 
+               businessData?.shopName ||
+               businessData?.storeName ||
+               businessData?.name ||
+               "My Business"}
             </Title>
             <Text style={styles.subtitle}>Manage your business operations</Text>
             <Chip
@@ -242,7 +260,7 @@ const MyBusinessScreen = () => {
               <Button
                 mode="contained"
                 icon="store"
-                onPress={handleWebsiteLink}
+                onPress={openMystoreScreen}
                 style={styles.myStoreButton}
                 labelStyle={styles.myStoreButtonLabel}
               >

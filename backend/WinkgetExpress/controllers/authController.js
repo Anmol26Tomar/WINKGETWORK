@@ -37,6 +37,19 @@ async function register(req, res) {
       process.env.JWT_SECRET || "dev_secret",
       { expiresIn: "7d" }
     );
+
+    // Send success response with token and user data
+    res.status(201).json({
+      message: "User registered successfully",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+      },
+    });
   } catch (err) {
     console.error("Registration error:", err);
     return res.status(500).json({ message: "Server error" });
@@ -384,15 +397,6 @@ async function CaptainProfile(req, res) {
   }
 }
 
-async function CaptainProfile(req, res) {
-  try {
-    const captain = await Agent.findById(req.captain.id).select('-password');
-    if (!captain) return res.status(404).json({ message: 'Captain not found' });
-    return res.json(captain);
-  } catch (err) {
-    return res.status(500).json({ message: 'Server error' });
-  }
-}
 module.exports = {
   register,
   login,
@@ -404,8 +408,8 @@ module.exports = {
   listAdmins,
   loginAdmin,
   loginSuperAdmin,
-	updateProfile,
-	CaptainProfile 
+  updateProfile,
+  CaptainProfile,
 };
 
 
