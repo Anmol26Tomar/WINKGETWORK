@@ -10,7 +10,7 @@ import {
 } from '../services/authService';
 
 const DEFAULT_BASE = 'http://10.233.13.139:3001';
-const BASE_URL = process.env.EXPO_PUBLIC_API_BASE || DEFAULT_BASE;
+const BASE_URL = process.env.EXPO_PUBLIC_API_BASE;
 
 type Role = 'user' | 'captain' | null;
 
@@ -174,6 +174,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loginCaptain: async (payload: CaptainLoginPayload) => {
       setIsLoading(true);
       try {
+        console.log(BASE_URL);
         const res = await fetch(`${BASE_URL}/api/auth/agent/captainlogin`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
