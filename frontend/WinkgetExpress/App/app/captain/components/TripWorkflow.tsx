@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, Platform } from 'react-native';
-import { Navigation } from 'lucide-react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, Platform, Animated } from 'react-native';
+import { Navigation, MapPin, Clock, X } from 'lucide-react-native';
 import { Button } from './Button';
 import { Modal } from './Modal';
 import { Input } from './Input';
 import { PaymentQRModal } from './PaymentQRModal';
+import { FakePaymentQRModal } from './FakePaymentQRModal';
 import { OrderDetailsInput } from './OrderDetailsInput';
+import { AnimatedButton } from './AnimatedButton';
+import { LoadingSpinner } from './LoadingSpinner';
 import type { ServiceType, Trip } from '../types';
 import { getServiceConfig, SERVICE_CONFIGS } from '../config/serviceConfig';
 import { tripService } from '../services/api';
@@ -14,32 +17,34 @@ import { tripService } from '../services/api';
 const dummyTrip: Trip = {
   id: 'trip_123',
   status: 'accepted', // change to 'in_progress' to test other flow
-  service_type: 'delivery', // must match a key in SERVICE_CONFIGS or use fallback
-  estimated_fare: 150,
-  pickup_lat: 12.9716,
-  pickup_lng: 77.5946,
-  dropoff_lat: 12.9352,
-  dropoff_lng: 77.6245,
-  requiresPaymentAfterPickup: false,
-  requiresPickupOtp: true,
-  requiresDropOtp: true,
-  workflow: 'default',
+  serviceType: 'delivery', // must match a key in SERVICE_CONFIGS or use fallback
+  fareEstimate: 150,
+  pickup: { lat: 12.9716, lng: 77.5946, address: 'Test Pickup' },
+  destination: { lat: 12.9352, lng: 77.6245, address: 'Test Destination' },
+  vehicleType: 'bike',
+  distanceKm: 5.2,
+  createdAt: new Date().toISOString(),
 };
 
 interface TripWorkflowProps {
   trip?: Trip; // optional so we can use dummy
   onTripComplete?: () => void;
   onTripCancel?: () => void;
+  onRouteUpdate?: (coordinates: { latitude: number; longitude: number }[]) => void;
+  onPhaseChange?: (phase: 'pickup' | 'destination') => void;
 }
 
 export function TripWorkflow({
   trip = dummyTrip,
   onTripComplete = () => Alert.alert('Trip Complete'),
   onTripCancel = () => Alert.alert('Trip Cancelled'),
+  onRouteUpdate,
+  onPhaseChange,
 }: TripWorkflowProps) {
   const [pickupOtpModalVisible, setPickupOtpModalVisible] = useState(false);
   const [dropOtpModalVisible, setDropOtpModalVisible] = useState(false);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  const [fakePaymentModalVisible, setFakePaymentModalVisible] = useState(false);
   const [orderDetailsModalVisible, setOrderDetailsModalVisible] = useState(false);
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [pickupOtp, setPickupOtp] = useState('');
@@ -47,6 +52,10 @@ export function TripWorkflow({
   const [cancelReason, setCancelReason] = useState('');
   const [orderDetails, setOrderDetails] = useState({});
   const [loading, setLoading] = useState(false);
+  
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
 
   const serviceType = (trip.serviceType || trip.type) as ServiceType;
 
@@ -59,6 +68,23 @@ export function TripWorkflow({
   };
 
   const status = trip.status;
+
+  // Animation effects
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 100,
+        friction: 8,
+      }),
+    ]).start();
+  }, []);
 
   const openMaps = (lat: number, lng: number) => {
     const scheme = Platform.select({ ios: 'maps:', android: 'geo:', default: 'https:' });
@@ -74,7 +100,12 @@ export function TripWorkflow({
   const handleReachedPickup = async () => {
     setLoading(true);
     try {
-      await tripService.reachTrip(trip.id || trip._id);
+      const tripId = trip.id || trip._id || '';
+      if (!tripId) {
+        Alert.alert('Error', 'Trip ID not found');
+        return;
+      }
+      await tripService.reachTrip(tripId);
       if (config.requiresPickupOtp) setPickupOtpModalVisible(true);
       else if (config.requiresPaymentAfterPickup) setPaymentModalVisible(true);
       else setOrderDetailsModalVisible(true);
@@ -92,13 +123,28 @@ export function TripWorkflow({
     }
     setLoading(true);
     try {
-      await tripService.verifyPickupOtp(trip.id || trip._id, pickupOtp);
+      const tripId = trip.id || trip._id || '';
+      if (!tripId) {
+        Alert.alert('Error', 'Trip ID not found');
+        return;
+      }
+      await tripService.verifyPickupOtp(tripId, pickupOtp);
       // After OTP verification, start the trip
-      await tripService.startTrip(trip.id || trip._id);
+      await tripService.startTrip(tripId);
       setPickupOtpModalVisible(false);
       setPickupOtp('');
       setOrderDetailsModalVisible(false);
-      Alert.alert('Success', 'Trip started successfully');
+      
+      // Notify parent component to switch to destination phase
+      onPhaseChange?.('destination');
+      
+      // Navigate to destination after starting trip
+      const destination = trip.destination || trip.delivery;
+      if (destination) {
+        openMaps(destination.lat, destination.lng);
+      }
+      
+      Alert.alert('Success', 'OTP verified! Trip started - Navigate to destination 🚀');
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.message || 'Invalid OTP');
     } finally {
@@ -114,16 +160,32 @@ export function TripWorkflow({
   const handleStartTrip = async () => {
     setLoading(true);
     try {
+      const tripId = trip.id || trip._id || '';
+      if (!tripId) {
+        Alert.alert('Error', 'Trip ID not found');
+        return;
+      }
+      
       // First mark as reached pickup to get OTP
-      await tripService.reachTrip(trip.id || trip._id);
+      await tripService.reachTrip(tripId);
       
       if (config.requiresPickupOtp) {
         setPickupOtpModalVisible(true);
       } else {
         // Start trip directly if no OTP required
-        await tripService.startTrip(trip.id || trip._id);
+        await tripService.startTrip(tripId);
         setOrderDetailsModalVisible(false);
-        Alert.alert('Success', 'Trip started successfully');
+        
+        // Notify parent component to switch to destination phase
+        onPhaseChange?.('destination');
+        
+        // Navigate to destination after starting trip
+        const destination = trip.destination || trip.delivery;
+        if (destination) {
+          openMaps(destination.lat, destination.lng);
+        }
+        
+        Alert.alert('Success', 'Trip started! Navigate to destination 🚀');
       }
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.message || 'Failed to start trip');
@@ -135,18 +197,21 @@ export function TripWorkflow({
   const handleReachedDestination = async () => {
     setLoading(true);
     try {
-      const result = await tripService.reachDestination(trip.id || trip._id);
+      const tripId = trip.id || trip._id || '';
+      if (!tripId) {
+        Alert.alert('Error', 'Trip ID not found');
+        return;
+      }
+      
+      await tripService.reachDestination(tripId);
       if (config.requiresDropOtp) {
         setDropOtpModalVisible(true);
-        // Store the OTP for verification
-        if (result.otp) {
-          // OTP is provided by the backend
-        }
+        // OTP will be handled in the modal
       } else if (config.workflow === 'pickup_deliver_pay') {
         setPaymentModalVisible(true);
       } else {
         // Auto-complete trip if no OTP or payment required
-        await tripService.endTrip(trip.id || trip._id, '000000'); // Use dummy OTP for auto-completion
+        await tripService.endTrip(tripId, '000000'); // Use dummy OTP for auto-completion
         onTripComplete();
       }
     } catch (error: any) {
@@ -163,14 +228,16 @@ export function TripWorkflow({
     }
     setLoading(true);
     try {
-      await tripService.endTrip(trip.id || trip._id, dropOtp);
+      const tripId = trip.id || trip._id || '';
+      if (!tripId) {
+        Alert.alert('Error', 'Trip ID not found');
+        return;
+      }
+      await tripService.endTrip(tripId, dropOtp);
       setDropOtpModalVisible(false);
       setDropOtp('');
-      if (config.workflow === 'pickup_deliver_pay') {
-        setPaymentModalVisible(true);
-      } else {
-        onTripComplete();
-      }
+      // Show fake payment modal for trip completion
+      setFakePaymentModalVisible(true);
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.message || 'Invalid OTP');
     } finally {
@@ -183,6 +250,11 @@ export function TripWorkflow({
     onTripComplete();
   };
 
+  const handleFakePaymentConfirmed = () => {
+    setFakePaymentModalVisible(false);
+    onTripComplete();
+  };
+
   const handleCancelTrip = async () => {
     if (!cancelReason.trim()) {
       Alert.alert('Error', 'Please provide a reason for cancellation');
@@ -190,7 +262,12 @@ export function TripWorkflow({
     }
     setLoading(true);
     try {
-      await tripService.cancelTrip(trip.id || trip._id, cancelReason);
+      const tripId = trip.id || trip._id || '';
+      if (!tripId) {
+        Alert.alert('Error', 'Trip ID not found');
+        return;
+      }
+      await tripService.cancelTrip(tripId, cancelReason);
       setCancelModalVisible(false);
       setCancelReason('');
       onTripCancel();
@@ -201,48 +278,76 @@ export function TripWorkflow({
     }
   };
   return (
-    <View style={styles.container}>
+    <Animated.View 
+      style={[
+        styles.container,
+        {
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }],
+        },
+      ]}
+    >
       {status === 'accepted' && (
-        <View style={styles.actions}>
-          <TouchableOpacity
-            style={styles.navigateButton}
-            onPress={() => openMaps(trip.pickup.lat, trip.pickup.lng)}
-          >
-            <Navigation size={20} color="#FFFFFF" />
-            <Text style={styles.navigateButtonText}>Navigate to Pickup</Text>
-          </TouchableOpacity>
-          <Button
-            title="Reached Pickup"
-            onPress={handleReachedPickup}
-            loading={loading}
-          />
-          <Button
-            title="Cancel Trip"
-            onPress={() => setCancelModalVisible(true)}
-            variant="danger"
-          />
+        <View style={styles.actionsContainer}>
+          <View style={styles.buttonRow}>
+            <AnimatedButton
+              title="Navigate"
+              onPress={() => openMaps(trip.pickup.lat, trip.pickup.lng)}
+              variant="primary"
+              size="small"
+              icon={Navigation}
+              style={styles.horizontalButton}
+            />
+            <AnimatedButton
+              title="Reached"
+              onPress={handleReachedPickup}
+              variant="success"
+              size="small"
+              icon={MapPin}
+              loading={loading}
+              style={styles.horizontalButton}
+            />
+            <AnimatedButton
+              title="Cancel"
+              onPress={() => setCancelModalVisible(true)}
+              variant="danger"
+              size="small"
+              icon={X}
+              style={styles.horizontalButton}
+            />
+          </View>
         </View>
       )}
 
       {status === 'in_progress' && (
-        <View style={styles.actions}>
-          <TouchableOpacity
-            style={styles.navigateButton}
-            onPress={() => openMaps(trip.destination?.lat || trip.delivery?.lat || 0, trip.destination?.lng || trip.delivery?.lng || 0)}
-          >
-            <Navigation size={20} color="#FFFFFF" />
-            <Text style={styles.navigateButtonText}>Navigate to Dropoff</Text>
-          </TouchableOpacity>
-          <Button
-            title="Reached Destination"
-            onPress={handleReachedDestination}
-            loading={loading}
-          />
-          <Button
-            title="Cancel Trip"
-            onPress={() => setCancelModalVisible(true)}
-            variant="danger"
-          />
+        <View style={styles.actionsContainer}>
+          <View style={styles.buttonRow}>
+            <AnimatedButton
+              title="Navigate"
+              onPress={() => openMaps(trip.destination?.lat || trip.delivery?.lat || 0, trip.destination?.lng || trip.delivery?.lng || 0)}
+              variant="primary"
+              size="small"
+              icon={Navigation}
+              style={styles.horizontalButton}
+            />
+            <AnimatedButton
+              title="Reached"
+              onPress={handleReachedDestination}
+              variant="success"
+              size="small"
+              icon={MapPin}
+              loading={loading}
+              style={styles.horizontalButton}
+            />
+            <AnimatedButton
+              title="Cancel"
+              onPress={() => setCancelModalVisible(true)}
+              variant="danger"
+              size="small"
+              icon={X}
+              style={styles.horizontalButton}
+            />
+          </View>
         </View>
       )}
 
@@ -303,6 +408,13 @@ export function TripWorkflow({
         onClose={() => setPaymentModalVisible(false)}
       />
 
+      <FakePaymentQRModal
+        visible={fakePaymentModalVisible}
+        amount={trip.fareEstimate || trip.fare || trip.estimatedFare || 0}
+        onPaymentConfirmed={handleFakePaymentConfirmed}
+        onClose={() => setFakePaymentModalVisible(false)}
+      />
+
       <Modal
         visible={orderDetailsModalVisible}
         onClose={() => setOrderDetailsModalVisible(false)}
@@ -342,7 +454,7 @@ export function TripWorkflow({
           loading={loading}
         />
       </Modal>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -350,22 +462,26 @@ const styles = StyleSheet.create({
   container: {
     marginTop: 16,
   },
-  actions: {
-    gap: 12,
+  actionsContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
-  navigateButton: {
-    backgroundColor: '#2563EB',
+  buttonRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 12,
     gap: 8,
+    justifyContent: 'space-between',
   },
-  navigateButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 16,
+  horizontalButton: {
+    flex: 1,
+    minHeight: 44,
   },
   modalText: {
     fontSize: 14,

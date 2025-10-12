@@ -46,6 +46,44 @@ export interface Captain {
   city?: string;
 }
 
+export interface Parcel {
+  id: string;
+  _id?: string;
+  userRef: string;
+  pickup: {
+    lat: number;
+    lng: number;
+    address: string;
+  };
+  delivery: {
+    lat: number;
+    lng: number;
+    address: string;
+  };
+  package: {
+    name: string;
+    size: string;
+    weight: number;
+    description?: string;
+    value?: number;
+  };
+  receiverName: string;
+  receiverContact: string;
+  vehicleType: string;
+  fareEstimate: number;
+  accepted: boolean;
+  captainRef?: string;
+  status: 'pending' | 'accepted' | 'in_transit' | 'delivered' | 'cancelled';
+  otp?: {
+    code?: string;
+    expiresAt?: string;
+    verified?: boolean;
+    attempts?: number;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Trip {
   id: string;
   _id?: string;

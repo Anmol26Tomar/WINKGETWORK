@@ -46,7 +46,7 @@ const getVendors = async (req, res) => {
 const getVendorById = async (req, res) => {
   try {
     const { includeProducts = false, productLimit = 10 } = req.query;
-    
+    console.log(req.params.id);
     let vendor = await Vendor.findById(req.params.id)
       .select('-password -passwordHash')
       .populate('reviews.userId', 'name email');
