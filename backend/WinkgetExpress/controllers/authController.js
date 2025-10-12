@@ -2,6 +2,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Agent = require('../models/Agent');
+const Superadmin = require('../models/Superadmin');
+const ExpressAdmin = require('../models/ExpressAdmin');
 
 async function register(req, res) {
 	try {
@@ -368,6 +370,15 @@ async function loginSuperAdmin(req, res) {
   }
 }
 
+async function CaptainProfile(req, res) {
+  try {
+    const captain = await Agent.findById(req.captain.id).select('-password');
+    if (!captain) return res.status(404).json({ message: 'Captain not found' });
+    return res.json(captain);
+  } catch (err) {
+    return res.status(500).json({ message: 'Server error' });
+  }
+}
 module.exports = {
   register,
   login,
@@ -379,26 +390,10 @@ module.exports = {
   listAdmins,
   loginAdmin,
   loginSuperAdmin,
-};
-
-
-async function CaptainProfile(req, res) {
-	try {
-		const captain = await Agent.findById(req.captain.id).select('-password');
-		if (!captain) return res.status(404).json({ message: 'Captain not found' });
-		return res.json(captain);
-	} catch (err) {
-		return res.status(500).json({ message: 'Server error' });
-	}
-}
-
-
-module.exports = { 
-	register, 
-	login, 
-	profile, 
 	updateProfile,
-	CaptainLogin,
-	CaptainSignup,
 	CaptainProfile 
 };
+
+
+
+

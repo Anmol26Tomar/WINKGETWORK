@@ -62,4 +62,4 @@ async function approveAgent(req, res) {
   }
 }
 
-module.exports = { getAgentById, getAgents, approveAgent };
+module.exports = { getAgentById, getAgents, approveAgent,getCaptainOrders };
