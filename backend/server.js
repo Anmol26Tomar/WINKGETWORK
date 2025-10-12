@@ -34,6 +34,7 @@ app.post("/test/transport", (req, res) => {
   const testTrip = {
     id: "test_" + Date.now(),
     vehicleType: req.body.vehicleType || "truck",
+    vehicleSubType: req.body.vehicleSubType || "truck_mini_van",
     fareEstimate: 150,
     pickup: { lat: 12.9716, lng: 77.5946, address: "Test Pickup Location" },
     destination: { lat: 12.9352, lng: 77.6245, address: "Test Destination" },

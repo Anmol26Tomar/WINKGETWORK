@@ -35,6 +35,8 @@ export const API_ENDPOINTS = {
   CANCEL_TRIP: '/auth/agent/orders/:id/cancel',
   GET_EARNINGS: '/auth/agent/earnings',
   GET_EARNINGS_SUMMARY: '/auth/agent/earnings/summary',
+  // Parcel endpoints
+  GET_PENDING_PARCELS: '/parcels/pending-truck',
 } as const;
 
 export type ApiEndpointKey = keyof typeof API_ENDPOINTS;

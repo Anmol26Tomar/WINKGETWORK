@@ -95,13 +95,13 @@ export const TripCard: React.FC<TripCardProps> = ({
         <View style={styles.actions}>
           <TouchableOpacity
             style={[styles.actionButton, styles.rejectButton]}
-            onPress={() => onReject?.(trip.id || trip._id)}
+            onPress={() => onReject?.(trip.id || trip._id || '')}
           >
             <Text style={styles.rejectButtonText}>Reject</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionButton, styles.acceptButton]}
-            onPress={() => onAccept?.(trip.id || trip._id)}
+            onPress={() => onAccept?.(trip.id || trip._id || '')}
           >
             <Text style={styles.acceptButtonText}>Accept</Text>
           </TouchableOpacity>
@@ -111,7 +111,7 @@ export const TripCard: React.FC<TripCardProps> = ({
       {showActions && trip.status === 'accepted' && (
         <TouchableOpacity
           style={styles.startButton}
-          onPress={() => onStart?.(trip.id || trip._id)}
+          onPress={() => onStart?.(trip.id || trip._id || '')}
         >
           <Text style={styles.startButtonText}>Start Trip</Text>
         </TouchableOpacity>
@@ -120,7 +120,7 @@ export const TripCard: React.FC<TripCardProps> = ({
       {showActions && trip.status === 'in_progress' && (
         <TouchableOpacity
           style={styles.endButton}
-          onPress={() => onEnd?.(trip.id || trip._id)}
+          onPress={() => onEnd?.(trip.id || trip._id || '')}
         >
           <Text style={styles.endButtonText}>End Trip</Text>
         </TouchableOpacity>

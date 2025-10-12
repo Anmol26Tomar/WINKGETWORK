@@ -108,6 +108,21 @@ export const captainService = {
 };
 
 // ========================
+// PARCEL SERVICE
+// ========================
+export const parcelService = {
+  getPendingParcels: async (lat: number, lng: number, radius: number = 50) => {
+    try {
+      const { data } = await api.get(`/parcels/pending-truck?lat=${lat}&lng=${lng}&radius=${radius}`);
+      return data.parcels || [];
+    } catch (error: any) {
+      console.error('Get pending parcels error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to fetch pending parcels');
+    }
+  },
+};
+
+// ========================
 // TRIP SERVICE
 // ========================
 export const tripService = {

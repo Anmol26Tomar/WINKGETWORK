@@ -36,6 +36,16 @@ const agentSchema = new mongoose.Schema({
   },
   vehicleSubType: {
     type: String,
+    enum: [
+      'bike_standard',
+      'cab_sedan',
+      'cab_suv', 
+      'cab_hatchback',
+      'truck_3wheeler',
+      'truck_mini_van',
+      'truck_pickup',
+      'truck_full_size'
+    ],
     trim: true,
   },
   serviceType: {

@@ -21,7 +21,7 @@ import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
 import { Toast } from '../../components/Toast';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
-import { tripService, getRoutePolyline, getCaptainToPickupRoute, getPickupToDestinationRoute } from '../../services/api';
+import { tripService, parcelService, getRoutePolyline, getCaptainToPickupRoute, getPickupToDestinationRoute } from '../../services/api';
 import { useAuth } from '@/context/AuthContext';
 import { Navigation, Zap, Clock, Bell, X } from 'lucide-react-native';
 import type { Trip } from '../../types';
@@ -56,6 +56,7 @@ export default function HomeScreen() {
   );
   const [isAvailable, setIsAvailable] = useState<boolean>(!!captain?.isAvailable);
   const [newTripNotifications, setNewTripNotifications] = useState<Trip[]>([]);
+  const [pendingParcels, setPendingParcels] = useState<any[]>([]);
 
   // Animated values for notifications
   const notificationAnim = useRef(new Animated.Value(-100)).current;
@@ -119,8 +120,8 @@ export default function HomeScreen() {
         if (status !== 'granted') {
           Alert.alert('Permission denied', 'Location permission is required');
           setLoading(false);
-          return;
-        }
+      return;
+    }
 
         const pos = await Location.getCurrentPositionAsync({});
         if (!mounted) return;
@@ -133,31 +134,31 @@ export default function HomeScreen() {
         if (displayCaptain) {
           setLoading(true);
           try {
-            const [pending, active] = await Promise.all([
-              tripService.getPendingRequests(lat, lng, {
+      const [pending, active] = await Promise.all([
+        tripService.getPendingRequests(lat, lng, {
                 vehicleType: displayCaptain.vehicleType,
                 serviceType: displayCaptain.serviceType,
                 vehicleSubType: displayCaptain.vehicleSubType,
-              }),
-              tripService.getActiveTrip(),
-            ]);
+        }),
+        tripService.getActiveTrip(),
+      ]);
 
             setPendingTrips(filterEligibleTrips(pending || []));
             setActiveTrip(active || null);
 
-            if (active?.pickup && mapRef.current) {
-              mapRef.current.animateToRegion({
-                latitude: active.pickup.lat,
-                longitude: active.pickup.lng,
-                latitudeDelta: 0.02,
-                longitudeDelta: 0.02,
-              });
-            }
-          } catch (error) {
+      if (active?.pickup && mapRef.current) {
+        mapRef.current.animateToRegion({
+          latitude: active.pickup.lat,
+          longitude: active.pickup.lng,
+          latitudeDelta: 0.02,
+          longitudeDelta: 0.02,
+        });
+      }
+    } catch (error) {
             console.warn('Initial fetch error:', error);
             showToast('Failed to load initial trips', 'error');
-          } finally {
-            setLoading(false);
+    } finally {
+      setLoading(false);
           }
         } else {
           setLoading(false);
@@ -318,7 +319,7 @@ export default function HomeScreen() {
       console.log('Trip cancelled:', payload);
       
       // Remove from pending trips
-      setPendingTrips((prev) => 
+      setPendingTrips((prev) =>
         prev.filter((t) => t.id !== payload.id && t._id !== payload._id)
       );
       
@@ -382,7 +383,7 @@ export default function HomeScreen() {
     return () => {
       clearInterval(heartbeatInterval);
       try {
-        socket.off('new-trip', handleNewTrip);
+      socket.off('new-trip', handleNewTrip);
         socket.off('trip:new', handleNewTrip);
         socket.off('trip:update', handleTripUpdate);
         socket.off('trip:updated', handleTripUpdate);
@@ -488,9 +489,29 @@ export default function HomeScreen() {
     }
   }, [displayCaptain, userLoc, filterEligibleTrips, showToast]);
 
+  // Fetch pending parcels for truck drivers
+  const fetchPendingParcels = useCallback(async () => {
+    if (!displayCaptain || displayCaptain.vehicleType !== 'truck' || !userLoc) return;
+    try {
+      const parcels = await parcelService.getPendingParcels(userLoc.lat, userLoc.lng, 50);
+      setPendingParcels(parcels || []);
+    } catch (error) {
+      console.error('Error fetching pending parcels:', error);
+      showToast('Failed to fetch pending parcels', 'error');
+    }
+  }, [displayCaptain, userLoc, showToast]);
+
+  // Fetch pending parcels when component loads or user location changes
+  useEffect(() => {
+    if (displayCaptain?.vehicleType === 'truck' && userLoc) {
+      fetchPendingParcels();
+    }
+  }, [displayCaptain, userLoc, fetchPendingParcels]);
+
   const onRefresh = useCallback(() => {
     refreshTrips();
-  }, [refreshTrips]);
+    fetchPendingParcels();
+  }, [refreshTrips, fetchPendingParcels]);
 
   // Accept trip - Phase 1: Captain to Pickup
   const handleAcceptTrip = useCallback(async (tripId: string) => {
@@ -505,8 +526,14 @@ export default function HomeScreen() {
       // Phase 1: Calculate route from captain's current location to pickup point
       if (trip.pickup && userLoc) {
         try {
+          console.log('Phase 1: Calculating route from captain to pickup');
+          console.log('Captain location:', userLoc);
+          console.log('Pickup location:', trip.pickup);
+          
           setCurrentPhase('pickup');
           const poly = await getCaptainToPickupRoute(userLoc, { lat: trip.pickup.lat, lng: trip.pickup.lng });
+          console.log('Phase 1 route calculated:', poly);
+          
           setRouteCoords(poly.coordinates.map(([lng, lat]: [number, number]) => ({ latitude: lat, longitude: lng })));
           
           // Animate map to show the route
@@ -527,10 +554,11 @@ export default function HomeScreen() {
 
           // Open external maps for navigation to pickup
           setTimeout(() => {
+            console.log('Opening external maps to pickup location');
             openMaps(trip.pickup.lat, trip.pickup.lng);
           }, 1000);
         } catch (routeError) {
-          console.warn('Route calculation failed:', routeError);
+          console.warn('Phase 1 route calculation failed:', routeError);
           // Don't fail the trip acceptance if route calculation fails
         }
       }
@@ -569,13 +597,20 @@ export default function HomeScreen() {
       // Phase 2: Switch to pickup to destination route
       if (updatedTrip && (updatedTrip.destination || updatedTrip.delivery)) {
         try {
+          console.log('Phase 2: Switching to pickup to destination route');
+          console.log('Updated trip:', updatedTrip);
+          
           setCurrentPhase('destination');
           const destination = updatedTrip.destination || updatedTrip.delivery;
           if (destination) {
+            console.log('Destination location:', destination);
+            
             const poly = await getPickupToDestinationRoute(
               { lat: updatedTrip.pickup.lat, lng: updatedTrip.pickup.lng },
               { lat: destination.lat, lng: destination.lng }
             );
+            console.log('Phase 2 route calculated:', poly);
+            
             setRouteCoords(poly.coordinates.map(([lng, lat]: [number, number]) => ({ latitude: lat, longitude: lng })));
             
             // Animate map to show the new route
@@ -593,6 +628,7 @@ export default function HomeScreen() {
 
             // Open external maps for navigation to destination
             setTimeout(() => {
+              console.log('Opening external maps to destination location');
               openMaps(destination.lat, destination.lng);
             }, 1000);
           }
@@ -727,6 +763,7 @@ export default function HomeScreen() {
               />
             </View>
 
+
             {/* Debug: Test Socket Connection */}
             <View style={styles.debugSection}>
               <Text style={styles.debugTitle}>Debug Info</Text>
@@ -753,7 +790,10 @@ export default function HomeScreen() {
                     const response = await fetch('http://172.20.49.88:5000/test/transport', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ vehicleType: displayCaptain?.vehicleType || 'truck' })
+                      body: JSON.stringify({ 
+                        vehicleType: displayCaptain?.vehicleType || 'truck',
+                        vehicleSubType: displayCaptain?.vehicleSubType || 'truck_mini_van'
+                      })
                     });
                     const data = await response.json();
                     console.log('Test transport created:', data);
@@ -776,7 +816,7 @@ export default function HomeScreen() {
               <View>
                 <Text style={styles.quickStatValue}>{pendingCount}</Text>
                 <Text style={styles.quickStatLabel}>New Requests</Text>
-              </View>
+            </View>
             </View>
 
             <View style={styles.quickStatCard}>
@@ -839,7 +879,7 @@ export default function HomeScreen() {
                   <>
                     {/* Captain location marker */}
                     {userLoc && (
-                      <Marker
+                    <Marker
                         coordinate={{ latitude: userLoc.lat, longitude: userLoc.lng }}
                         title="Your Location"
                         description="Current position"
@@ -931,6 +971,56 @@ export default function HomeScreen() {
                 onReject={(id) => { setSelectedTripId(id); setRejectModalVisible(true); }}
               />
             ))}
+
+            {/* Pending Parcels Section for Truck Drivers */}
+            {displayCaptain?.vehicleType === 'truck' && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Pending Parcels</Text>
+                {pendingParcels.length === 0 ? (
+                  <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyText}>No pending parcels</Text>
+                    <Text style={styles.emptySubtext}>
+                      Parcels will appear here when available
+                    </Text>
+                  </View>
+                ) : (
+                  pendingParcels.map((parcel) => (
+                    <View key={parcel._id || parcel.id} style={styles.parcelCard}>
+                      <View style={styles.parcelHeader}>
+                        <Text style={styles.parcelId}>#{parcel._id?.slice(-6) || parcel.id?.slice(-6)}</Text>
+                        <Text style={styles.parcelFare}>₹{parcel.fareEstimate}</Text>
+                      </View>
+                      <View style={styles.parcelLocations}>
+                        <View style={styles.parcelLocationRow}>
+                          <View style={styles.pickupDot} />
+                          <Text style={styles.parcelAddress} numberOfLines={1}>
+                            {parcel.pickup?.address}
+                          </Text>
+                        </View>
+                        <View style={styles.parcelLocationRow}>
+                          <View style={styles.dropoffDot} />
+                          <Text style={styles.parcelAddress} numberOfLines={1}>
+                            {parcel.delivery?.address}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={styles.parcelDetails}>
+                        <Text style={styles.parcelReceiver}>To: {parcel.receiverName}</Text>
+                        <Text style={styles.parcelPackage}>{parcel.package?.name} ({parcel.package?.size})</Text>
+                      </View>
+                      <View style={styles.parcelActions}>
+                        <TouchableOpacity
+                          style={styles.acceptParcelButton}
+                          onPress={() => handleAcceptTrip(parcel._id || parcel.id || '')}
+                        >
+                          <Text style={styles.acceptParcelButtonText}>Accept</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ))
+                )}
+              </View>
+            )}
           </View>
         </ScrollView>
       )}
@@ -992,6 +1082,7 @@ export default function HomeScreen() {
           </View>
         </View>
       </Modal>
+
     </View>
   );
 }
@@ -1266,6 +1357,10 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     textAlign: 'center',
   },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
   incomingTripModal: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
@@ -1340,5 +1435,91 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     marginTop: 16,
+  },
+  // Parcel card styles
+  parcelCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  parcelHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  parcelId: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  parcelFare: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#10B981',
+  },
+  parcelLocations: {
+    marginBottom: 12,
+  },
+  parcelLocationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  pickupDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10B981',
+    marginRight: 12,
+  },
+  dropoffDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
+    marginRight: 12,
+  },
+  parcelAddress: {
+    flex: 1,
+    fontSize: 14,
+    color: '#374151',
+    fontWeight: '500',
+  },
+  parcelDetails: {
+    marginBottom: 12,
+  },
+  parcelReceiver: {
+    fontSize: 14,
+    color: '#111827',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  parcelPackage: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  parcelActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  acceptParcelButton: {
+    backgroundColor: '#10B981',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  acceptParcelButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
