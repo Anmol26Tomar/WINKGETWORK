@@ -26,7 +26,7 @@ async function create(req, res) {
 		}
 		const distanceKm = haversineKm(pickup, destination);
 		const fareEstimate = estimateFareKm(distanceKm, vehicleType);
-    const doc = await Transport.create({
+		const doc = await Transport.create({
 			userRef: req.user.id,
 			pickup,
 			destination,
@@ -36,8 +36,23 @@ async function create(req, res) {
 			rideAccepted: false,
 			status: 'pending',
 		});
+		
+		// Notify user
 		const io = getIO();
 		io?.to(`user:${req.user.id}`).emit('ride-created', { ride: doc });
+		
+		// Notify captains of new trip
+		const { notifyCaptainsNewTransport } = require('../utils/notificationService');
+		notifyCaptainsNewTransport(doc._id.toString(), {
+			vehicleType: doc.vehicleType,
+			fareEstimate: doc.fareEstimate,
+			pickup: doc.pickup,
+			destination: doc.destination,
+			distanceKm: doc.distanceKm,
+			status: doc.status,
+			userRef: doc.userRef
+		});
+		
 		return res.status(201).json(doc);
 	} catch (err) {
 		return res.status(500).json({ message: 'Server error' });

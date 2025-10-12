@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MapPin, Navigation, DollarSign, Clock } from 'lucide-react-native';
 import type { Trip } from '../types';
 
+
 interface TripCardProps {
   trip: Trip;
   onAccept?: (tripId: string) => void;

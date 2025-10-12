@@ -21,7 +21,7 @@ import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
 import { Toast } from '../../components/Toast';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
-import { tripService, getRoutePolyline } from '../../services/api';
+import { tripService, getRoutePolyline, getCaptainToPickupRoute, getPickupToDestinationRoute } from '../../services/api';
 import { useAuth } from '@/context/AuthContext';
 import { Navigation, Zap, Clock, Bell, X } from 'lucide-react-native';
 import type { Trip } from '../../types';
@@ -42,6 +42,8 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
   const [routeCoords, setRouteCoords] = useState<{ latitude: number; longitude: number }[] | null>(null);
+  const [currentPhase, setCurrentPhase] = useState<'pickup' | 'destination'>('pickup');
+  const [locationTracking, setLocationTracking] = useState(false);
   const [incomingTrip, setIncomingTrip] = useState<Trip | null>(null);
   const [selectedTripId, setSelectedTripId] = useState('');
   const [rejectReason, setRejectReason] = useState('');
@@ -183,21 +185,48 @@ export default function HomeScreen() {
 
     socketRef.current = socket;
 
-    // Emit captain online status
-    socket.emit('captain:online', {
-      captainId: displayCaptain.id || displayCaptain._id,
-      location: userLoc,
-      vehicleType: displayCaptain.vehicleType,
-      isAvailable: isAvailable,
-    });
+    // Wait for socket to connect
+    const setupSocket = () => {
+      if (socket.connected) {
+        console.log('Socket connected, joining rooms...');
+        
+        // Join captain-specific room
+        socket.emit('captain:join', {
+          captainId: displayCaptain.id || displayCaptain._id,
+          vehicleType: displayCaptain.vehicleType,
+          isAvailable: isAvailable,
+        });
+
+        // Emit captain online status
+        socket.emit('captain:online', {
+          captainId: displayCaptain.id || displayCaptain._id,
+          location: userLoc,
+          vehicleType: displayCaptain.vehicleType,
+          isAvailable: isAvailable,
+        });
+      } else {
+        console.log('Socket not connected, waiting...');
+        setTimeout(setupSocket, 1000);
+      }
+    };
+
+    setupSocket();
 
     // Handle new trip requests
     const handleNewTrip = (trip: Trip) => {
       console.log('New trip received:', trip);
+      console.log('Captain vehicle type:', displayCaptain.vehicleType);
+      console.log('Trip vehicle type:', trip.vehicleType);
+      console.log('Captain available:', isAvailable);
       
       // Check if captain is available and trip matches vehicle type
-      if (!isAvailable || trip.vehicleType !== displayCaptain.vehicleType) {
-        console.log('Trip filtered out:', { isAvailable, vehicleType: trip.vehicleType });
+      if (!isAvailable) {
+        console.log('Captain not available');
+        return;
+      }
+
+      if (trip.vehicleType !== displayCaptain.vehicleType) {
+        console.log('Vehicle type mismatch:', trip.vehicleType, 'vs', displayCaptain.vehicleType);
         return;
       }
 
@@ -208,10 +237,21 @@ export default function HomeScreen() {
         return;
       }
 
-      // Add to notifications
+      console.log('Trip accepted for display');
+
+      // Add to notifications with animation
       setNewTripNotifications((prev) => {
         const exists = prev.some((t) => t.id === trip.id || t._id === trip._id);
         if (exists) return prev;
+        
+        // Animate notification bar
+        Animated.spring(notificationAnim, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 100,
+          friction: 8,
+        }).start();
+        
         return [...prev, trip];
       });
 
@@ -295,6 +335,25 @@ export default function HomeScreen() {
       }
     };
 
+    // Socket connection events
+    socket.on('connect', () => {
+      console.log('Socket connected!');
+      // Re-join rooms when reconnected
+      socket.emit('captain:join', {
+        captainId: displayCaptain.id || displayCaptain._id,
+        vehicleType: displayCaptain.vehicleType,
+        isAvailable: isAvailable,
+      });
+    });
+
+    socket.on('disconnect', () => {
+      console.log('Socket disconnected');
+    });
+
+    socket.on('connect_error', (error: any) => {
+      console.error('Socket connection error:', error);
+    });
+
     // Socket event listeners
     socket.on('new-trip', handleNewTrip);
     socket.on('trip:new', handleNewTrip); // Alternative event name
@@ -303,6 +362,11 @@ export default function HomeScreen() {
     socket.on('trip:completed', handleTripCompleted);
     socket.on('trip:cancelled', handleTripCancelled);
     socket.on('order:update', handleTripUpdate);
+
+    // Debug: Listen to all events
+    socket.onAny((eventName: any, ...args: any[]) => {
+      console.log('Socket event received:', eventName, args);
+    });
 
     // Send heartbeat to keep connection alive
     const heartbeatInterval = setInterval(() => {
@@ -346,6 +410,48 @@ export default function HomeScreen() {
     });
   }, [isAvailable, displayCaptain]);
 
+  // Location tracking effect
+  useEffect(() => {
+    if (!locationTracking) return;
+    
+    const interval = setInterval(async () => {
+      try {
+        const position = await Location.getCurrentPositionAsync({});
+        const newLocation = { lat: position.coords.latitude, lng: position.coords.longitude };
+        
+        // Update user location
+        setUserLoc(newLocation);
+        
+        // Update route if we have an active trip
+        if (activeTrip && currentPhase === 'pickup') {
+          try {
+            const poly = await getCaptainToPickupRoute(newLocation, { lat: activeTrip.pickup.lat, lng: activeTrip.pickup.lng });
+            setRouteCoords(poly.coordinates.map(([lng, lat]: [number, number]) => ({ latitude: lat, longitude: lng })));
+          } catch (error) {
+            console.warn('Route update failed:', error);
+          }
+        } else if (activeTrip && currentPhase === 'destination') {
+          try {
+            const destination = activeTrip.destination || activeTrip.delivery;
+            if (destination) {
+              const poly = await getPickupToDestinationRoute(
+                { lat: activeTrip.pickup.lat, lng: activeTrip.pickup.lng },
+                { lat: destination.lat, lng: destination.lng }
+              );
+              setRouteCoords(poly.coordinates.map(([lng, lat]: [number, number]) => ({ latitude: lat, longitude: lng })));
+            }
+          } catch (error) {
+            console.warn('Route update failed:', error);
+          }
+        }
+      } catch (error) {
+        console.warn('Location tracking error:', error);
+      }
+    }, 10000); // Update every 10 seconds
+    
+    return () => clearInterval(interval);
+  }, [locationTracking, activeTrip, currentPhase]);
+
   // Manual refresh
   const refreshTrips = useCallback(async () => {
     if (!displayCaptain || !userLoc) return;
@@ -386,7 +492,7 @@ export default function HomeScreen() {
     refreshTrips();
   }, [refreshTrips]);
 
-  // Accept trip
+  // Accept trip - Phase 1: Captain to Pickup
   const handleAcceptTrip = useCallback(async (tripId: string) => {
     if (!tripId) return;
     try {
@@ -396,12 +502,40 @@ export default function HomeScreen() {
       setPendingTrips((prev) => prev.filter((t) => t.id !== tripId && t._id !== tripId));
       setNewTripNotifications((prev) => prev.filter((t) => t.id !== tripId && t._id !== tripId));
 
-      if (userLoc && trip.pickup) {
-        const poly = await getRoutePolyline(userLoc, { lat: trip.pickup.lat, lng: trip.pickup.lng });
-        setRouteCoords(poly.coordinates.map(([lng, lat]: [number, number]) => ({ latitude: lat, longitude: lng })));
+      // Phase 1: Calculate route from captain's current location to pickup point
+      if (trip.pickup && userLoc) {
+        try {
+          setCurrentPhase('pickup');
+          const poly = await getCaptainToPickupRoute(userLoc, { lat: trip.pickup.lat, lng: trip.pickup.lng });
+          setRouteCoords(poly.coordinates.map(([lng, lat]: [number, number]) => ({ latitude: lat, longitude: lng })));
+          
+          // Animate map to show the route
+          if (mapRef.current) {
+            const bounds = [
+              { latitude: userLoc.lat, longitude: userLoc.lng },
+              { latitude: trip.pickup.lat, longitude: trip.pickup.lng }
+            ];
+            
+            mapRef.current.fitToCoordinates(bounds, {
+              edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+              animated: true,
+            });
+          }
+
+          // Start location tracking for real-time updates
+          setLocationTracking(true);
+
+          // Open external maps for navigation to pickup
+          setTimeout(() => {
+            openMaps(trip.pickup.lat, trip.pickup.lng);
+          }, 1000);
+        } catch (routeError) {
+          console.warn('Route calculation failed:', routeError);
+          // Don't fail the trip acceptance if route calculation fails
+        }
       }
 
-      showToast('Trip accepted successfully! 🎉', 'success');
+      showToast('Trip accepted! Navigate to pickup point 🎯', 'success');
     } catch (error: any) {
       console.warn('Accept error', error);
       showToast(error?.response?.data?.message || 'Failed to accept trip', 'error');
@@ -425,12 +559,49 @@ export default function HomeScreen() {
     }
   }, [rejectReason, selectedTripId, showToast]);
 
+  // Phase 2: Start trip - Switch to pickup to destination route
   const handleStartTrip = useCallback(async (tripId: string) => {
     try {
       await tripService.startTrip(tripId);
       const updatedTrip = await tripService.getActiveTrip();
       setActiveTrip(updatedTrip);
-      showToast('Trip started', 'success');
+      
+      // Phase 2: Switch to pickup to destination route
+      if (updatedTrip && (updatedTrip.destination || updatedTrip.delivery)) {
+        try {
+          setCurrentPhase('destination');
+          const destination = updatedTrip.destination || updatedTrip.delivery;
+          if (destination) {
+            const poly = await getPickupToDestinationRoute(
+              { lat: updatedTrip.pickup.lat, lng: updatedTrip.pickup.lng },
+              { lat: destination.lat, lng: destination.lng }
+            );
+            setRouteCoords(poly.coordinates.map(([lng, lat]: [number, number]) => ({ latitude: lat, longitude: lng })));
+            
+            // Animate map to show the new route
+            if (mapRef.current) {
+              const bounds = [
+                { latitude: updatedTrip.pickup.lat, longitude: updatedTrip.pickup.lng },
+                { latitude: destination.lat, longitude: destination.lng }
+              ];
+              
+              mapRef.current.fitToCoordinates(bounds, {
+                edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+                animated: true,
+              });
+            }
+
+            // Open external maps for navigation to destination
+            setTimeout(() => {
+              openMaps(destination.lat, destination.lng);
+            }, 1000);
+          }
+        } catch (routeError) {
+          console.warn('Phase 2 route calculation failed:', routeError);
+        }
+      }
+      
+      showToast('Trip started! Navigate to destination 🚀', 'success');
     } catch (error: any) {
       Alert.alert('Error', error?.response?.data?.message || 'Failed to start trip');
     }
@@ -442,6 +613,8 @@ export default function HomeScreen() {
       showToast('Trip completed successfully', 'success');
       setActiveTrip(null);
       setRouteCoords(null);
+      setLocationTracking(false);
+      setCurrentPhase('pickup');
     } catch (error: any) {
       Alert.alert('Error', error?.response?.data?.message || 'Failed to complete trip');
     }
@@ -553,6 +726,47 @@ export default function HomeScreen() {
                 variant={isAvailable ? 'danger' : 'primary'}
               />
             </View>
+
+            {/* Debug: Test Socket Connection */}
+            <View style={styles.debugSection}>
+              <Text style={styles.debugTitle}>Debug Info</Text>
+              <Text style={styles.debugText}>Socket: {socketRef.current?.connected ? 'Connected' : 'Disconnected'}</Text>
+              <Text style={styles.debugText}>Vehicle: {displayCaptain?.vehicleType}</Text>
+              <Text style={styles.debugText}>Available: {isAvailable ? 'Yes' : 'No'}</Text>
+              <TouchableOpacity 
+                style={styles.testButton}
+                onPress={() => {
+                  if (socketRef.current) {
+                    console.log('Testing socket connection...');
+                    socketRef.current.emit('test', { message: 'Hello from captain!' });
+                    showToast('Test message sent to socket', 'info');
+                  }
+                }}
+              >
+                <Text style={styles.testButtonText}>Test Socket</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.testButton, { backgroundColor: '#10B981', marginTop: 8 }]}
+                onPress={async () => {
+                  try {
+                    const response = await fetch('http://172.20.49.88:5000/test/transport', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ vehicleType: displayCaptain?.vehicleType || 'truck' })
+                    });
+                    const data = await response.json();
+                    console.log('Test transport created:', data);
+                    showToast('Test transport request sent!', 'success');
+                  } catch (error) {
+                    console.error('Test transport error:', error);
+                    showToast('Failed to send test request', 'error');
+                  }
+                }}
+              >
+                <Text style={styles.testButtonText}>Send Test Trip</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Quick Stats */}
@@ -589,11 +803,17 @@ export default function HomeScreen() {
                 onTripComplete={() => { 
                   setActiveTrip(null); 
                   setRouteCoords(null); 
+                  setLocationTracking(false);
+                  setCurrentPhase('pickup');
                 }}
                 onTripCancel={() => { 
                   setActiveTrip(null); 
                   setRouteCoords(null); 
+                  setLocationTracking(false);
+                  setCurrentPhase('pickup');
                 }}
+                onRouteUpdate={(coordinates) => setRouteCoords(coordinates)}
+                onPhaseChange={(phase) => setCurrentPhase(phase)}
               />
             </View>
           )}
@@ -614,10 +834,68 @@ export default function HomeScreen() {
                 {userLoc && <Marker coordinate={{ latitude: userLoc.lat, longitude: userLoc.lng }} title="You" />}
                 {markers}
 
-                {routeCoords && <Polyline coordinates={routeCoords} strokeWidth={4} strokeColor="#3B82F6" />}
+                {/* Active trip route and markers */}
+                {activeTrip && (
+                  <>
+                    {/* Captain location marker */}
+                    {userLoc && (
+                      <Marker
+                        coordinate={{ latitude: userLoc.lat, longitude: userLoc.lng }}
+                        title="Your Location"
+                        description="Current position"
+                      >
+                        <View style={styles.captainMarker}>
+                          <Text style={styles.markerText}>C</Text>
+                        </View>
+                      </Marker>
+                    )}
+
+                    {/* Pickup marker */}
+                    <Marker
+                      coordinate={{ latitude: activeTrip.pickup.lat, longitude: activeTrip.pickup.lng }}
+                      title="Pickup Location"
+                      description="Customer pickup point"
+                    >
+                      <View style={styles.pickupMarker}>
+                        <Text style={styles.markerText}>P</Text>
+                      </View>
+                    </Marker>
+
+                    {/* Destination marker */}
+                    {(activeTrip.destination || activeTrip.delivery) && (
+                      <Marker
+                        coordinate={{ 
+                          latitude: (activeTrip.destination || activeTrip.delivery)!.lat, 
+                          longitude: (activeTrip.destination || activeTrip.delivery)!.lng 
+                        }}
+                        title="Destination"
+                        description="Customer destination"
+                      >
+                        <View style={styles.destinationMarker}>
+                          <Text style={styles.markerText}>D</Text>
+                        </View>
+                      </Marker>
+                    )}
+
+                    {/* Route polyline */}
+                    {routeCoords && (
+                      <Polyline 
+                        coordinates={routeCoords} 
+                        strokeWidth={4} 
+                        strokeColor={currentPhase === 'pickup' ? '#10B981' : '#3B82F6'}
+                        strokeColors={[currentPhase === 'pickup' ? '#10B981' : '#3B82F6']}
+                      />
+                    )}
+                  </>
+                )}
+
+                {/* Regular route for pending trips */}
+                {!activeTrip && routeCoords && (
+                  <Polyline coordinates={routeCoords} strokeWidth={4} strokeColor="#3B82F6" />
+                )}
 
                 {incomingTrip && (
-                  <Marker
+                    <Marker
                     coordinate={{ latitude: incomingTrip.pickup.lat, longitude: incomingTrip.pickup.lng }}
                     title={`New: ₹${incomingTrip.fareEstimate || incomingTrip.fare}`}
                   >
@@ -651,7 +929,6 @@ export default function HomeScreen() {
                 trip={trip}
                 onAccept={() => handleAcceptTrip(trip.id || trip._id || '')}
                 onReject={(id) => { setSelectedTripId(id); setRejectModalVisible(true); }}
-                isNew={newTripNotifications.some(n => n.id === trip.id || n._id === trip._id)}
               />
             ))}
           </View>
@@ -697,21 +974,21 @@ export default function HomeScreen() {
             <Text style={styles.fareValue}>₹{incomingTrip?.fareEstimate || incomingTrip?.fare}</Text>
           </View>
           <View style={styles.modalButtonContainer}>
-            <TouchableOpacity
+              <TouchableOpacity
               style={[styles.modalBtn, styles.acceptBtn]}
-              onPress={async () => {
+                onPress={async () => {
                 await handleAcceptTrip(incomingTrip!.id || incomingTrip!._id || '');
-                setIncomingTrip(null);
-              }}
-            >
+                  setIncomingTrip(null);
+                }}
+              >
               <Text style={styles.modalBtnText}>Accept Trip</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+              </TouchableOpacity>
+              <TouchableOpacity
               style={[styles.modalBtn, styles.declineBtn]}
-              onPress={() => setIncomingTrip(null)}
-            >
+                onPress={() => setIncomingTrip(null)}
+              >
               <Text style={styles.modalBtnText}>Decline</Text>
-            </TouchableOpacity>
+              </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -803,6 +1080,35 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#111827',
   },
+  debugSection: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+  },
+  debugTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  debugText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  testButton: {
+    marginTop: 8,
+    padding: 8,
+    backgroundColor: '#3B82F6',
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  testButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
   quickStats: {
     flexDirection: 'row',
     paddingHorizontal: 20,
@@ -886,6 +1192,56 @@ const styles = StyleSheet.create({
     height: 12,
     backgroundColor: '#EF4444',
     borderRadius: 6,
+  },
+  captainMarker: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#8B5CF6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  pickupMarker: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  destinationMarker: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  markerText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   emptyState: {
     backgroundColor: '#FFFFFF',

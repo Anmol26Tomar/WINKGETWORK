@@ -17,28 +17,29 @@ import { tripService } from '../services/api';
 const dummyTrip: Trip = {
   id: 'trip_123',
   status: 'accepted', // change to 'in_progress' to test other flow
-  service_type: 'delivery', // must match a key in SERVICE_CONFIGS or use fallback
-  estimated_fare: 150,
-  pickup_lat: 12.9716,
-  pickup_lng: 77.5946,
-  dropoff_lat: 12.9352,
-  dropoff_lng: 77.6245,
-  requiresPaymentAfterPickup: false,
-  requiresPickupOtp: true,
-  requiresDropOtp: true,
-  workflow: 'default',
+  serviceType: 'delivery', // must match a key in SERVICE_CONFIGS or use fallback
+  fareEstimate: 150,
+  pickup: { lat: 12.9716, lng: 77.5946, address: 'Test Pickup' },
+  destination: { lat: 12.9352, lng: 77.6245, address: 'Test Destination' },
+  vehicleType: 'bike',
+  distanceKm: 5.2,
+  createdAt: new Date().toISOString(),
 };
 
 interface TripWorkflowProps {
   trip?: Trip; // optional so we can use dummy
   onTripComplete?: () => void;
   onTripCancel?: () => void;
+  onRouteUpdate?: (coordinates: { latitude: number; longitude: number }[]) => void;
+  onPhaseChange?: (phase: 'pickup' | 'destination') => void;
 }
 
 export function TripWorkflow({
   trip = dummyTrip,
   onTripComplete = () => Alert.alert('Trip Complete'),
   onTripCancel = () => Alert.alert('Trip Cancelled'),
+  onRouteUpdate,
+  onPhaseChange,
 }: TripWorkflowProps) {
   const [pickupOtpModalVisible, setPickupOtpModalVisible] = useState(false);
   const [dropOtpModalVisible, setDropOtpModalVisible] = useState(false);
@@ -99,7 +100,12 @@ export function TripWorkflow({
   const handleReachedPickup = async () => {
     setLoading(true);
     try {
-      await tripService.reachTrip(trip.id || trip._id);
+      const tripId = trip.id || trip._id || '';
+      if (!tripId) {
+        Alert.alert('Error', 'Trip ID not found');
+        return;
+      }
+      await tripService.reachTrip(tripId);
       if (config.requiresPickupOtp) setPickupOtpModalVisible(true);
       else if (config.requiresPaymentAfterPickup) setPaymentModalVisible(true);
       else setOrderDetailsModalVisible(true);
@@ -117,13 +123,28 @@ export function TripWorkflow({
     }
     setLoading(true);
     try {
-      await tripService.verifyPickupOtp(trip.id || trip._id, pickupOtp);
+      const tripId = trip.id || trip._id || '';
+      if (!tripId) {
+        Alert.alert('Error', 'Trip ID not found');
+        return;
+      }
+      await tripService.verifyPickupOtp(tripId, pickupOtp);
       // After OTP verification, start the trip
-      await tripService.startTrip(trip.id || trip._id);
+      await tripService.startTrip(tripId);
       setPickupOtpModalVisible(false);
       setPickupOtp('');
       setOrderDetailsModalVisible(false);
-      Alert.alert('Success', 'Trip started successfully');
+      
+      // Notify parent component to switch to destination phase
+      onPhaseChange?.('destination');
+      
+      // Navigate to destination after starting trip
+      const destination = trip.destination || trip.delivery;
+      if (destination) {
+        openMaps(destination.lat, destination.lng);
+      }
+      
+      Alert.alert('Success', 'OTP verified! Trip started - Navigate to destination 🚀');
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.message || 'Invalid OTP');
     } finally {
@@ -139,16 +160,32 @@ export function TripWorkflow({
   const handleStartTrip = async () => {
     setLoading(true);
     try {
+      const tripId = trip.id || trip._id || '';
+      if (!tripId) {
+        Alert.alert('Error', 'Trip ID not found');
+        return;
+      }
+      
       // First mark as reached pickup to get OTP
-      await tripService.reachTrip(trip.id || trip._id);
+      await tripService.reachTrip(tripId);
       
       if (config.requiresPickupOtp) {
         setPickupOtpModalVisible(true);
       } else {
         // Start trip directly if no OTP required
-        await tripService.startTrip(trip.id || trip._id);
+        await tripService.startTrip(tripId);
         setOrderDetailsModalVisible(false);
-        Alert.alert('Success', 'Trip started successfully');
+        
+        // Notify parent component to switch to destination phase
+        onPhaseChange?.('destination');
+        
+        // Navigate to destination after starting trip
+        const destination = trip.destination || trip.delivery;
+        if (destination) {
+          openMaps(destination.lat, destination.lng);
+        }
+        
+        Alert.alert('Success', 'Trip started! Navigate to destination 🚀');
       }
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.message || 'Failed to start trip');
@@ -160,18 +197,21 @@ export function TripWorkflow({
   const handleReachedDestination = async () => {
     setLoading(true);
     try {
-      const result = await tripService.reachDestination(trip.id || trip._id);
+      const tripId = trip.id || trip._id || '';
+      if (!tripId) {
+        Alert.alert('Error', 'Trip ID not found');
+        return;
+      }
+      
+      await tripService.reachDestination(tripId);
       if (config.requiresDropOtp) {
         setDropOtpModalVisible(true);
-        // Store the OTP for verification
-        if (result.otp) {
-          // OTP is provided by the backend
-        }
+        // OTP will be handled in the modal
       } else if (config.workflow === 'pickup_deliver_pay') {
         setPaymentModalVisible(true);
       } else {
         // Auto-complete trip if no OTP or payment required
-        await tripService.endTrip(trip.id || trip._id, '000000'); // Use dummy OTP for auto-completion
+        await tripService.endTrip(tripId, '000000'); // Use dummy OTP for auto-completion
         onTripComplete();
       }
     } catch (error: any) {
@@ -188,7 +228,12 @@ export function TripWorkflow({
     }
     setLoading(true);
     try {
-      await tripService.endTrip(trip.id || trip._id, dropOtp);
+      const tripId = trip.id || trip._id || '';
+      if (!tripId) {
+        Alert.alert('Error', 'Trip ID not found');
+        return;
+      }
+      await tripService.endTrip(tripId, dropOtp);
       setDropOtpModalVisible(false);
       setDropOtp('');
       // Show fake payment modal for trip completion
@@ -217,7 +262,12 @@ export function TripWorkflow({
     }
     setLoading(true);
     try {
-      await tripService.cancelTrip(trip.id || trip._id, cancelReason);
+      const tripId = trip.id || trip._id || '';
+      if (!tripId) {
+        Alert.alert('Error', 'Trip ID not found');
+        return;
+      }
+      await tripService.cancelTrip(tripId, cancelReason);
       setCancelModalVisible(false);
       setCancelReason('');
       onTripCancel();

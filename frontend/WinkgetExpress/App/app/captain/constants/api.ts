@@ -10,6 +10,10 @@ export const MAPTILER_BASE_URL = 'https://api.maptiler.com/directions';
 export const MAPTILER_PROFILE = 'driving';
 export const MAPTILER_KEY = process.env.EXPO_PUBLIC_MAPTILER_KEY || '<YOUR_MAPTILER_API_KEY>';
 
+// Google Maps API configuration
+export const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '<YOUR_GOOGLE_MAPS_API_KEY>';
+export const GOOGLE_DIRECTIONS_API_URL = 'https://maps.googleapis.com/maps/api/directions/json';
+
 export const API_ENDPOINTS = {
   LOGIN: '/auth/agent/captainlogin',
   SIGNUP: '/auth/agent/captainsignup',

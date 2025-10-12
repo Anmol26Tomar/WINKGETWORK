@@ -76,8 +76,15 @@ async function createParcel(req, res) {
     });
     const { notifyCaptainsNewParcel } = require("../utils/notificationService");
     notifyCaptainsNewParcel(doc._id.toString(), {
-      vehicleType: "admin",
+      vehicleType: doc.vehicleType,
       fareEstimate: doc.fareEstimate,
+      pickup: doc.pickup,
+      delivery: doc.delivery,
+      package: doc.package,
+      receiverName: doc.receiverName,
+      receiverContact: doc.receiverContact,
+      status: doc.status,
+      userRef: doc.userRef
     });
     return res.status(201).json(doc);
   } catch (err) {

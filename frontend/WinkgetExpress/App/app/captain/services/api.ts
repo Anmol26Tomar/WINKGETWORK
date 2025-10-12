@@ -194,17 +194,181 @@ export default api;
 // ========================
 export async function getRoutePolyline(
   from: { lat: number; lng: number },
+  to: { lat: number; lng: number },
+  mode: 'driving' | 'walking' = 'driving'
+): Promise<{ coordinates: [number, number][]; distance: number; duration: number }> {
+  try {
+    // Use Google Maps Directions API as primary
+    const googleApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+    if (googleApiKey && googleApiKey !== '<YOUR_GOOGLE_MAPS_API_KEY>') {
+      return await getGoogleDirections(from, to, googleApiKey, mode);
+    }
+
+    // Fallback to MAPTILER if Google not available
+    if (MAPTILER_KEY && MAPTILER_KEY !== '<YOUR_MAPTILER_API_KEY>') {
+      return await getMaptilerDirections(from, to);
+    }
+
+    // Final fallback to enhanced route calculation
+    console.warn('No routing API configured, using enhanced fallback');
+    return getEnhancedFallbackRoute(from, to);
+  } catch (error) {
+    console.warn('Error fetching route:', error);
+    return getEnhancedFallbackRoute(from, to);
+  }
+}
+
+// Get route from captain's current location to pickup
+export async function getCaptainToPickupRoute(
+  captainLocation: { lat: number; lng: number },
+  pickupLocation: { lat: number; lng: number }
+): Promise<{ coordinates: [number, number][]; distance: number; duration: number }> {
+  return getRoutePolyline(captainLocation, pickupLocation, 'driving');
+}
+
+// Get route from pickup to destination
+export async function getPickupToDestinationRoute(
+  pickupLocation: { lat: number; lng: number },
+  destinationLocation: { lat: number; lng: number }
+): Promise<{ coordinates: [number, number][]; distance: number; duration: number }> {
+  return getRoutePolyline(pickupLocation, destinationLocation, 'driving');
+}
+
+// Google Maps Directions API
+async function getGoogleDirections(
+  from: { lat: number; lng: number },
+  to: { lat: number; lng: number },
+  apiKey: string,
+  mode: 'driving' | 'walking' = 'driving'
+): Promise<{ coordinates: [number, number][]; distance: number; duration: number }> {
+  const origin = `${from.lat},${from.lng}`;
+  const destination = `${to.lat},${to.lng}`;
+  const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${destination}&key=${apiKey}&mode=${mode}&traffic_model=best_guess&departure_time=now`;
+  
+  const response = await fetch(url);
+  const data = await response.json();
+  
+  if (data.status !== 'OK' || !data.routes?.[0]) {
+    throw new Error('Google Directions API failed');
+  }
+  
+  const route = data.routes[0];
+  const leg = route.legs[0];
+  
+  // Decode polyline
+  const coordinates = decodePolyline(route.overview_polyline.points);
+  
+  return {
+    coordinates: coordinates.map(coord => [coord.lng, coord.lat]),
+    distance: leg.distance.value,
+    duration: leg.duration.value,
+  };
+}
+
+// MAPTILER Directions API
+async function getMaptilerDirections(
+  from: { lat: number; lng: number },
   to: { lat: number; lng: number }
 ): Promise<{ coordinates: [number, number][]; distance: number; duration: number }> {
   const coords = `${from.lng},${from.lat};${to.lng},${to.lat}`;
   const url = `${MAPTILER_BASE_URL}/${MAPTILER_PROFILE}/${coords}?key=${MAPTILER_KEY}&geometries=geojson&overview=full`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('Failed to fetch directions');
-  const data = await res.json();
+  
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error('MAPTILER API failed');
+  }
+  
+  const data = await response.json();
   const route = data?.routes?.[0];
+  
+  if (!route) {
+    throw new Error('No route found in MAPTILER response');
+  }
+  
   return {
     coordinates: route?.geometry?.coordinates || [],
     distance: route?.distance || 0,
     duration: route?.duration || 0,
   };
+}
+
+// Enhanced fallback route with realistic path simulation
+function getEnhancedFallbackRoute(
+  from: { lat: number; lng: number },
+  to: { lat: number; lng: number }
+): { coordinates: [number, number][]; distance: number; duration: number } {
+  // Calculate distance using Haversine formula
+  const R = 6371; // Earth's radius in km
+  const dLat = (to.lat - from.lat) * Math.PI / 180;
+  const dLng = (to.lng - from.lng) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(from.lat * Math.PI / 180) * Math.cos(to.lat * Math.PI / 180) *
+    Math.sin(dLng/2) * Math.sin(dLng/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const straightDistance = R * c * 1000; // Convert to meters
+
+  // Add realistic road factor (roads are typically 1.3-1.5x longer than straight line)
+  const roadFactor = 1.4;
+  const distance = straightDistance * roadFactor;
+
+  // Create a more realistic curved route with intermediate waypoints
+  const coordinates: [number, number][] = [];
+  const steps = 20; // More points for smoother curve
+  
+  for (let i = 0; i <= steps; i++) {
+    const ratio = i / steps;
+    
+    // Add slight curve to simulate road path
+    const curveOffset = Math.sin(ratio * Math.PI) * 0.001; // Small curve
+    const lat = from.lat + (to.lat - from.lat) * ratio + curveOffset;
+    const lng = from.lng + (to.lng - from.lng) * ratio;
+    
+    coordinates.push([lng, lat]);
+  }
+
+  // Estimate duration based on distance and realistic city speeds
+  const avgSpeedKmh = 25; // Realistic city speed
+  const duration = (distance / 1000) / avgSpeedKmh * 3600; // Convert to seconds
+
+  return {
+    coordinates,
+    distance,
+    duration,
+  };
+}
+
+// Decode Google Maps polyline
+function decodePolyline(encoded: string): { lat: number; lng: number }[] {
+  const poly = [];
+  let index = 0;
+  const len = encoded.length;
+  let lat = 0;
+  let lng = 0;
+
+  while (index < len) {
+    let b: number;
+    let shift = 0;
+    let result = 0;
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    const dlat = ((result & 1) !== 0 ? ~(result >> 1) : (result >> 1));
+    lat += dlat;
+
+    shift = 0;
+    result = 0;
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    const dlng = ((result & 1) !== 0 ? ~(result >> 1) : (result >> 1));
+    lng += dlng;
+
+    poly.push({ lat: lat / 1e5, lng: lng / 1e5 });
+  }
+
+  return poly;
 }
