@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, Platform } from 'react-native';
-import { Navigation } from 'lucide-react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, Platform, Animated } from 'react-native';
+import { Navigation, MapPin, Clock, X } from 'lucide-react-native';
 import { Button } from './Button';
 import { Modal } from './Modal';
 import { Input } from './Input';
 import { PaymentQRModal } from './PaymentQRModal';
+import { FakePaymentQRModal } from './FakePaymentQRModal';
 import { OrderDetailsInput } from './OrderDetailsInput';
+import { AnimatedButton } from './AnimatedButton';
+import { LoadingSpinner } from './LoadingSpinner';
 import type { ServiceType, Trip } from '../types';
 import { getServiceConfig, SERVICE_CONFIGS } from '../config/serviceConfig';
 import { tripService } from '../services/api';
@@ -40,6 +43,7 @@ export function TripWorkflow({
   const [pickupOtpModalVisible, setPickupOtpModalVisible] = useState(false);
   const [dropOtpModalVisible, setDropOtpModalVisible] = useState(false);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  const [fakePaymentModalVisible, setFakePaymentModalVisible] = useState(false);
   const [orderDetailsModalVisible, setOrderDetailsModalVisible] = useState(false);
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [pickupOtp, setPickupOtp] = useState('');
@@ -47,6 +51,10 @@ export function TripWorkflow({
   const [cancelReason, setCancelReason] = useState('');
   const [orderDetails, setOrderDetails] = useState({});
   const [loading, setLoading] = useState(false);
+  
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
 
   const serviceType = (trip.serviceType || trip.type) as ServiceType;
 
@@ -59,6 +67,23 @@ export function TripWorkflow({
   };
 
   const status = trip.status;
+
+  // Animation effects
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 100,
+        friction: 8,
+      }),
+    ]).start();
+  }, []);
 
   const openMaps = (lat: number, lng: number) => {
     const scheme = Platform.select({ ios: 'maps:', android: 'geo:', default: 'https:' });
@@ -166,11 +191,8 @@ export function TripWorkflow({
       await tripService.endTrip(trip.id || trip._id, dropOtp);
       setDropOtpModalVisible(false);
       setDropOtp('');
-      if (config.workflow === 'pickup_deliver_pay') {
-        setPaymentModalVisible(true);
-      } else {
-        onTripComplete();
-      }
+      // Show fake payment modal for trip completion
+      setFakePaymentModalVisible(true);
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.message || 'Invalid OTP');
     } finally {
@@ -180,6 +202,11 @@ export function TripWorkflow({
 
   const handleFinalPaymentConfirmed = () => {
     setPaymentModalVisible(false);
+    onTripComplete();
+  };
+
+  const handleFakePaymentConfirmed = () => {
+    setFakePaymentModalVisible(false);
     onTripComplete();
   };
 
@@ -201,48 +228,76 @@ export function TripWorkflow({
     }
   };
   return (
-    <View style={styles.container}>
+    <Animated.View 
+      style={[
+        styles.container,
+        {
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }],
+        },
+      ]}
+    >
       {status === 'accepted' && (
-        <View style={styles.actions}>
-          <TouchableOpacity
-            style={styles.navigateButton}
-            onPress={() => openMaps(trip.pickup.lat, trip.pickup.lng)}
-          >
-            <Navigation size={20} color="#FFFFFF" />
-            <Text style={styles.navigateButtonText}>Navigate to Pickup</Text>
-          </TouchableOpacity>
-          <Button
-            title="Reached Pickup"
-            onPress={handleReachedPickup}
-            loading={loading}
-          />
-          <Button
-            title="Cancel Trip"
-            onPress={() => setCancelModalVisible(true)}
-            variant="danger"
-          />
+        <View style={styles.actionsContainer}>
+          <View style={styles.buttonRow}>
+            <AnimatedButton
+              title="Navigate"
+              onPress={() => openMaps(trip.pickup.lat, trip.pickup.lng)}
+              variant="primary"
+              size="small"
+              icon={Navigation}
+              style={styles.horizontalButton}
+            />
+            <AnimatedButton
+              title="Reached"
+              onPress={handleReachedPickup}
+              variant="success"
+              size="small"
+              icon={MapPin}
+              loading={loading}
+              style={styles.horizontalButton}
+            />
+            <AnimatedButton
+              title="Cancel"
+              onPress={() => setCancelModalVisible(true)}
+              variant="danger"
+              size="small"
+              icon={X}
+              style={styles.horizontalButton}
+            />
+          </View>
         </View>
       )}
 
       {status === 'in_progress' && (
-        <View style={styles.actions}>
-          <TouchableOpacity
-            style={styles.navigateButton}
-            onPress={() => openMaps(trip.destination?.lat || trip.delivery?.lat || 0, trip.destination?.lng || trip.delivery?.lng || 0)}
-          >
-            <Navigation size={20} color="#FFFFFF" />
-            <Text style={styles.navigateButtonText}>Navigate to Dropoff</Text>
-          </TouchableOpacity>
-          <Button
-            title="Reached Destination"
-            onPress={handleReachedDestination}
-            loading={loading}
-          />
-          <Button
-            title="Cancel Trip"
-            onPress={() => setCancelModalVisible(true)}
-            variant="danger"
-          />
+        <View style={styles.actionsContainer}>
+          <View style={styles.buttonRow}>
+            <AnimatedButton
+              title="Navigate"
+              onPress={() => openMaps(trip.destination?.lat || trip.delivery?.lat || 0, trip.destination?.lng || trip.delivery?.lng || 0)}
+              variant="primary"
+              size="small"
+              icon={Navigation}
+              style={styles.horizontalButton}
+            />
+            <AnimatedButton
+              title="Reached"
+              onPress={handleReachedDestination}
+              variant="success"
+              size="small"
+              icon={MapPin}
+              loading={loading}
+              style={styles.horizontalButton}
+            />
+            <AnimatedButton
+              title="Cancel"
+              onPress={() => setCancelModalVisible(true)}
+              variant="danger"
+              size="small"
+              icon={X}
+              style={styles.horizontalButton}
+            />
+          </View>
         </View>
       )}
 
@@ -303,6 +358,13 @@ export function TripWorkflow({
         onClose={() => setPaymentModalVisible(false)}
       />
 
+      <FakePaymentQRModal
+        visible={fakePaymentModalVisible}
+        amount={trip.fareEstimate || trip.fare || trip.estimatedFare || 0}
+        onPaymentConfirmed={handleFakePaymentConfirmed}
+        onClose={() => setFakePaymentModalVisible(false)}
+      />
+
       <Modal
         visible={orderDetailsModalVisible}
         onClose={() => setOrderDetailsModalVisible(false)}
@@ -342,7 +404,7 @@ export function TripWorkflow({
           loading={loading}
         />
       </Modal>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -350,22 +412,26 @@ const styles = StyleSheet.create({
   container: {
     marginTop: 16,
   },
-  actions: {
-    gap: 12,
+  actionsContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
-  navigateButton: {
-    backgroundColor: '#2563EB',
+  buttonRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 12,
     gap: 8,
+    justifyContent: 'space-between',
   },
-  navigateButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 16,
+  horizontalButton: {
+    flex: 1,
+    minHeight: 44,
   },
   modalText: {
     fontSize: 14,
