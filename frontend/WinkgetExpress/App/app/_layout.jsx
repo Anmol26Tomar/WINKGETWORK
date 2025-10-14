@@ -17,15 +17,7 @@ export default function RootLayout() {
 				<Stack.Screen name="signup" options={{ title: 'Sign up', headerShown: false }} />
 				<Stack.Screen name="index" options={{ title: 'Winkget Services' }} />
 				<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-				<Stack.Screen name="success" options={{ title: 'Success' }} />
 				<Stack.Screen name="parcel-details" options={{ title: 'Parcel Details' }} />
-				<Stack.Screen name="local-parcel" options={{ title: 'Local Parcel' }} />
-				<Stack.Screen name="truck-booking" options={{ title: 'Truck Booking' }} />
-				<Stack.Screen name="truck-booking-form" options={{ title: 'Booking Form' }} />
-				<Stack.Screen name="all-india-parcel" options={{ title: 'All India Parcel' }} />
-				<Stack.Screen name="cab-booking" options={{ title: 'Cab Booking' }} />
-				<Stack.Screen name="bike-ride" options={{ title: 'Bike Ride' }} />
-				<Stack.Screen name="packers-movers" options={{ title: 'Packers & Movers' }} />
 				<Stack.Screen name="captain/index" options={{ title: 'Captain Dashboard' }} />
 				<Stack.Screen name="history" options={{ title: 'Order History' }} />
 			</Stack>
