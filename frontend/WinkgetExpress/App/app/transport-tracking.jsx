@@ -7,8 +7,8 @@ import TransportTracking from '../components/TransportTracking';
 
 export default function TransportTrackingScreen() {
 	const { id } = useLocalSearchParams();
-	return (
-		<View style={styles.container}>
+    return (
+        <View style={styles.container}>
 			<BackButton />
 			<TransportTracking transportId={id} />
 		</View>

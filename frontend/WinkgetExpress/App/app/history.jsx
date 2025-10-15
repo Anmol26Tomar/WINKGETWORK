@@ -30,15 +30,8 @@ export default function HistoryScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.background },
-    tabs: {
-        flexDirection: 'row',
-        backgroundColor: '#fff',
-        margin: Spacing.lg,
-        borderRadius: Radius.lg,
-        borderWidth: 1,
-        borderColor: Colors.border,
-        overflow: 'hidden'
-    },
+    tabs: { flexDirection: 'row', backgroundColor: '#fff', margin: Spacing.lg, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border, overflow: 'hidden',
+        shadowColor: Colors.shadow, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 2 },
     tabBtn: {
         flex: 1,
         flexDirection: 'row',
@@ -47,9 +40,7 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         gap: 8,
     },
-    tabActive: {
-        backgroundColor: Colors.primary,
-    },
+    tabActive: { backgroundColor: Colors.primary },
     tabTxt: { color: Colors.text, fontWeight: '700' },
     tabTxtActive: { color: '#fff' },
 });

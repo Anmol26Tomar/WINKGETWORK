@@ -29,12 +29,14 @@ export default function ParcelHistory({ serviceType = 'parcel' }) {
             
             console.log('Loading parcel history for serviceType:', serviceType);
             
-            // First test the connection
-            try {
-                const testResult = await testConnection();
-                console.log('Connection test result:', testResult);
-            } catch (testError) {
-                console.error('Connection test failed:', testError);
+            // Optional connection test in development; never error the UI
+            if (__DEV__) {
+                try {
+                    const testResult = await testConnection();
+                    console.log('Connection test result:', testResult);
+                } catch (testError) {
+                    console.warn('Connection test failed (non-blocking):', testError?.message || testError);
+                }
             }
             
             if (serviceType === 'cab' || serviceType === 'bike' || serviceType === 'transport') {
