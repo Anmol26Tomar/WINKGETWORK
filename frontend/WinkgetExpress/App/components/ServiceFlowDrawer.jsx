@@ -29,7 +29,7 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
     const translateY = useRef(new Animated.Value(360)).current;
     const contextRef = useRef({ pickup: null, delivery: null });
 
-    const [step, setStep] = useState(0); // 0: select, 1: details
+    const [step, setStep] = useState(0); // 0: select, 1: details, 2: review
     const [service, setService] = useState(null);
 
     const [parcelForm, setParcelForm] = useState({
@@ -84,16 +84,34 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
     useImperativeHandle(ref, () => ({ open, close }));
 
     const renderTimeline = () => {
-        const steps = ['Select Service', 'Enter Details'];
+        const steps = ['Select Service', 'Enter Details', 'Review'];
         return (
-            <View style={styles.timeline}>
-                {steps.map((label, idx) => (
-                    <View key={label} style={styles.timelineItem}>
-                        <View style={[styles.bullet, idx <= step ? styles.bulletActive : null]} />
-                        <Text style={[styles.bulletLabel, idx === step ? styles.bulletLabelActive : null]}>{label}</Text>
-                        {idx < steps.length - 1 ? <View style={styles.connector} /> : null}
-                    </View>
-                ))}
+            <View>
+                {/* Bullets row with left/right half connectors to keep bullet centered over label */}
+                <View style={styles.timelineRow}>
+                    {steps.map((label, idx) => (
+                        <View key={`bullet-${label}`} style={styles.timelineStep}>
+                            {/* left connector */}
+                            {idx > 0 ? (
+                                <View style={[styles.connectorHalf, idx - 1 < step ? styles.connectorActive : null]} />
+                            ) : <View style={styles.connectorHalfEmpty} />}
+                            {/* bullet */}
+                            <View style={[styles.bullet, idx <= step ? styles.bulletActive : null]} />
+                            {/* right connector */}
+                            {idx < steps.length - 1 ? (
+                                <View style={[styles.connectorHalf, idx < step ? styles.connectorActive : null]} />
+                            ) : <View style={styles.connectorHalfEmpty} />}
+                        </View>
+                    ))}
+                </View>
+                {/* Labels row aligned under bullets */}
+                <View style={styles.timelineLabels}>
+                    {steps.map((label, idx) => (
+                        <View key={`label-${label}`} style={styles.labelItem}>
+                            <Text style={[styles.bulletLabel, idx === step ? styles.bulletLabelActive : null]}>{label}</Text>
+                        </View>
+                    ))}
+                </View>
             </View>
         );
     };
@@ -223,12 +241,25 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
         if (service === 'local_parcel') {
             return (
                 <View>
+                    <Text style={styles.fieldLabel}>Package Name</Text>
                     <TextInput style={styles.input} placeholder="Package Name" value={parcelForm.name} onChangeText={(t) => setParcelForm((s) => ({ ...s, name: t }))} />
+
+                    <Text style={styles.fieldLabel}>Size</Text>
                     <TextInput style={styles.input} placeholder="Size (e.g., small/medium)" value={parcelForm.size} onChangeText={(t) => setParcelForm((s) => ({ ...s, size: t }))} />
+
+                    <Text style={styles.fieldLabel}>Weight (kg)</Text>
                     <TextInput style={styles.input} placeholder="Weight (kg)" keyboardType="numeric" value={parcelForm.weight} onChangeText={(t) => setParcelForm((s) => ({ ...s, weight: t }))} />
+
+                    <Text style={styles.fieldLabel}>Description</Text>
                     <TextInput style={[styles.input, styles.multiline]} placeholder="Description" multiline value={parcelForm.description} onChangeText={(t) => setParcelForm((s) => ({ ...s, description: t }))} />
+
+                    <Text style={styles.fieldLabel}>Declared Value (₹)</Text>
                     <TextInput style={styles.input} placeholder="Declared Value (₹)" keyboardType="numeric" value={parcelForm.value} onChangeText={(t) => setParcelForm((s) => ({ ...s, value: t }))} />
+
+                    <Text style={styles.fieldLabel}>Receiver Name</Text>
                     <TextInput style={styles.input} placeholder="Receiver Name" value={parcelForm.receiverName} onChangeText={(t) => setParcelForm((s) => ({ ...s, receiverName: t }))} />
+
+                    <Text style={styles.fieldLabel}>Receiver Contact</Text>
                     <TextInput style={styles.input} placeholder="Receiver Contact" value={parcelForm.receiverContact} onChangeText={(t) => setParcelForm((s) => ({ ...s, receiverContact: t }))} />
                 </View>
             );
@@ -236,11 +267,22 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
         if (service === 'all_india_parcel') {
             return (
                 <View>
+                    <Text style={styles.fieldLabel}>Type</Text>
                     <TextInput style={styles.input} placeholder="Type (e.g., Documents)" value={allIndiaForm.pkgType} onChangeText={(t) => setAllIndiaForm((s) => ({ ...s, pkgType: t }))} />
+
+                    <Text style={styles.fieldLabel}>Weight (kg)</Text>
                     <TextInput style={styles.input} placeholder="Weight (kg)" keyboardType="numeric" value={allIndiaForm.weight} onChangeText={(t) => setAllIndiaForm((s) => ({ ...s, weight: t }))} />
+
+                    <Text style={styles.fieldLabel}>Dimensions</Text>
                     <TextInput style={styles.input} placeholder="Dimensions (optional)" value={allIndiaForm.dimensions} onChangeText={(t) => setAllIndiaForm((s) => ({ ...s, dimensions: t }))} />
+
+                    <Text style={styles.fieldLabel}>Description</Text>
                     <TextInput style={[styles.input, styles.multiline]} placeholder="Description (optional)" multiline value={allIndiaForm.description} onChangeText={(t) => setAllIndiaForm((s) => ({ ...s, description: t }))} />
+
+                    <Text style={styles.fieldLabel}>Receiver Name</Text>
                     <TextInput style={styles.input} placeholder="Receiver Name" value={allIndiaForm.receiverName} onChangeText={(t) => setAllIndiaForm((s) => ({ ...s, receiverName: t }))} />
+
+                    <Text style={styles.fieldLabel}>Receiver Phone</Text>
                     <TextInput style={styles.input} placeholder="Receiver Phone" keyboardType="phone-pad" value={allIndiaForm.receiverPhone} onChangeText={(t) => setAllIndiaForm((s) => ({ ...s, receiverPhone: t }))} />
                 </View>
             );
@@ -258,17 +300,25 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
                     </View>
                     {/* Sender details */}
                     <Text style={styles.sectionTitle}>Sender</Text>
+                    <Text style={styles.fieldLabel}>Name</Text>
                     <TextInput style={styles.input} placeholder="Name" value={truckForm.senderName} onChangeText={(t) => setTruckForm((s) => ({ ...s, senderName: t }))} />
+                    <Text style={styles.fieldLabel}>Phone</Text>
                     <TextInput style={styles.input} placeholder="Phone" keyboardType="phone-pad" value={truckForm.senderPhone} onChangeText={(t) => setTruckForm((s) => ({ ...s, senderPhone: t }))} />
                     {/* Receiver details */}
                     <Text style={styles.sectionTitle}>Receiver</Text>
+                    <Text style={styles.fieldLabel}>Name</Text>
                     <TextInput style={styles.input} placeholder="Name" value={truckForm.receiverName} onChangeText={(t) => setTruckForm((s) => ({ ...s, receiverName: t }))} />
+                    <Text style={styles.fieldLabel}>Phone</Text>
                     <TextInput style={styles.input} placeholder="Phone" keyboardType="phone-pad" value={truckForm.receiverPhone} onChangeText={(t) => setTruckForm((s) => ({ ...s, receiverPhone: t }))} />
                     {/* Package details */}
                     <Text style={styles.sectionTitle}>Package</Text>
+                    <Text style={styles.fieldLabel}>Type</Text>
                     <TextInput style={styles.input} placeholder="Type (e.g., Household)" value={truckForm.pkgType} onChangeText={(t) => setTruckForm((s) => ({ ...s, pkgType: t }))} />
+                    <Text style={styles.fieldLabel}>Weight (kg)</Text>
                     <TextInput style={styles.input} placeholder="Weight (kg)" keyboardType="numeric" value={truckForm.weight} onChangeText={(t) => setTruckForm((s) => ({ ...s, weight: t }))} />
+                    <Text style={styles.fieldLabel}>Dimensions</Text>
                     <TextInput style={styles.input} placeholder="Dimensions (optional)" value={truckForm.dimensions} onChangeText={(t) => setTruckForm((s) => ({ ...s, dimensions: t }))} />
+                    <Text style={styles.fieldLabel}>Description</Text>
                     <TextInput style={[styles.input, styles.multiline]} placeholder="Description (optional)" multiline value={truckForm.description} onChangeText={(t) => setTruckForm((s) => ({ ...s, description: t }))} />
                 </View>
             );
@@ -290,11 +340,127 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
                             </TouchableOpacity>
                         ))}
                     </View>
+                    <Text style={styles.fieldLabel}>Extra Items</Text>
                     <TextInput style={[styles.input, styles.multiline]} placeholder="Extra Items (optional)" value={packersForm.extras} onChangeText={(t) => setPackersForm((s) => ({ ...s, extras: t }))} multiline />
                 </View>
             );
         }
         return null;
+    };
+
+    const renderReview = () => {
+        const { pickup, delivery } = contextRef.current || {};
+        const renderRow = (label, value) => (
+            <View style={styles.reviewRow}>
+                <Text style={styles.reviewLabel}>{label}</Text>
+                <Text style={styles.reviewValue}>{value || '-'}</Text>
+            </View>
+        );
+
+        return (
+            <View>
+                {/* Locations */}
+                <View style={styles.reviewBox}>
+                    <Text style={styles.sectionTitle}>Locations</Text>
+                    {renderRow('Pickup', pickup?.address)}
+                    <View style={styles.divider} />
+                    {renderRow('Delivery', delivery?.address)}
+                </View>
+
+                {service === 'local_parcel' && (
+                    <View style={styles.reviewBox}>
+                        <Text style={styles.sectionTitle}>Package Details</Text>
+                        {renderRow('Name', parcelForm.name)}
+                        <View style={styles.divider} />
+                        {renderRow('Size', parcelForm.size)}
+                        <View style={styles.divider} />
+                        {renderRow('Weight (kg)', parcelForm.weight)}
+                        <View style={styles.divider} />
+                        {renderRow('Declared Value (₹)', parcelForm.value)}
+                        <View style={styles.divider} />
+                        {renderRow('Description', parcelForm.description)}
+                    </View>
+                )}
+
+                {service === 'local_parcel' && (
+                    <View style={styles.reviewBox}>
+                        <Text style={styles.sectionTitle}>Receiver Details</Text>
+                        {renderRow('Name', parcelForm.receiverName)}
+                        <View style={styles.divider} />
+                        {renderRow('Contact', parcelForm.receiverContact)}
+                    </View>
+                )}
+
+                {service === 'all_india_parcel' && (
+                    <View style={styles.reviewBox}>
+                        <Text style={styles.sectionTitle}>Package Details</Text>
+                        {renderRow('Type', allIndiaForm.pkgType)}
+                        <View style={styles.divider} />
+                        {renderRow('Weight (kg)', allIndiaForm.weight)}
+                        <View style={styles.divider} />
+                        {renderRow('Dimensions', allIndiaForm.dimensions)}
+                        <View style={styles.divider} />
+                        {renderRow('Description', allIndiaForm.description)}
+                    </View>
+                )}
+
+                {service === 'all_india_parcel' && (
+                    <View style={styles.reviewBox}>
+                        <Text style={styles.sectionTitle}>Receiver Details</Text>
+                        {renderRow('Name', allIndiaForm.receiverName)}
+                        <View style={styles.divider} />
+                        {renderRow('Phone', allIndiaForm.receiverPhone)}
+                    </View>
+                )}
+
+                {(service === 'bike' || service === 'cab') && (
+                    <View style={styles.reviewBox}>
+                        <Text style={styles.sectionTitle}>Ride Details</Text>
+                        {renderRow('Vehicle Type', service === 'bike' ? 'Bike Ride' : 'Cab Booking')}
+                    </View>
+                )}
+
+                {service === 'truck' && (
+                    <View style={styles.reviewBox}>
+                        <Text style={styles.sectionTitle}>Sender</Text>
+                        {renderRow('Name', truckForm.senderName)}
+                        <View style={styles.divider} />
+                        {renderRow('Phone', truckForm.senderPhone)}
+                    </View>
+                )}
+
+                {service === 'truck' && (
+                    <View style={styles.reviewBox}>
+                        <Text style={styles.sectionTitle}>Receiver</Text>
+                        {renderRow('Name', truckForm.receiverName)}
+                        <View style={styles.divider} />
+                        {renderRow('Phone', truckForm.receiverPhone)}
+                    </View>
+                )}
+
+                {service === 'truck' && (
+                    <View style={styles.reviewBox}>
+                        <Text style={styles.sectionTitle}>Package</Text>
+                        {renderRow('Type', truckForm.pkgType)}
+                        <View style={styles.divider} />
+                        {renderRow('Weight (kg)', truckForm.weight)}
+                        <View style={styles.divider} />
+                        {renderRow('Dimensions', truckForm.dimensions)}
+                        <View style={styles.divider} />
+                        {renderRow('Description', truckForm.description)}
+                    </View>
+                )}
+
+                {service === 'packers' && (
+                    <View style={styles.reviewBox}>
+                        <Text style={styles.sectionTitle}>Packers & Movers</Text>
+                        {renderRow('House', packersForm.house)}
+                        <View style={styles.divider} />
+                        {renderRow('Extras', packersForm.extras)}
+                    </View>
+                )}
+            </View>
+        );
     };
 
     return (
@@ -322,12 +488,25 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
                                 <Text style={styles.primaryBtnTxt}>Continue</Text>
                             </TouchableOpacity>
                         </View>
-                    ) : (
+                    ) : step === 1 ? (
                         <View>
                             <Text style={styles.title}>Enter Details</Text>
                             {renderDetails()}
                             <View style={styles.rowBetween}>
                                 <TouchableOpacity style={styles.secondaryBtn} onPress={() => setStep(0)}>
+                                    <Text style={styles.secondaryBtnTxt}>Back</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={styles.primaryBtn} onPress={() => setStep(2)}>
+                                    <Text style={styles.primaryBtnTxt}>Review</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    ) : (
+                        <View>
+                            <Text style={styles.title}>Review</Text>
+                            {renderReview()}
+                            <View style={styles.rowBetween}>
+                                <TouchableOpacity style={styles.secondaryBtn} onPress={() => setStep(1)}>
                                     <Text style={styles.secondaryBtnTxt}>Back</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity style={styles.primaryBtn} onPress={submit}>
@@ -349,6 +528,8 @@ const styles = StyleSheet.create({
     handle: { alignSelf: 'center', width: 44, height: 5, borderRadius: 3, backgroundColor: Colors.border, marginTop: Spacing.md },
     content: { padding: Spacing.xl, gap: Spacing.md },
     title: { fontSize: 16, fontWeight: '800', color: Colors.text, marginBottom: Spacing.sm },
+    sectionTitle: { fontSize: 14, fontWeight: '700', color: Colors.text, marginBottom: 6 },
+    fieldLabel: { fontSize: 12, fontWeight: '700', color: Colors.mutedText, marginBottom: 6, marginLeft: 2 },
     grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     serviceBtn: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, borderWidth: 1, borderColor: Colors.border, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', gap: 8,
         shadowColor: Colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8 },
@@ -372,12 +553,26 @@ const styles = StyleSheet.create({
     tagTxtActive: { color: '#fff' },
     rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: Spacing.sm },
     timeline: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm },
+    timelineRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, paddingHorizontal: Spacing.md },
+    timelineStep: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flex: 1 },
+    timelineLabels: { flexDirection: 'row', alignItems: 'center' },
+    labelItem: { flex: 1, alignItems: 'center' },
     timelineItem: { flexDirection: 'row', alignItems: 'center' },
-    bullet: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.border },
+    bullet: { width: 12, height: 12, borderRadius: 6, backgroundColor: Colors.border },
     bulletActive: { backgroundColor: Colors.primary },
     connector: { width: 24, height: 2, backgroundColor: Colors.border, marginHorizontal: 8 },
-    bulletLabel: { color: Colors.mutedText, marginRight: Spacing.md },
+    connectorFlex: { flex: 1, height: 2, backgroundColor: Colors.border, marginHorizontal: 8 },
+    connectorHalf: { flex: 1, height: 2, backgroundColor: Colors.border },
+    connectorHalfEmpty: { flex: 1, height: 2, backgroundColor: 'transparent' },
+    connectorActive: { backgroundColor: Colors.primary },
+    bulletLabel: { color: Colors.mutedText, textAlign: 'center' },
     bulletLabelActive: { color: Colors.text, fontWeight: '700' },
+    reviewBox: { backgroundColor: '#fff', borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.md, padding: Spacing.md, marginBottom: Spacing.md,
+        shadowColor: Colors.shadow, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 6 },
+    reviewRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingVertical: 6 },
+    reviewLabel: { color: Colors.mutedText },
+    reviewValue: { color: Colors.text, fontWeight: '600', flexShrink: 1, textAlign: 'right' },
+    divider: { height: 1, backgroundColor: Colors.border, marginVertical: 4 },
 });
 
 export default ServiceFlowDrawer;
