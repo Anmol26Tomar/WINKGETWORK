@@ -7,6 +7,7 @@ const {
   logout,
   getCurrentUser
 } = require('../controllers/authController');
+const upload = require('../middleware/upload');
 const { verifyToken } = require('../middleware/auth');
 const { debugVendorSignup } = require('../utils/debugVendor');
 
@@ -17,8 +18,16 @@ router.post('/signup', signup);
 // Dedicated admin signup endpoint (first admin only)
 router.post('/signup/admin', signupAdmin);
 
-// Dedicated vendor signup endpoint
-router.post('/signup/vendor', signupVendor);
+// Dedicated vendor signup endpoint (multipart for media)
+router.post(
+  '/signup/vendor',
+  upload.fields([
+    { name: 'ownerPic', maxCount: 1 },
+    { name: 'profileBanner', maxCount: 1 },
+    { name: 'gstinDoc', maxCount: 1 },
+  ]),
+  signupVendor
+);
 
 // Debug endpoint for vendor signup issues
 router.post('/debug/vendor', async (req, res) => {

@@ -167,13 +167,15 @@ const uploadDocument = async (req, res) => {
 // Update business images
 const updateBusinessImages = async (req, res) => {
   try {
-    const { businessPosts, profileBanner, businessProfilePic, ownerPic } = req.body;
+    const { businessPosts, profileBanner, businessProfilePic, ownerPic, gstinDocUrl, gstinNumber } = req.body;
     const updateData = {};
     
     if (businessPosts) updateData.businessPosts = businessPosts;
     if (profileBanner) updateData.profileBanner = profileBanner;
     if (businessProfilePic) updateData.businessProfilePic = businessProfilePic;
     if (ownerPic) updateData.ownerPic = ownerPic;
+    if (gstinDocUrl) updateData.gstinDocUrl = gstinDocUrl;
+    if (gstinNumber) updateData.gstinNumber = gstinNumber;
     
     const vendor = await Vendor.findByIdAndUpdate(
       req.user.id,
