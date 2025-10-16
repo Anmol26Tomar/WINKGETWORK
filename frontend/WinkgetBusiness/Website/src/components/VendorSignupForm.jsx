@@ -1,10 +1,21 @@
 import React, { useState } from 'react'
-import { vendorSignup } from '../services/vendorService'
+import { vendorSignup, vendorLogout } from '../services/vendorService'
 import { rawCategories } from '../utils/categories'
 import { useApp } from '../context/AppContext'
 
 export default function VendorSignupForm({ onSuccess, onError }) {
   const { dispatch } = useApp()
+  const steps = [
+    'Basic',
+    'Contact',
+    'Address',
+    'Business',
+    'Social',
+    'Media',
+    'Security',
+    'Review'
+  ]
+  const [step, setStep] = useState(0)
   const [formData, setFormData] = useState({
     // Basic Information
     ownerName: '',
@@ -47,8 +58,40 @@ export default function VendorSignupForm({ onSuccess, onError }) {
     confirmPassword: ''
   })
 
+  const [profilePhotoFile, setProfilePhotoFile] = useState(null)
+  const [bannerFile, setBannerFile] = useState(null)
+  const [gstinDocFile, setGstinDocFile] = useState(null)
+  const [gstinNumber, setGstinNumber] = useState('')
+
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({})
+
+  const validateStep = () => {
+    const e = {}
+    if (step === 0) {
+      if (!formData.ownerName) e.ownerName = 'Owner name is required'
+      if (!formData.shopName) e.shopName = 'Shop name is required'
+    } else if (step === 1) {
+      if (!formData.ownerEmail) e.ownerEmail = 'Owner email is required'
+      if (formData.ownerEmail && !/\S+@\S+\.\S+/.test(formData.ownerEmail)) e.ownerEmail = 'Invalid email format'
+    } else if (step === 6) {
+      if (!formData.password) e.password = 'Password is required'
+      if (formData.password && formData.password.length < 6) e.password = 'Password must be at least 6 characters'
+      if (formData.password !== formData.confirmPassword) e.confirmPassword = 'Passwords do not match'
+    }
+    setErrors(e)
+    return Object.keys(e).length === 0
+  }
+
+  const handleNext = (e) => {
+    e.preventDefault()
+    if (validateStep()) setStep((s) => Math.min(s + 1, steps.length - 1))
+  }
+
+  const handleBack = (e) => {
+    e.preventDefault()
+    setStep((s) => Math.max(s - 1, 0))
+  }
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -126,7 +169,20 @@ export default function VendorSignupForm({ onSuccess, onError }) {
         delete signupData.websiteLink
       }
       
-      const user = await vendorSignup(signupData)
+      // Build multipart form-data for backend upload handling
+      const form = new FormData()
+      Object.entries(signupData).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== '') {
+          if (typeof v === 'object') form.append(k, JSON.stringify(v))
+          else form.append(k, v)
+        }
+      })
+      if (gstinNumber) form.append('gstinNumber', gstinNumber)
+      if (profilePhotoFile) form.append('ownerPic', profilePhotoFile)
+      if (bannerFile) form.append('profileBanner', bannerFile)
+      if (gstinDocFile) form.append('gstinDoc', gstinDocFile)
+
+      const user = await vendorSignup(form, true)
       
       // Update auth context to mark user as authenticated
       dispatch({ type: 'LOGIN_SUCCESS', payload: user })
@@ -149,7 +205,29 @@ export default function VendorSignupForm({ onSuccess, onError }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Timeline header */}
+      <div className="bg-white p-4 rounded-lg border">
+        <div className="flex items-center">
+          {steps.map((label, idx) => (
+            <div key={label} className="flex items-center flex-1">
+              <div className={`w-3 h-3 rounded-full ${idx <= step ? 'bg-blue-600' : 'bg-gray-300'}`}></div>
+              {idx < steps.length - 1 && (
+                <div className={`flex-1 h-0.5 mx-2 ${idx < step ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="flex mt-2 text-xs font-semibold text-gray-600">
+          {steps.map((label, idx) => (
+            <div key={`lbl-${label}`} className="flex-1 text-center">
+              <span className={`${idx === step ? 'text-gray-900' : ''}`}>{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Basic Information */}
+      {step === 0 && (
       <div className="bg-white p-6 rounded-lg border">
         <h3 className="text-lg font-semibold mb-4">Basic Information</h3>
         <div className="grid md:grid-cols-2 gap-4">
@@ -187,9 +265,15 @@ export default function VendorSignupForm({ onSuccess, onError }) {
             />
           </div>
         </div>
+        <div className="flex justify-between mt-4">
+          <div />
+          <button onClick={handleNext} className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Next</button>
+        </div>
       </div>
+      )}
 
       {/* Contact Information */}
+      {step === 1 && (
       <div className="bg-white p-6 rounded-lg border">
         <h3 className="text-lg font-semibold mb-4">Contact Information</h3>
         <div className="grid md:grid-cols-2 gap-4">
@@ -236,9 +320,15 @@ export default function VendorSignupForm({ onSuccess, onError }) {
             />
           </div>
         </div>
+        <div className="flex justify-between mt-4">
+          <button onClick={handleBack} className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">Back</button>
+          <button onClick={handleNext} className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Next</button>
+        </div>
       </div>
+      )}
 
       {/* Business Address */}
+      {step === 2 && (
       <div className="bg-white p-6 rounded-lg border">
         <h3 className="text-lg font-semibold mb-4">Business Address</h3>
         <div className="grid md:grid-cols-2 gap-4">
@@ -283,9 +373,15 @@ export default function VendorSignupForm({ onSuccess, onError }) {
             />
           </div>
         </div>
+        <div className="flex justify-between mt-4">
+          <button onClick={handleBack} className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">Back</button>
+          <button onClick={handleNext} className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Next</button>
+        </div>
       </div>
+      )}
 
       {/* Business Details */}
+      {step === 3 && (
       <div className="bg-white p-6 rounded-lg border">
         <h3 className="text-lg font-semibold mb-4">Business Details</h3>
         <div className="grid md:grid-cols-2 gap-4">
@@ -315,9 +411,30 @@ export default function VendorSignupForm({ onSuccess, onError }) {
             />
           </div>
         </div>
+        <div className="grid md:grid-cols-2 gap-4 mt-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">GSTIN Number</label>
+            <input
+              value={gstinNumber}
+              onChange={(e) => setGstinNumber(e.target.value)}
+              className="w-full rounded-md border px-3 py-2"
+              placeholder="12ABCDE1234F1Z5"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Upload GSTIN Document</label>
+            <input type="file" accept="image/*,.pdf" onChange={(e) => setGstinDocFile(e.target.files?.[0] || null)} />
+          </div>
+        </div>
+        <div className="flex justify-between mt-4">
+          <button onClick={handleBack} className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">Back</button>
+          <button onClick={handleNext} className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Next</button>
+        </div>
       </div>
+      )}
 
       {/* Social Links */}
+      {step === 4 && (
       <div className="bg-white p-6 rounded-lg border">
         <h3 className="text-lg font-semibold mb-4">Social Media Links (Optional)</h3>
         <div className="grid md:grid-cols-2 gap-4">
@@ -352,9 +469,36 @@ export default function VendorSignupForm({ onSuccess, onError }) {
             />
           </div>
         </div>
+        <div className="flex justify-between mt-4">
+          <button onClick={handleBack} className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">Back</button>
+          <button onClick={handleNext} className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Next</button>
+        </div>
       </div>
+      )}
 
-      {/* Authentication */}
+      {/* Media */}
+      {step === 5 && (
+      <div className="bg-white p-6 rounded-lg border">
+        <h3 className="text-lg font-semibold mb-4">Media</h3>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Profile Photo</label>
+            <input type="file" accept="image/*" onChange={(e) => setProfilePhotoFile(e.target.files?.[0] || null)} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Banner Image</label>
+            <input type="file" accept="image/*" onChange={(e) => setBannerFile(e.target.files?.[0] || null)} />
+          </div>
+        </div>
+        <div className="flex justify-between mt-4">
+          <button onClick={handleBack} className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">Back</button>
+          <button onClick={handleNext} className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Next</button>
+        </div>
+      </div>
+      )}
+
+      {/* Security */}
+      {step === 6 && (
       <div className="bg-white p-6 rounded-lg border">
         <h3 className="text-lg font-semibold mb-4">Account Security</h3>
         <div className="grid md:grid-cols-2 gap-4">
@@ -383,17 +527,51 @@ export default function VendorSignupForm({ onSuccess, onError }) {
             {errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>}
           </div>
         </div>
+        <div className="flex justify-between mt-4">
+          <button onClick={handleBack} className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">Back</button>
+          <button onClick={handleNext} className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Next</button>
+        </div>
       </div>
+      )}
 
-      <div className="flex justify-end">
-        <button
-          type="submit"
-          disabled={loading}
-          className="px-8 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? 'Creating Account...' : 'Create Vendor Account'}
-        </button>
+      {/* Review */}
+      {step === 7 && (
+      <div className="bg-white p-6 rounded-lg border">
+        <h3 className="text-lg font-semibold mb-4">Review & Submit</h3>
+        <div className="grid md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <div className="font-semibold mb-2">Basic</div>
+            <div>Owner: {formData.ownerName || '-'}</div>
+            <div>Shop: {formData.shopName || '-'}</div>
+            <div>About: {formData.aboutBusiness || '-'}</div>
+          </div>
+          <div>
+            <div className="font-semibold mb-2">Contact</div>
+            <div>Owner Email: {formData.ownerEmail || '-'}</div>
+            <div>Business Email: {formData.businessEmail || '-'}</div>
+            <div>Business Contact: {formData.businessContact || '-'}</div>
+          </div>
+          <div>
+            <div className="font-semibold mb-2">Address</div>
+            <div>{formData.businessAddress.street || '-'}</div>
+            <div>{formData.businessAddress.city || '-'} {formData.businessAddress.state || ''}</div>
+            <div>{formData.businessAddress.pincode || '-'}</div>
+          </div>
+          <div>
+            <div className="font-semibold mb-2">Business</div>
+            <div>Category: {formData.category || '-'}</div>
+            <div>Website: {formData.websiteLink || '-'}</div>
+            <div>GSTIN: {gstinNumber || '-'}</div>
+          </div>
+        </div>
+        <div className="flex justify-between mt-4">
+          <button onClick={handleBack} className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">Back</button>
+          <button type="submit" disabled={loading} className="px-8 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+            {loading ? 'Creating Account...' : 'Create Vendor Account'}
+          </button>
+        </div>
       </div>
+      )}
     </form>
   )
 }
