@@ -31,10 +31,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { rawCategories } from '../../utils/categories';
 import { useCart } from '../../context/CartContext';
+import api from '../../config/api';
 
 const { width, height } = Dimensions.get("window");
-// Use the vendor-specific endpoint so we fetch all products for a vendorRef
-const API_BASE_URL = `${process.env.EXPO_PUBLIC_API_BASE_URL}/api/business/products/vendor` || "http://10.170.131.55:5000/api/business/products/vendor";
+// Base endpoint relative to shared Axios instance
+const VENDOR_PRODUCTS_ENDPOINT = '/business/products/vendor';
 // Default vendor ID (fallback)
 const DEFAULT_VENDOR_ID = "68e7999efd643432376e3214";
 
@@ -92,44 +93,12 @@ const MyStoreScreen = () => {
       setLoading(true);
       setError(null);
 
-      // Get auth token from AsyncStorage
-      const token = await AsyncStorage.getItem('authToken');
-      
-      console.log("Fetching products from:", `${API_BASE_URL}/${currentVendorId}`);
+      console.log("Fetching products from:", `${api.defaults.baseURL}${VENDOR_PRODUCTS_ENDPOINT}/${currentVendorId}`);
 
-      const headers = {
-        "Content-Type": "application/json",
-      };
-
-      // Add Authorization header if token exists
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/${currentVendorId}`, {
-        method: "GET",
-        headers,
-      });
-
+      const response = await api.get(`${VENDOR_PRODUCTS_ENDPOINT}/${currentVendorId}`);
       console.log("Response status:", response.status);
 
-      if (!response.ok) {
-        const errorData = await response
-          .json()
-          .catch(() => ({ message: "Unknown error" }));
-        
-        if (response.status === 401) {
-          throw new Error("Authentication required. Please log in again.");
-        }
-        
-        throw new Error(
-          `HTTP ${response.status}: ${
-            errorData.message || "Failed to fetch products"
-          }`
-        );
-      }
-
-      const data = await response.json();
+      const data = response.data;
       console.log("Fetched products (raw):", data);
 
       if (!data) {
@@ -203,14 +172,14 @@ const MyStoreScreen = () => {
 
       let errorMessage = "Network error. Please check your connection.";
 
-      if (err.message.includes("Network request failed")) {
+      if (err.message.includes("Network request failed") || err.message.includes('Network Error')) {
         errorMessage =
           "Cannot connect to server. Please check if the backend is running on port 5000.";
-      } else if (err.message.includes("Authentication required")) {
+      } else if (err.response?.status === 401 || err.message.includes("Authentication required")) {
         errorMessage = "Please log in to view your store products.";
-      } else if (err.message.includes("404")) {
+      } else if (err.response?.status === 404 || err.message.includes("404")) {
         errorMessage = "Products not found. Please check the vendor ID.";
-      } else if (err.message.includes("500")) {
+      } else if (err.response?.status === 500 || err.message.includes("500")) {
         errorMessage = "Server error. Please try again later.";
       } else {
         errorMessage = err.message || errorMessage;

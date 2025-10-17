@@ -5,8 +5,9 @@ import { View, Text } from 'react-native';
 
 // Import screens
 import DashboardStack from './DashboardStack';
-import ProfileScreen from '../screens/profile/ProfileScreen';
+import CategoriesStack from './CategoriesStack';
 import CartScreen from '../screens/store/CartScreen';
+import SidebarModal from '../screens/profile/SidebarModal';
 
 // Import cart context
 import { useCart } from '../context/CartContext';
@@ -48,8 +49,10 @@ const CartIconWithBadge = ({ focused, color, size, totalItems }) => (
 
 const TabNavigator = () => {
   const { totalItems } = useCart();
+  const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
 
   return (
+    <>
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
@@ -57,28 +60,30 @@ const TabNavigator = () => {
 
           if (route.name === 'Dashboard') {
             iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'Categories') {
+            iconName = focused ? 'grid' : 'grid-outline';
           } else if (route.name === 'Cart') {
             return <CartIconWithBadge focused={focused} color={color} size={size} totalItems={totalItems} />;
-          } else if (route.name === 'Profile') {
-            iconName = focused ? 'person' : 'person-outline';
+          } else if (route.name === 'More') {
+            iconName = focused ? 'menu' : 'menu-outline';
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#10B981',
+        tabBarActiveTintColor: '#007BFF',
         tabBarInactiveTintColor: '#6B7280',
         tabBarStyle: {
-          backgroundColor: 'white',
+          backgroundColor: '#FFFFFF',
           borderTopWidth: 1,
-          borderTopColor: '#E5E7EB',
-          paddingBottom: 5,
-          paddingTop: 5,
-          height: 60,
+          borderTopColor: '#EAF3FF',
+          paddingBottom: 8,
+          paddingTop: 8,
+          height: 64,
           shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          elevation: 8,
+          shadowOffset: { width: 0, height: -6 },
+          shadowOpacity: 0.08,
+          shadowRadius: 12,
+          elevation: 10,
         },
         tabBarLabelStyle: {
           fontSize: 12,
@@ -95,6 +100,13 @@ const TabNavigator = () => {
         }}
       />
       <Tab.Screen 
+        name="Categories" 
+        component={CategoriesStack}
+        options={{
+          tabBarLabel: 'Categories',
+        }}
+      />
+      <Tab.Screen 
         name="Cart" 
         component={CartScreen}
         options={{
@@ -102,13 +114,33 @@ const TabNavigator = () => {
         }}
       />
       <Tab.Screen 
-        name="Profile" 
-        component={ProfileScreen}
+        name="More"
+        component={View}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            setIsSidebarOpen(true);
+          }
+        })}
         options={{
-          tabBarLabel: 'Profile',
+          tabBarLabel: 'More',
         }}
       />
+      {/* Sidebar modal overlay */}
+      <Tab.Screen
+        name="_SidebarHost"
+        component={() => null}
+        options={{ tabBarButton: () => null }}
+      />
     </Tab.Navigator>
+    {isSidebarOpen && (
+      <SidebarModal
+        key="sidebar"
+        visible={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
+    )}
+    </>
   );
 };
 
