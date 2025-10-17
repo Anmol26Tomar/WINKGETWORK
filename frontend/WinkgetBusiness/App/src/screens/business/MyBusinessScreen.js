@@ -16,8 +16,10 @@ import { Card, Title, Paragraph, Button, Chip } from "react-native-paper";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from '@react-navigation/native';
+import api, { API_ENDPOINTS } from '../../config/api';
 
-const API_BASE_URL = `${process.env.EXPO_PUBLIC_API_BASE_URL}/api/business/vendors/public` || `http://10.170.131.55:5000/api/business/vendors/public`;
+// Use shared Axios base URL and endpoints to avoid mismatches across environments
+const DETAILS_ENDPOINT = API_ENDPOINTS.VENDORS.DETAILS; // '/business/vendors/public'
 // Default business ID (fallback)
 const DEFAULT_BUSINESS_ID = "68ea2cd8f7aa5ea6fe6e4070";
 
@@ -50,29 +52,13 @@ const MyBusinessScreen = () => {
       setLoading(true);
       setError(null);
 
-      console.log("Fetching from:", `${API_BASE_URL}/${currentBusinessId}`);
+      const endpoint = `${DETAILS_ENDPOINT}/${currentBusinessId}`;
+      console.log("Fetching from:", `${api.defaults.baseURL}${endpoint}`);
 
-      const response = await fetch(`${API_BASE_URL}/${currentBusinessId}`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
+      const response = await api.get(endpoint);
       console.log("Response status:", response.status);
 
-      if (!response.ok) {
-        const errorData = await response
-          .json()
-          .catch(() => ({ message: "Unknown error" }));
-        throw new Error(
-          `HTTP ${response.status}: ${
-            errorData.message || "Failed to fetch business data"
-          }`
-        );
-      }
-
-      const data = await response.json();
+      const data = response.data;
       console.log("Fetched data:", data);
 
       if (!data) {
@@ -86,12 +72,12 @@ const MyBusinessScreen = () => {
       // More specific error messages
       let errorMessage = "Network error. Please check your connection.";
 
-      if (err.message.includes("Network request failed")) {
+      if (err.message.includes("Network request failed") || err.message.includes('Network Error')) {
         errorMessage =
           "Cannot connect to server. Please check if the backend is running on port 5000.";
-      } else if (err.message.includes("404")) {
+      } else if (err.response?.status === 404 || err.message.includes("404")) {
         errorMessage = "Business data not found. Please check the business ID.";
-      } else if (err.message.includes("500")) {
+      } else if (err.response?.status === 500 || err.message.includes("500")) {
         errorMessage = "Server error. Please try again later.";
       } else {
         errorMessage = err.message || errorMessage;
