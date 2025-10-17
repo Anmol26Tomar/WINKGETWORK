@@ -6,7 +6,7 @@ function authHeaders() {
 }
 
 async function request(path, options = {}) {
-  const headers = { 'Content-Type': 'application/json', ...authHeaders(), ...(options.headers || {}) }
+  const headers = { ...authHeaders(), ...(options.headers || {}) }
   const res = await fetch(`${API_BASE_URL}${path}`, { 
     ...options, 
     headers,
@@ -18,13 +18,13 @@ async function request(path, options = {}) {
 }
 
 // Vendor Authentication Services
-export async function vendorSignup(vendorData) {
+export async function vendorSignup(vendorData, isForm = false) {
   const data = await request(`${endpoints.business.auth.signup}/vendor`, {
     method: 'POST',
-    body: JSON.stringify(vendorData),
+    body: isForm ? vendorData : JSON.stringify(vendorData),
+    headers: isForm ? {} : { 'Content-Type': 'application/json' },
   })
-  
-  if (data.token) localStorage.setItem('wb_token', data.token)
+  // Cookie is set by backend; persist only non-sensitive user info locally
   localStorage.setItem('wb_user', JSON.stringify(data.user))
   return data.user
 }
@@ -34,8 +34,7 @@ export async function vendorLogin({ email, password }) {
     method: 'POST',
     body: JSON.stringify({ email, password, role: 'vendor' }),
   })
-  
-  if (data.token) localStorage.setItem('wb_token', data.token)
+  // Cookie is set by backend; persist only non-sensitive user info locally
   localStorage.setItem('wb_user', JSON.stringify(data.user))
   return data.user
 }
@@ -83,6 +82,17 @@ export async function getPublicVendors(filters = {}) {
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw new Error(data.message || 'Failed to fetch vendors')
   return data
+}
+
+// Logout and clear local session artifacts
+export async function vendorLogout() {
+  try {
+    await request(endpoints.business.auth.logout, { method: 'POST' })
+  } finally {
+    // Clear any local remnants regardless of server result
+    try { localStorage.removeItem('wb_token') } catch {}
+    try { localStorage.removeItem('wb_user') } catch {}
+  }
 }
 
 export async function getPublicVendorProfile(vendorId, includeProducts = false) {

@@ -2,6 +2,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Admin = require("../models/Admin");
 const Vendor = require("../models/Vendor");
+const { uploadBuffer } = require("../utils/cloudinary");
 
 function signToken(user) {
   return jwt.sign(
@@ -252,6 +253,10 @@ const signupVendor = async (req, res) => {
       category,
       websiteLink,
       socialLinks,
+      // Media (set below if uploaded)
+      // Compliance
+      gstinNumber: req.body.gstinNumber,
+      gstinDocUrl: req.body.gstinDocUrl,
       role: "vendor",
       isApproved: false,
 
@@ -263,6 +268,28 @@ const signupVendor = async (req, res) => {
       approved: false,
       briefInfo: aboutBusiness,
     };
+
+    // Handle file uploads from multipart form-data (memory buffers via multer)
+    try {
+      if (req.files && req.files.ownerPic && req.files.ownerPic[0]) {
+        const up = await uploadBuffer(req.files.ownerPic[0].buffer, `owner_${Date.now()}`);
+        vendorData.ownerPic = up.secure_url || up.url;
+      } else if (req.file && req.file.fieldname === 'ownerPic') {
+        const up = await uploadBuffer(req.file.buffer, `owner_${Date.now()}`);
+        vendorData.ownerPic = up.secure_url || up.url;
+      }
+      if (req.files && req.files.profileBanner && req.files.profileBanner[0]) {
+        const up2 = await uploadBuffer(req.files.profileBanner[0].buffer, `banner_${Date.now()}`);
+        vendorData.profileBanner = up2.secure_url || up2.url;
+      }
+      if (req.files && req.files.gstinDoc && req.files.gstinDoc[0]) {
+        const up3 = await uploadBuffer(req.files.gstinDoc[0].buffer, `gst_${Date.now()}`);
+        vendorData.gstinDocUrl = up3.secure_url || up3.url;
+      }
+    } catch (uploadErr) {
+      console.error('Cloudinary upload failed:', uploadErr);
+      // proceed without blocking signup; client can re-upload later
+    }
 
     console.log(
       "✅ Creating vendor with data:",
@@ -396,7 +423,9 @@ const login = async (req, res) => {
 const logout = async (req, res) => {
   try {
     clearAuthCookie(res);
+    console.log("✅ Logout successful");
     res.json({ message: "Logout successful" });
+    
   } catch (err) {
     console.error("Logout error:", err);
     res.status(500).json({ message: "Server error" });

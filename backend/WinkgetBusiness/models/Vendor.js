@@ -60,6 +60,10 @@ const vendorSchema = new mongoose.Schema(
     ownerPic: { type: String },
     profileBanner: { type: String },
     businessProfilePic: { type: String },
+    // Compliance
+    gstinNumber: { type: String, trim: true, unique: true, sparse: true, index: true },
+    gstinDocUrl: { type: String },
+    gstinVerified: { type: Boolean, default: false },
     
     // Social Links (Optional)
     socialLinks: {
