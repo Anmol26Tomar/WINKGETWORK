@@ -27,6 +27,9 @@ const agentRoutes = require("./WinkgetExpress/routes/agent");
 
 app.get("/health", (req, res) => res.json({ status: "ok" }));
 
+// Health endpoint under /api to match frontend baseURL that appends /api
+app.get("/api/health", (req, res) => res.json({ status: "ok" }));
+
 // Test endpoint to create a transport request
 app.post("/test/transport", (req, res) => {
   const { notifyCaptainsNewTransport } = require("./WinkgetExpress/utils/notificationService");
@@ -103,4 +106,4 @@ io.on("connection", (socket) => {
   });
 });
 
-http.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+http.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT} and accessible from all interfaces`));
