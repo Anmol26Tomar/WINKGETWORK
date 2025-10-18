@@ -44,6 +44,11 @@ export interface Captain {
   rating: number;
   totalTrips: number;
   city?: string;
+  isApproved?: boolean;
+  licenseVerified?: boolean;
+  vehicleVerified?: boolean;
+  panVerified?: boolean;
+  aadharVerified?: boolean;
 }
 
 export interface Trip {
@@ -112,6 +117,7 @@ export interface Earning {
   amount: number;
   date: string;
   created_at: string;
+  type?: 'transport' | 'parcel';
 }
 
 export interface EarningSummary {

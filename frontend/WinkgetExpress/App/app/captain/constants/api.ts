@@ -18,7 +18,7 @@ export const API_ENDPOINTS = {
   LOGOUT: '/auth/logout',
   GET_CAPTAIN_PROFILE: '/auth/agent/profile',
   UPDATE_CAPTAIN_PROFILE: '/auth/agent/profile',
-  UPDATE_AVAILABILITY: '/captain/availability',
+  UPDATE_AVAILABILITY: '/auth/agent/availability',
   GET_PENDING_REQUESTS: '/auth/agent/orders/nearby',
   GET_ACTIVE_TRIP: '/auth/agent/orders/active',
   ACCEPT_TRIP: '/auth/agent/orders/:id/accept',

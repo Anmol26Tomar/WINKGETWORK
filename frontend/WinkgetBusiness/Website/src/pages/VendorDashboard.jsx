@@ -76,8 +76,12 @@ export default function VendorDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Loading vendor dashboard...</div>
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="text-lg text-gray-600">Loading vendor dashboard...</div>
+          <div className="text-sm text-gray-500 mt-2">Please wait while we fetch your data</div>
+        </div>
       </div>
     )
   }
@@ -94,15 +98,15 @@ export default function VendorDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="bg-white p-6 rounded-lg border">
+      <div className="bg-white p-8 rounded-xl border shadow-sm">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">{vendor.shopName}</h1>
-            <p className="text-gray-600">Welcome back, {vendor.ownerName}</p>
-            <div className="flex items-center mt-2">
-              <span className={`px-2 py-1 rounded-full text-xs ${
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{vendor.shopName}</h1>
+            <p className="text-gray-600 text-lg">Welcome back, {vendor.ownerName}</p>
+            <div className="flex items-center mt-4">
+              <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${
                 vendor.isApproved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
               }`}>
                 {vendor.isApproved ? 'Approved' : 'Pending Approval'}
@@ -114,7 +118,7 @@ export default function VendorDashboard() {
               <img 
                 src={vendor.businessProfilePic} 
                 alt="Profile" 
-                className="w-16 h-16 rounded-full object-cover"
+                className="w-20 h-20 rounded-full object-cover shadow-md"
               />
             )}
           </div>
@@ -123,30 +127,30 @@ export default function VendorDashboard() {
 
       {/* Stats Overview */}
       {vendorStats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white p-4 rounded-lg border">
-            <div className="text-2xl font-bold">{vendorStats.overall.totalProducts}</div>
-            <div className="text-sm text-gray-600">Total Products</div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="bg-white p-6 rounded-xl border shadow-sm hover:shadow-md transition-shadow">
+            <div className="text-3xl font-bold text-blue-600 mb-2">{vendorStats.overall.totalProducts}</div>
+            <div className="text-sm text-gray-600 font-medium">Total Products</div>
           </div>
-          <div className="bg-white p-4 rounded-lg border">
-            <div className="text-2xl font-bold">{vendorStats.overall.totalSold}</div>
-            <div className="text-sm text-gray-600">Units Sold</div>
+          <div className="bg-white p-6 rounded-xl border shadow-sm hover:shadow-md transition-shadow">
+            <div className="text-3xl font-bold text-green-600 mb-2">{vendorStats.overall.totalSold}</div>
+            <div className="text-sm text-gray-600 font-medium">Units Sold</div>
           </div>
-          <div className="bg-white p-4 rounded-lg border">
-            <div className="text-2xl font-bold">₹{vendorStats.overall.totalRevenue?.toFixed(2) || 0}</div>
-            <div className="text-sm text-gray-600">Total Revenue</div>
+          <div className="bg-white p-6 rounded-xl border shadow-sm hover:shadow-md transition-shadow">
+            <div className="text-3xl font-bold text-purple-600 mb-2">₹{vendorStats.overall.totalRevenue?.toFixed(2) || 0}</div>
+            <div className="text-sm text-gray-600 font-medium">Total Revenue</div>
           </div>
-          <div className="bg-white p-4 rounded-lg border">
-            <div className="text-2xl font-bold">{vendor.averageRating?.toFixed(1) || 0}</div>
-            <div className="text-sm text-gray-600">Average Rating</div>
+          <div className="bg-white p-6 rounded-xl border shadow-sm hover:shadow-md transition-shadow">
+            <div className="text-3xl font-bold text-orange-600 mb-2">{vendor.averageRating?.toFixed(1) || 0}</div>
+            <div className="text-sm text-gray-600 font-medium">Average Rating</div>
           </div>
         </div>
       )}
 
       {/* Navigation Tabs */}
-      <div className="bg-white rounded-lg border">
-        <div className="border-b">
-          <nav className="flex space-x-8 px-6">
+      <div className="bg-white rounded-xl border shadow-sm">
+        <div className="border-b border-gray-100">
+          <nav className="flex space-x-8 px-8">
             {[
               { id: 'overview', label: 'Overview' },
               { id: 'products', label: 'Products' },
@@ -156,7 +160,7 @@ export default function VendorDashboard() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                className={`py-5 px-1 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === tab.id
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -168,7 +172,7 @@ export default function VendorDashboard() {
           </nav>
         </div>
 
-        <div className="p-6">
+        <div className="p-8">
           {/* Overview Tab */}
           {activeTab === 'overview' && (
             <div className="space-y-6">

@@ -10,22 +10,27 @@ import {
   Linking,
   Platform,
   Animated,
+  SafeAreaView,
+  StatusBar,
 } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { TripCard } from '../../components/TripCard';
 import { TripWorkflow } from '../../components/TripWorkflow';
+import { MapInterface } from '../../components/MapInterface';
 import { Modal } from '../../components/Modal';
 import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
 import { tripService, getRoutePolyline } from '../../services/api';
 import { useAuth } from '@/context/AuthContext';
-import { Navigation, Zap, Clock } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 import type { Trip } from '../../types';
 import { getSocket } from '../../../../services/socket';
+import { useRouter } from 'expo-router';
 
 export default function HomeScreen() {
   const { captain } = useAuth();
+  const router = useRouter();
   const mapRef = useRef<MapView>(null);
 
   const [pendingTrips, setPendingTrips] = useState<Trip[]>([]);
@@ -43,8 +48,15 @@ export default function HomeScreen() {
   const [selectedOrder, setSelectedOrder] = useState<Trip | null>(null);
   const [previewDistanceKm, setPreviewDistanceKm] = useState<number | null>(null);
   const [previewDurationMin, setPreviewDurationMin] = useState<number | null>(null);
+  const [mapInterfaceVisible, setMapInterfaceVisible] = useState(false);
 
   const pulseAnim = useState(new Animated.Value(1))[0];
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [slideAnim] = useState(new Animated.Value(50));
+  const [scaleAnim] = useState(new Animated.Value(0.8));
+  const [bounceAnim] = useState(new Animated.Value(0));
+  const [rotateAnim] = useState(new Animated.Value(0));
+  const [shimmerAnim] = useState(new Animated.Value(0));
 
   const displayCaptain = captain;
   const firstName = displayCaptain?.fullName?.split(' ')[0] || 'Captain';
@@ -113,6 +125,54 @@ export default function HomeScreen() {
 
   // Get user location once
   useEffect(() => {
+    // Initialize enhanced animations for smoother UX
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 40,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+      Animated.spring(bounceAnim, {
+        toValue: 1,
+        tension: 100,
+        friction: 3,
+        useNativeDriver: true,
+      }),
+      Animated.timing(rotateAnim, {
+        toValue: 1,
+        duration: 1200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Start shimmer effect for loading states
+    const shimmerLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(shimmerAnim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shimmerAnim, {
+          toValue: 0,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    shimmerLoop.start();
+
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') return Alert.alert('Permission denied', 'Location permission is required');
@@ -175,8 +235,33 @@ export default function HomeScreen() {
     if (userLoc) loadTrips(userLoc.lat, userLoc.lng);
   }, [userLoc, loadTrips]);
 
+  const handleMenuPress = () => {
+    Alert.alert(
+      'Menu',
+      'Captain Menu',
+      [
+        { text: 'Profile', onPress: () => router.push('/captain/app/(captabs)/profile') },
+        { text: 'Earnings', onPress: () => router.push('/captain/app/(captabs)/earnings') },
+        { text: 'Wallet', onPress: () => router.push('/captain/app/(captabs)/transfer-earnings') },
+        { text: 'Help', onPress: () => Alert.alert('Help', 'Help feature coming soon!') },
+        { text: 'Cancel', style: 'cancel' }
+      ]
+    );
+  };
+
+  const handleNotificationPress = () => {
+    Alert.alert(
+      'Notifications',
+      'You have no new notifications',
+      [
+        { text: 'OK', style: 'default' }
+      ]
+    );
+  };
+
   const handleAcceptTrip = async (tripId: string) => {
     try {
+      setLoading(true);
       const trip = await tripService.acceptTrip(tripId);
       console.log('Trip accepted:', trip);
       setActiveTrip(trip);
@@ -187,48 +272,129 @@ export default function HomeScreen() {
         setRouteCoords(poly.coordinates.map(([lng, lat]) => ({ latitude: lat, longitude: lng })));
       }
 
-      Alert.alert('Success', 'Trip accepted successfully');
+      // Show success animation
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.2,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      Alert.alert('Success', 'Trip accepted successfully! 🎉');
     } catch (error: any) {
+      console.error('Accept trip error:', error);
       Alert.alert('Error', error.response?.data?.message || 'Failed to accept trip');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleRejectTrip = async () => {
     if (!rejectReason.trim()) return Alert.alert('Error', 'Please provide a reason');
     try {
+      setLoading(true);
       await tripService.rejectTrip(selectedTripId, rejectReason);
+      
       setPendingTrips((prev) => prev.filter((t) => t.id !== selectedTripId && t._id !== selectedTripId));
       setRejectModalVisible(false);
       setRejectReason('');
-      Alert.alert('Success', 'Trip rejected');
+      setSelectedTripId('');
+
+      Alert.alert('Trip Rejected', 'Trip has been rejected successfully');
     } catch (error: any) {
+      console.error('Reject trip error:', error);
       Alert.alert('Error', error.response?.data?.message || 'Failed to reject trip');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleStartTrip = async (tripId: string) => {
     try {
+      setLoading(true);
       await tripService.startTrip(tripId);
+      
       // Refresh the active trip to get updated status
       const updatedTrip = await tripService.getActiveTrip();
       setActiveTrip(updatedTrip);
-      Alert.alert('Success', 'Trip started successfully');
+      
+      // Show map interface after trip starts
+      setMapInterfaceVisible(true);
+      
+      // Success animation
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.3,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+      
+      Alert.alert('Trip Started', 'Your trip has started! Navigate to pickup location. 🚗');
     } catch (error: any) {
+      console.error('Start trip error:', error);
       Alert.alert('Error', error.response?.data?.message || 'Failed to start trip');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleEndTrip = async (tripId: string) => {
     try {
+      setLoading(true);
       // First mark as reached destination to get OTP
       await tripService.reachDestination(tripId);
-      Alert.alert('Success', 'Trip completed successfully');
+      
+      // Success animation
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.2,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+      
+      Alert.alert('Trip Completed', 'Trip completed successfully! 🎉');
       setActiveTrip(null);
       setRouteCoords(null);
+      setMapInterfaceVisible(false);
       loadTrips(userLoc?.lat, userLoc?.lng);
     } catch (error: any) {
+      console.error('End trip error:', error);
       Alert.alert('Error', error.response?.data?.message || 'Failed to complete trip');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleMapTripComplete = () => {
+    setActiveTrip(null);
+    setRouteCoords(null);
+    setMapInterfaceVisible(false);
+    loadTrips(userLoc?.lat, userLoc?.lng);
+  };
+
+  const handleMapTripCancel = () => {
+    setActiveTrip(null);
+    setRouteCoords(null);
+    setMapInterfaceVisible(false);
+    loadTrips(userLoc?.lat, userLoc?.lng);
   };
 
   const openMaps = (lat: number, lng: number) => {
@@ -251,37 +417,157 @@ export default function HomeScreen() {
   }, []);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FF6B35" />
+      
+      {/* Background with decorative elements */}
+      <View style={styles.backgroundContainer}>
+        <View style={styles.backgroundCircle1} />
+        <View style={styles.backgroundCircle2} />
+        <View style={styles.backgroundCircle3} />
+      </View>
+
       {loading ? (
-        <View style={styles.centerContainer}>
+        <Animated.View 
+          style={[
+            styles.centerContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ scale: scaleAnim }],
+            },
+          ]}
+        >
           <Text style={styles.loadingText}>Loading...</Text>
-        </View>
+        </Animated.View>
       ) : (
-        <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+        <ScrollView 
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Header */}
-          <View style={styles.header}>
+          <Animated.View 
+            style={[
+              styles.header,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
+            <View style={styles.headerContent}>
+              <TouchableOpacity style={styles.menuButton} onPress={handleMenuPress}>
+                <Ionicons name="menu" size={24} color="#000" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.notificationButton} onPress={handleNotificationPress}>
+                <Ionicons name="notifications" size={24} color="#000" />
+              </TouchableOpacity>
+            </View>
             <Text style={styles.greeting}>Hello, {firstName} 👋</Text>
-            <Text>{vehicleType} • {serviceScope}</Text>
-            <Text>⭐ {rating} | {totalTrips} trips</Text>
-          </View>
+            <Text style={styles.subtitle}>{vehicleType} • {serviceScope}</Text>
+            <Text style={styles.ratingText}>⭐ {rating} | {totalTrips} trips</Text>
+          </Animated.View>
 
           {/* Quick Stats */}
-          <View style={styles.quickStats}>
-            <View style={styles.quickStatCard}>
-              <Zap size={20} color="#10B981" />
-              <Text>{pendingTrips.length}</Text>
-              <Text>New Requests</Text>
-            </View>
-            <View style={styles.quickStatCard}>
-              <Clock size={20} color="#2563EB" />
-              <Text>{activeTrip ? '1' : '0'}</Text>
-              <Text>Active Trip</Text>
-            </View>
-          </View>
+          <Animated.View
+            style={[
+              styles.quickStats,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
+            <Animated.View 
+              style={[
+                styles.quickStatCard,
+                {
+                  transform: [
+                    { scale: scaleAnim },
+                    { translateY: bounceAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, -2]
+                    })}
+                  ],
+                },
+              ]}
+            >
+              <Animated.View 
+                style={[
+                  styles.quickStatIcon,
+                  {
+                    transform: [{ scale: pulseAnim }]
+                  }
+                ]}
+              >
+                <Ionicons name="flash" size={20} color="#FF6B35" />
+              </Animated.View>
+              <Animated.Text 
+                style={[
+                  styles.quickStatValue,
+                  {
+                    opacity: shimmerAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.8, 1]
+                    })
+                  }
+                ]}
+              >
+                {pendingTrips.length}
+              </Animated.Text>
+              <Text style={styles.quickStatLabel}>New Requests</Text>
+            </Animated.View>
+            <Animated.View 
+              style={[
+                styles.quickStatCard,
+                {
+                  transform: [
+                    { scale: scaleAnim },
+                    { translateY: bounceAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, -2]
+                    })}
+                  ],
+                },
+              ]}
+            >
+              <Animated.View 
+                style={[
+                  styles.quickStatIcon,
+                  {
+                    transform: [{ scale: pulseAnim }]
+                  }
+                ]}
+              >
+                <Ionicons name="time" size={20} color="#FF6B35" />
+              </Animated.View>
+              <Animated.Text 
+                style={[
+                  styles.quickStatValue,
+                  {
+                    opacity: shimmerAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.8, 1]
+                    })
+                  }
+                ]}
+              >
+                {activeTrip ? '1' : '0'}
+              </Animated.Text>
+              <Text style={styles.quickStatLabel}>Active Trip</Text>
+            </Animated.View>
+          </Animated.View>
 
           {/* Active Trip */}
           {activeTrip && (
-            <View style={styles.section}>
+            <Animated.View 
+              style={[
+                styles.section,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }],
+                },
+              ]}
+            >
               <Text style={styles.sectionTitle}>Active Trip</Text>
               <TripCard 
                 trip={activeTrip} 
@@ -292,54 +578,132 @@ export default function HomeScreen() {
                 trip={activeTrip}
                 onTripComplete={() => { setActiveTrip(null); setRouteCoords(null); loadTrips(userLoc?.lat, userLoc?.lng); }}
                 onTripCancel={() => { setActiveTrip(null); setRouteCoords(null); loadTrips(userLoc?.lat, userLoc?.lng); }}
+                onShowMap={() => setMapInterfaceVisible(true)}
               />
-            </View>
+            </Animated.View>
           )}
 
           {/* Pending Trips */}
-          <View style={styles.section}>
+          <Animated.View 
+            style={[
+              styles.section,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
             <Text style={styles.sectionTitle}>Incoming Requests ({pendingTrips.length})</Text>
             {region && (
-              <MapView ref={mapRef} style={{ height: 260 }} initialRegion={region}>
-                {userLoc && <Marker coordinate={{ latitude: userLoc.lat, longitude: userLoc.lng }} title="You" />}
-                {pendingTrips.map((o) => (
-                  <Marker
-                    key={o.id || o._id}
-                    coordinate={{ latitude: o.pickup.lat, longitude: o.pickup.lng }}
-                    title={`₹${o.fareEstimate || o.fare}`}
-                    description={`${(o.distanceKm || 0).toFixed(1)} km away`}
-                    onPress={async () => {
-                      setSelectedOrder(o);
-                      if (userLoc) {
-                        const poly = await getRoutePolyline(userLoc, { lat: o.pickup.lat, lng: o.pickup.lng });
-                        setPreviewDistanceKm(poly.distance / 1000);
-                        setPreviewDurationMin(poly.duration / 60);
-                      }
-                      setOrderPreviewVisible(true);
-                    }}
-                  />
-                ))}
-                {routeCoords && <Polyline coordinates={routeCoords} strokeColor="#2563EB" strokeWidth={4} />}
-              </MapView>
+              <Animated.View
+                style={[
+                  styles.mapContainer,
+                  {
+                    transform: [{ scale: scaleAnim }],
+                  },
+                ]}
+              >
+                <MapView ref={mapRef} style={styles.map} initialRegion={region}>
+                  {userLoc && <Marker coordinate={{ latitude: userLoc.lat, longitude: userLoc.lng }} title="You" />}
+                  {pendingTrips.map((o) => (
+                    <Marker
+                      key={o.id || o._id}
+                      coordinate={{ latitude: o.pickup.lat, longitude: o.pickup.lng }}
+                      title={`₹${o.fareEstimate || o.fare}`}
+                      description={`${(o.distanceKm || 0).toFixed(1)} km away`}
+                      onPress={async () => {
+                        setSelectedOrder(o);
+                        if (userLoc) {
+                          const poly = await getRoutePolyline(userLoc, { lat: o.pickup.lat, lng: o.pickup.lng });
+                          setPreviewDistanceKm(poly.distance / 1000);
+                          setPreviewDurationMin(poly.duration / 60);
+                        }
+                        setOrderPreviewVisible(true);
+                      }}
+                    />
+                  ))}
+                  {routeCoords && <Polyline coordinates={routeCoords} strokeColor="#FF6B35" strokeWidth={4} />}
+                </MapView>
+              </Animated.View>
             )}
 
             {pendingTrips.length === 0 && (
-              <View style={styles.emptyState}>
-                <Navigation size={48} color="#D1D5DB" />
-                <Text>No pending requests</Text>
-              </View>
+              <Animated.View 
+                style={[
+                  styles.emptyState,
+                  {
+                    opacity: fadeAnim,
+                    transform: [{ scale: scaleAnim }],
+                  },
+                ]}
+              >
+                <Ionicons name="navigate" size={48} color="#D1D5DB" />
+                <Text style={styles.emptyStateText}>No pending requests</Text>
+              </Animated.View>
             )}
 
-            {pendingTrips.map((trip) => (
-              <TripCard
+            {pendingTrips.map((trip, index) => (
+              <Animated.View
                 key={trip.id || trip._id}
-                trip={trip}
-                onAccept={handleAcceptTrip}
-                onReject={(id) => { setSelectedTripId(id); setRejectModalVisible(true); }}
-              />
+                style={{
+                  opacity: fadeAnim,
+                  transform: [
+                    {
+                      translateX: slideAnim.interpolate({
+                        inputRange: [0, 50],
+                        outputRange: [0, 50],
+                        extrapolate: 'clamp',
+                      }),
+                    },
+                  ],
+                }}
+              >
+                <TripCard
+                  trip={trip}
+                  onAccept={handleAcceptTrip}
+                  onReject={(id) => { setSelectedTripId(id); setRejectModalVisible(true); }}
+                />
+              </Animated.View>
             ))}
-          </View>
+          </Animated.View>
         </ScrollView>
+      )}
+
+      {loading && (
+        <Animated.View style={[styles.loadingOverlay, { opacity: fadeAnim }]}>
+          <View style={styles.loadingContainer}>
+            <Animated.View
+              style={[
+                styles.loadingSpinner,
+                {
+                  transform: [
+                    { rotate: rotateAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0deg', '360deg'],
+                    })},
+                    { scale: bounceAnim }
+                  ],
+                },
+              ]}
+            >
+              <Ionicons name="refresh" size={32} color="#FF6B35" />
+            </Animated.View>
+            <Animated.Text 
+              style={[
+                styles.loadingText,
+                {
+                  opacity: shimmerAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.6, 1]
+                  })
+                }
+              ]}
+            >
+              Loading...
+            </Animated.Text>
+            <Text style={styles.loadingMessage}>Processing your request</Text>
+          </View>
+        </Animated.View>
       )}
 
       {/* Modals */}
@@ -368,7 +732,7 @@ export default function HomeScreen() {
             <Text>Fare: ₹{incomingTrip?.fare}</Text>
             <View style={{ flexDirection: 'row', marginTop: 16, justifyContent: 'space-between' }}>
               <TouchableOpacity
-                style={[styles.modalBtn, { backgroundColor: '#10B981' }]}
+                style={[styles.modalBtn, { backgroundColor: '#FF6B35' }]}
                 onPress={async () => {
                   await handleAcceptTrip(incomingTrip!.id || incomingTrip!._id || '');
                   setIncomingTrip(null);
@@ -386,7 +750,18 @@ export default function HomeScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+
+      {/* Map Interface */}
+      {activeTrip && (
+        <MapInterface
+          trip={activeTrip}
+          visible={mapInterfaceVisible}
+          onClose={() => setMapInterfaceVisible(false)}
+          onTripComplete={handleMapTripComplete}
+          onTripCancel={handleMapTripCancel}
+        />
+      )}
+    </SafeAreaView>
   );
 }
 
@@ -408,40 +783,85 @@ const styles = StyleSheet.create({
 
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: '#FF6B35',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F7FA',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#6B7280',
-    fontWeight: '500',
+    backgroundColor: '#FF6B35',
   },
   header: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 24,
+    backgroundColor: '#FF6B35',
+    paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+  },
+  backgroundContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  backgroundCircle1: {
+    position: 'absolute',
+    top: 50,
+    left: -50,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: '#FF8C42',
+    opacity: 0.3,
+  },
+  backgroundCircle2: {
+    position: 'absolute',
+    top: 200,
+    right: -30,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#FF8C42',
+    opacity: 0.2,
+  },
+  backgroundCircle3: {
+    position: 'absolute',
+    bottom: 100,
+    left: 20,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FF8C42',
+    opacity: 0.25,
   },
   headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  menuButton: {
+    padding: 8,
+  },
+  notificationButton: {
+    padding: 8,
   },
   greeting: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#111827',
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#000',
     marginBottom: 4,
+    fontWeight: '500',
+  },
+  ratingText: {
+    fontSize: 14,
+    color: '#000',
+    fontWeight: '500',
   },
   serviceInfo: {
     fontSize: 13,
@@ -474,59 +894,89 @@ const styles = StyleSheet.create({
   quickStats: {
     flexDirection: 'row',
     paddingHorizontal: 20,
-    paddingVertical: 20,
+    marginBottom: 24,
     gap: 16,
   },
   quickStatCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFF',
+    paddingVertical: 20,
+    paddingHorizontal: 16,
     borderRadius: 16,
-    padding: 18,
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 53, 0.1)',
   },
   quickStatIcon: {
     width: 44,
     height: 44,
-    borderRadius: 12,
-    backgroundColor: '#D1FAE5',
+    borderRadius: 22,
+    backgroundColor: '#FEF3F2',
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 12,
+    shadowColor: '#FF6B35',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   quickStatValue: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#111827',
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 4,
   },
   quickStatLabel: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#6B7280',
-    marginTop: 2,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   scrollView: {
     flex: 1,
   },
   section: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 18,
+    backgroundColor: '#FFF',
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-    letterSpacing: -0.5,
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 16,
+  },
+  mapContainer: {
+    height: 260,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  map: {
+    flex: 1,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#6B7280',
+    marginTop: 12,
+    fontWeight: '500',
   },
   liveBadge: {
     flexDirection: 'row',
@@ -592,17 +1042,6 @@ const styles = StyleSheet.create({
     width: '100%',
     marginTop: 12,
   },
-  emptyState: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 48,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
-  },
   emptyIcon: {
     width: 80,
     height: 80,
@@ -641,5 +1080,44 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 8,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  loadingContainer: {
+    backgroundColor: '#FFF',
+    padding: 24,
+    borderRadius: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  loadingSpinner: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FF6B35',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  loadingText: {
+    fontSize: 24,
+  },
+  loadingMessage: {
+    fontSize: 16,
+    color: '#000',
+    fontWeight: '500',
   },
 });

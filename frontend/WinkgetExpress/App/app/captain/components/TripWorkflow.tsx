@@ -30,12 +30,14 @@ interface TripWorkflowProps {
   trip?: Trip; // optional so we can use dummy
   onTripComplete?: () => void;
   onTripCancel?: () => void;
+  onShowMap?: () => void;
 }
 
 export function TripWorkflow({
   trip = dummyTrip,
   onTripComplete = () => Alert.alert('Trip Complete'),
   onTripCancel = () => Alert.alert('Trip Cancelled'),
+  onShowMap,
 }: TripWorkflowProps) {
   const [pickupOtpModalVisible, setPickupOtpModalVisible] = useState(false);
   const [dropOtpModalVisible, setDropOtpModalVisible] = useState(false);
@@ -98,6 +100,7 @@ export function TripWorkflow({
       setPickupOtpModalVisible(false);
       setPickupOtp('');
       setOrderDetailsModalVisible(false);
+      onShowMap?.(); // Show map interface
       Alert.alert('Success', 'Trip started successfully');
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.message || 'Invalid OTP');
@@ -123,6 +126,7 @@ export function TripWorkflow({
         // Start trip directly if no OTP required
         await tripService.startTrip(trip.id || trip._id);
         setOrderDetailsModalVisible(false);
+        onShowMap?.(); // Show map interface
         Alert.alert('Success', 'Trip started successfully');
       }
     } catch (error: any) {
@@ -376,3 +380,5 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
 });
+
+export default TripWorkflow;

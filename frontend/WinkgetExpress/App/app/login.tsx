@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
     backgroundColor: "#FFFFFF",
   },
-  tagActive: { backgroundColor: "#2563EB", borderColor: "#2563EB" },
+  tagActive: { backgroundColor: "#FF6B35", borderColor: "#FF6B35" },
   tagTxt: { color: "#111827", fontWeight: "600" },
   tagTxtActive: { color: "#FFFFFF" },
   input: {
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   btn: {
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF6B35",
     padding: 14,
     borderRadius: 12,
     alignItems: "center",
@@ -166,5 +166,5 @@ const styles = StyleSheet.create({
   btnDisabled: { opacity: 0.7 },
   btnTxt: { color: "#fff", fontWeight: "700" },
   switchTxt: { marginTop: 16, color: "#6B7280" },
-  link: { color: "#2563EB", fontWeight: "700" },
+  link: { color: "#FF6B35", fontWeight: "700" },
 });

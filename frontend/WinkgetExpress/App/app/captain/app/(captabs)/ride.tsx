@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, Alert, TouchableOpacity, Platform, Linking } from 'react-native';
-import MapView, { Marker, Polyline } from 'react-native-maps';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, Alert, TouchableOpacity, Platform, Linking, Animated, Dimensions } from 'react-native';
+import MapView, { Marker, Polyline, Circle } from 'react-native-maps';
 import * as Location from 'expo-location';
 import io from 'socket.io-client';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import { TripCard } from '../../components/TripCard';
 import { Modal } from '../../components/Modal';
@@ -12,6 +13,8 @@ import { tripService } from '../../services/api';
 import { getRoutePolyline } from '../../services/api';
 import type { Trip } from '../../types';
 import { resolveEndpoint, getApiBase } from '../../constants/api';
+
+const { width, height } = Dimensions.get('window');
 
 export default function BikeRideScreen() {
   const { captain } = useAuth();
@@ -25,6 +28,18 @@ export default function BikeRideScreen() {
   const [pickupOtp, setPickupOtp] = useState('');
   const [dropOtp, setDropOtp] = useState('');
   const [routeCoords, setRouteCoords] = useState<{ latitude: number; longitude: number }[] | null>(null);
+  
+  // Enhanced acceptance functionality with smoother animations
+  const [isOnDuty, setIsOnDuty] = useState(true);
+  const [countdown, setCountdown] = useState(12);
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [slideAnim] = useState(new Animated.Value(50));
+  const [pulseAnim] = useState(new Animated.Value(1));
+  const [scaleAnim] = useState(new Animated.Value(0.8));
+  const [bounceAnim] = useState(new Animated.Value(0));
+  const [shimmerAnim] = useState(new Animated.Value(0));
+  const [todayEarnings] = useState(0.0);
+  const countdownRef = useRef(countdown);
 
   const bikeCaptain = useMemo(() => {
     const base = captain || {} as any;
@@ -59,6 +74,84 @@ export default function BikeRideScreen() {
       setRegion({ latitude: lat, longitude: lng, latitudeDelta: 0.02, longitudeDelta: 0.02 });
       await fetchTrips(lat, lng);
     })();
+  }, []);
+
+  // Enhanced acceptance functionality animations
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 40,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+      Animated.spring(bounceAnim, {
+        toValue: 1,
+        tension: 100,
+        friction: 3,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Start shimmer effect for stats
+    const shimmerLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(shimmerAnim, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shimmerAnim, {
+          toValue: 0,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    shimmerLoop.start();
+
+    // Start countdown animation with enhanced pulse
+    const pulseInterval = setInterval(() => {
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.15,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, 800);
+
+    return () => clearInterval(pulseInterval);
+  }, []);
+
+  // Countdown timer
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 12; // Reset countdown
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -172,6 +265,175 @@ export default function BikeRideScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Acceptance Dashboard */}
+      <Animated.View
+        style={[
+          styles.acceptanceContainer,
+          {
+            opacity: fadeAnim,
+            transform: [
+              { translateY: slideAnim },
+              { scale: scaleAnim },
+            ],
+          },
+        ]}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.toggleButton} onPress={() => setIsOnDuty(!isOnDuty)}>
+            <Ionicons 
+              name={isOnDuty ? "toggle" : "toggle-outline"} 
+              size={24} 
+              color={isOnDuty ? "#FF6B35" : "#9CA3AF"} 
+            />
+            <Text style={[styles.toggleText, { color: isOnDuty ? "#FF6B35" : "#9CA3AF" }]}>
+              {isOnDuty ? "On Duty" : "Off Duty"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {isOnDuty && (
+          <View style={styles.dashboard}>
+            <View style={styles.statsRow}>
+              <Animated.View 
+                style={[
+                  styles.statCard,
+                  {
+                    transform: [
+                      { scale: scaleAnim },
+                      { translateY: bounceAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, -3]
+                      })}
+                    ]
+                  }
+                ]}
+              >
+                <Animated.View 
+                  style={[
+                    styles.statIcon,
+                    {
+                      transform: [{ scale: pulseAnim }]
+                    }
+                  ]}
+                >
+                  <Ionicons name="flash" size={20} color="#FF6B35" />
+                </Animated.View>
+                <Animated.Text 
+                  style={[
+                    styles.statValue,
+                    {
+                      opacity: shimmerAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.8, 1]
+                      })
+                    }
+                  ]}
+                >
+                  {pendingTrips.length}
+                </Animated.Text>
+                <Text style={styles.statLabel}>New Requests</Text>
+              </Animated.View>
+              <Animated.View 
+                style={[
+                  styles.statCard,
+                  {
+                    transform: [
+                      { scale: scaleAnim },
+                      { translateY: bounceAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, -3]
+                      })}
+                    ]
+                  }
+                ]}
+              >
+                <Animated.View 
+                  style={[
+                    styles.statIcon,
+                    {
+                      transform: [{ scale: pulseAnim }]
+                    }
+                  ]}
+                >
+                  <Ionicons name="time" size={20} color="#FF6B35" />
+                </Animated.View>
+                <Animated.Text 
+                  style={[
+                    styles.statValue,
+                    {
+                      opacity: shimmerAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.8, 1]
+                      })
+                    }
+                  ]}
+                >
+                  {activeTrip ? '1' : '0'}
+                </Animated.Text>
+                <Text style={styles.statLabel}>Active Trip</Text>
+              </Animated.View>
+              <Animated.View 
+                style={[
+                  styles.statCard,
+                  {
+                    transform: [
+                      { scale: scaleAnim },
+                      { translateY: bounceAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, -3]
+                      })}
+                    ]
+                  }
+                ]}
+              >
+                <Animated.View 
+                  style={[
+                    styles.statIcon,
+                    {
+                      transform: [{ scale: pulseAnim }]
+                    }
+                  ]}
+                >
+                  <Ionicons name="cash" size={20} color="#FF6B35" />
+                </Animated.View>
+                <Animated.Text 
+                  style={[
+                    styles.statValue,
+                    {
+                      opacity: shimmerAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.8, 1]
+                      })
+                    }
+                  ]}
+                >
+                  ₹{todayEarnings}
+                </Animated.Text>
+                <Text style={styles.statLabel}>Today's Earnings</Text>
+              </Animated.View>
+            </View>
+
+            {pendingTrips.length > 0 && (
+              <Animated.View
+                style={[
+                  styles.incomingRequest,
+                  {
+                    transform: [{ scale: pulseAnim }],
+                  },
+                ]}
+              >
+                <View style={styles.requestHeader}>
+                  <Ionicons name="car" size={24} color="#FF6B35" />
+                  <Text style={styles.requestTitle}>New Ride Request!</Text>
+                  <Text style={styles.countdown}>{countdown}s</Text>
+                </View>
+                <Text style={styles.requestSubtitle}>Tap to view details and accept</Text>
+              </Animated.View>
+            )}
+          </View>
+        )}
+      </Animated.View>
+
       <ScrollView style={{ flex: 1 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
         {activeTrip && (
           <View style={{ padding: 16 }}>
@@ -226,6 +488,119 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 18, fontWeight: '700', color: '#111827', marginBottom: 12 },
   emptyText: { color: '#6B7280' },
   helper: { color: '#6B7280', marginBottom: 12 },
+  
+  // Acceptance Dashboard Styles
+  acceptanceContainer: {
+    backgroundColor: '#FFFFFF',
+    margin: 16,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  toggleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#FEF3F2',
+  },
+  toggleText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  dashboard: {
+    gap: 16,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#FEF3F2',
+    padding: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    shadowColor: '#FF6B35',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 53, 0.2)',
+  },
+  statIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FF6B35',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    shadowColor: '#FF6B35',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#000',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  incomingRequest: {
+    backgroundColor: '#FF6B35',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  requestHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  requestTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginLeft: 8,
+    flex: 1,
+  },
+  countdown: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  requestSubtitle: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    opacity: 0.9,
+  },
 });
 
 
