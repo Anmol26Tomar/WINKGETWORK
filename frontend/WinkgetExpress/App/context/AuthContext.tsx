@@ -291,3 +291,6 @@ export function useAuth() {
   if (!ctx) throw new Error("useAuth must be used within an AuthProvider");
   return ctx;
 }
+
+/* 
+NOTE: RESOLVED CONFLICTS, ADDED ORANGE COLOUR, SMOOTHENED UI, ADDED ANIMATIONS, ADDED NEW TABS. */
