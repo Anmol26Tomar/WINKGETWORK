@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+// netstat -ano | findstr :5000
 // 🌐 Get Base API URL depending on environment and device
 const getBaseUrl = () => {
   const envUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
@@ -14,7 +14,7 @@ const getBaseUrl = () => {
   }
 
   // Android emulator: 10.0.2.2 connects to host machine
-  if (Platform.OS === 'android') return 'http://10.0.2.2:5000/api';
+  if (Platform.OS === 'android') return 'http://172.20.48.110:5000/api';
 
   // iOS simulator / web: localhost works
   return 'http://localhost:5000/api';
@@ -22,6 +22,8 @@ const getBaseUrl = () => {
 
 const BASE_URL = getBaseUrl();
 console.log('📡 Base API URL:', BASE_URL);
+console.log('🌐 Platform:', Platform.OS);
+console.log('🔧 Environment URL:', process.env.EXPO_PUBLIC_API_BASE_URL);
 
 // 🚀 Create Axios instance
 const api = axios.create({
@@ -71,6 +73,11 @@ export const API_ENDPOINTS = {
     LOGIN: '/auth/login',
     PROFILE: '/auth/profile',
     UPDATE_PROFILE: '/auth/profile',
+  },
+  VENDORS: {
+    LIST: '/business/vendors/public',
+    BY_CATEGORY: '/business/vendors/category',
+    DETAILS: '/business/vendors/public',
   },
 };
 

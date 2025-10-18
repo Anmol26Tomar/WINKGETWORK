@@ -46,7 +46,7 @@ const getVendors = async (req, res) => {
 const getVendorById = async (req, res) => {
   try {
     const { includeProducts = false, productLimit = 10 } = req.query;
-    
+    console.log(req.params.id);
     let vendor = await Vendor.findById(req.params.id)
       .select('-password -passwordHash')
       .populate('reviews.userId', 'name email');
@@ -167,13 +167,15 @@ const uploadDocument = async (req, res) => {
 // Update business images
 const updateBusinessImages = async (req, res) => {
   try {
-    const { businessPosts, profileBanner, businessProfilePic, ownerPic } = req.body;
+    const { businessPosts, profileBanner, businessProfilePic, ownerPic, gstinDocUrl, gstinNumber } = req.body;
     const updateData = {};
     
     if (businessPosts) updateData.businessPosts = businessPosts;
     if (profileBanner) updateData.profileBanner = profileBanner;
     if (businessProfilePic) updateData.businessProfilePic = businessProfilePic;
     if (ownerPic) updateData.ownerPic = ownerPic;
+    if (gstinDocUrl) updateData.gstinDocUrl = gstinDocUrl;
+    if (gstinNumber) updateData.gstinNumber = gstinNumber;
     
     const vendor = await Vendor.findByIdAndUpdate(
       req.user.id,
@@ -334,6 +336,97 @@ const getVendorStats = async (req, res) => {
   }
 };
 
+// Get vendors by category (public route) - Case-insensitive filtering
+const getVendorsByCategory = async (req, res) => {
+  try {
+    const { category } = req.params;
+    const { limit = 20, page = 1, city } = req.query;
+    
+    console.log('🔍 getVendorsByCategory called with:', { category, limit, page, city });
+    
+    // Validate category parameter
+    if (!category || category.trim() === '') {
+      console.log('❌ Invalid category parameter');
+      return res.status(400).json({
+        success: false,
+        message: 'Category parameter is required',
+        vendors: [],
+        totalFound: 0
+      });
+    }
+    
+    // Case-insensitive category filtering using regex
+    const filter = {
+      category: { $regex: new RegExp(`^${category.trim()}$`, 'i') }, // Case-insensitive exact match
+      isApproved: true // Only show approved vendors
+    };
+    
+    // Optional city filter (also case-insensitive)
+    if (city && city.trim() !== '') {
+      filter['businessAddress.city'] = { $regex: new RegExp(city.trim(), 'i') };
+    }
+    
+    const skip = (page - 1) * limit;
+    
+    console.log('🔍 MongoDB filter:', JSON.stringify(filter, null, 2));
+    
+    // Query the WB_Vendor collection in MongoDB
+    const vendors = await Vendor.find(filter)
+      .select('-password -passwordHash -password') // Exclude all password fields
+      .sort({ averageRating: -1, createdAt: -1 }) // Sort by rating first, then by creation date
+      .skip(skip)
+      .limit(parseInt(limit))
+      .populate('reviews.userId', 'name email'); // Populate review user details
+    
+    const total = await Vendor.countDocuments(filter);
+    
+    console.log(`✅ Found ${vendors.length} vendors out of ${total} total`);
+    
+    // Enhanced JSON response with proper error handling
+    res.json({
+      success: true,
+      vendors,
+      category: category.trim(),
+      totalFound: total,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(total / limit)
+      },
+      message: total > 0 
+        ? `${total} vendor${total === 1 ? '' : 's'} found in "${category}" category` 
+        : `No vendors found in "${category}" category`,
+      filters: {
+        category: category.trim(),
+        city: city ? city.trim() : null,
+        approved: true
+      }
+    });
+    
+  } catch (err) {
+    console.error('Error fetching vendors by category:', err);
+    
+    // Proper error handling for different error types
+    if (err.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid category parameter format',
+        vendors: [],
+        totalFound: 0
+      });
+    }
+    
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error while fetching vendors',
+      vendors: [],
+      totalFound: 0,
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+};
+
 module.exports = {
   getVendors,
   getVendorById,
@@ -346,18 +439,6 @@ module.exports = {
   createVendor,
   updateVendor,
   deleteVendor,
-  getVendorStats
+  getVendorStats,
+  getVendorsByCategory,
 };
-
-// Public: Get only vendor category by ID
-// Keeping export at bottom to avoid changing existing exports structure
-module.exports.getVendorCategoryPublic = async (req, res) => {
-  try {
-    const vendor = await Vendor.findById(req.params.id).select('category')
-    if (!vendor) return res.status(404).json({ message: 'Vendor not found' })
-    res.json({ category: vendor.category || '' })
-  } catch (err) {
-    console.error('Error fetching vendor category:', err)
-    res.status(500).json({ message: 'Server error' })
-  }
-}

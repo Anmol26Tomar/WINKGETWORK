@@ -1,4 +1,7 @@
 const mongoose = require('mongoose');
+const dotenv = require('dotenv');
+
+dotenv.config()
 
 async function connectDB() {
 	const uri = process.env.MONGO_URI || 'mongodb+srv://A_P_Singh:5gkbAJdCO0z7RXTn@cluster0.fh2vf.mongodb.net/winkget'

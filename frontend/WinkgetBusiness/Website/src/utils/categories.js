@@ -526,4 +526,10 @@ export const rawCategories = [
     },
 ]
 
+// Extract only main categories (no subcategories)
+export const mainCategories = rawCategories.map(category => ({
+  name: category.category,
+  slug: category.category.toLowerCase().replace(/\s+/g, '-')
+}));
+
 export default rawCategories

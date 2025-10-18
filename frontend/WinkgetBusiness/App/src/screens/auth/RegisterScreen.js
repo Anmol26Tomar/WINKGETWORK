@@ -49,21 +49,25 @@ const RegisterScreen = ({ navigation }) => {
     }
 
     setIsLoading(true);
-    const result = await register({
+    try {
+      const result = await register({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+        phone: phone?.trim() || undefined,
+      });
 
-      
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      password,
-      phone: phone?.trim() || undefined,
-    });
-    setIsLoading(false);
-
-    if (!result.success) {
-      Alert.alert('Registration Failed', result.error);
-    } else {
-      // Optionally navigate to main after success; AuthContext will flip isAuthenticated
-      // navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
+      if (!result.success) {
+        Alert.alert('Registration Failed', result.error);
+      } else {
+        // Registration successful - AuthContext will automatically set isAuthenticated to true
+        // and AppNavigator will handle navigation to Main screen
+        // No need for manual navigation as it's handled by the auth state change
+      }
+    } catch (error) {
+      Alert.alert('Registration Failed', 'An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
     }
   };
 

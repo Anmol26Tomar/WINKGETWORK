@@ -59,7 +59,7 @@ const renderHistoryTab = () => {
 	return (
 		<View style={styles.container}>
 			{/* Tab Navigation */}
-			<View style={styles.tabContainer}>
+            <View style={styles.tabContainer}>
 				<TouchableOpacity 
 					style={[styles.tab, activeTab === 'profile' && styles.activeTab]} 
 					onPress={() => setActiveTab('profile')}
@@ -88,16 +88,8 @@ const renderHistoryTab = () => {
 
 const styles = StyleSheet.create({
 	container: { flex: 1, backgroundColor: Colors.background },
-	tabContainer: { 
-		flexDirection: 'row', 
-		backgroundColor: '#fff', 
-		marginHorizontal: Spacing.lg, 
-		marginTop: Spacing.lg, 
-		borderRadius: Radius.lg,
-		padding: 4,
-		borderWidth: 1,
-		borderColor: Colors.border
-	},
+    tabContainer: { flexDirection: 'row', backgroundColor: '#fff', marginHorizontal: Spacing.lg, marginTop: Spacing.lg, borderRadius: Radius.lg, padding: 4, borderWidth: 1, borderColor: Colors.border,
+        shadowColor: Colors.shadow, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 2 },
 	tab: { 
 		flex: 1, 
 		paddingVertical: Spacing.md, 
@@ -125,14 +117,8 @@ const styles = StyleSheet.create({
 		color: Colors.text, 
 		marginBottom: Spacing.lg 
 	},
-	card: { 
-		backgroundColor: '#fff', 
-		borderWidth: 1, 
-		borderColor: Colors.border, 
-		borderRadius: Radius.lg, 
-		padding: Spacing.lg, 
-		marginBottom: Spacing.lg 
-	},
+    card: { backgroundColor: '#fff', borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: Spacing.lg, marginBottom: Spacing.lg,
+        shadowColor: Colors.shadow, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 2 },
 	label: { 
 		color: Colors.mutedText, 
 		marginTop: 8 

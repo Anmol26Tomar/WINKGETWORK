@@ -110,7 +110,7 @@ export default function SignupScreen(): JSX.Element {
         await register(name, email.trim(), password)
         router.replace("/(tabs)")
       } else {
-        await signupCaptain({
+        const result = await signupCaptain({
           fullName: name,
           email,
           phone,
@@ -121,7 +121,18 @@ export default function SignupScreen(): JSX.Element {
           city,
           confirmPassword,
         })
-        router.push({ pathname: "/captain/app/verify-otp", params: { phone } })
+        
+        // Show success message for captain signup
+        Alert.alert(
+          "Registration Successful! 🎉",
+          "Your account has been created and is pending admin approval. You will be notified once approved.",
+          [
+            {
+              text: "OK",
+              onPress: () => router.replace("/login")
+            }
+          ]
+        )
       }
     } catch (e: any) {
       Alert.alert("Signup failed", e?.response?.data?.message || e?.message || "Please try again")
@@ -298,7 +309,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F9FAFB" },
   scrollContent: { flexGrow: 1, padding: 24, paddingTop: 48 },
   formWrapper: { flex: 1 },
-  title: { fontSize: 28, fontWeight: "800", color: "#111827", marginBottom: 20 },
+  title: { fontSize: 28, fontWeight: "800", color: "#0F172A", marginBottom: 20 },
   toggleRow: { flexDirection: "row", gap: 8, marginBottom: 12 },
   tag: {
     paddingVertical: 8,
@@ -313,14 +324,8 @@ const styles = StyleSheet.create({
   tagTxt: { color: "#111827", fontWeight: "600" },
   tagTxtActive: { color: "#FFFFFF" },
 
-  input: {
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 10,
-  },
+  input: { backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E5E7EB", borderRadius: 12, padding: 14, marginBottom: 12,
+    shadowColor: "rgba(2,6,23,0.04)", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 6, elevation: 1 },
 
   sectionLabel: {
     fontSize: 14,
@@ -344,6 +349,7 @@ const styles = StyleSheet.create({
   optionTxt: { fontSize: 14, fontWeight: "600", color: "#6B7280" },
   optionTxtActive: { color: "#FF6B35" },
 
+<<<<<<< HEAD
   btn: {
     backgroundColor: "#FF6B35",
     padding: 14,
@@ -351,6 +357,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 12,
   },
+=======
+  btn: { backgroundColor: "#1E40AF", padding: 16, borderRadius: 14, alignItems: "center", marginTop: 12,
+    shadowColor: "rgba(2,6,23,0.15)", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 1, shadowRadius: 12, elevation: 3 },
+>>>>>>> 8ddfe9bcbf6d296c6af74a4afc9f4c14ba1cc746
   btnDisabled: { opacity: 0.7 },
   btnTxt: { color: "#fff", fontWeight: "700" },
 

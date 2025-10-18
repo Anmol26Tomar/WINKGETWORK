@@ -15,8 +15,8 @@ import {
   logoutUser as apiLogout,
 } from "../services/authService";
 
-const DEFAULT_BASE = "http://192.168.1.15:3001";
-const BASE_URL = process.env.EXPO_PUBLIC_API_BASE || DEFAULT_BASE;
+const DEFAULT_BASE = 'http://10.233.13.139:3001';
+const BASE_URL = process.env.EXPO_PUBLIC_API_BASE;
 
 type Role = "user" | "captain" | null;
 
@@ -53,6 +53,7 @@ interface AuthContextType {
   loading: boolean;
   isAuthenticated: boolean;
   isLoading: boolean;
+  approved: boolean | null;
   login: (email: string, password: string) => Promise<any>;
   register: (name: string, email: string, password: string) => Promise<any>;
   loginCaptain: (payload: CaptainLoginPayload) => Promise<any>;
@@ -71,6 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [approved, setApproved] = useState<boolean | null>(null);
 
   const isAuthenticated = !!token && (user || captain);
 
@@ -133,15 +135,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const value = useMemo(
-    () => ({
-      user,
-      captain,
-      role,
-      token,
-      loading,
-      isAuthenticated,
-      isLoading,
+  const value = useMemo(() => ({
+    user,
+    captain,
+    role,
+    token,
+    loading,
+    isAuthenticated,
+    isLoading,
+    approved,
 
       login: async (email: string, password: string) => {
         setIsLoading(true);
@@ -177,58 +179,73 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       },
 
-      loginCaptain: async (payload: CaptainLoginPayload) => {
-        setIsLoading(true);
-        try {
-          const res = await fetch(`${BASE_URL}/api/auth/agent/captainlogin`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-          if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.message || "Captain login failed");
+    loginCaptain: async (payload: CaptainLoginPayload) => {
+      setIsLoading(true);
+      try {
+        console.log(BASE_URL);
+        const res = await fetch(`${BASE_URL}/api/auth/agent/captainlogin`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+          // Handle approval pending case
+          if (res.status === 403 && data.approved === false) {
+            setCaptain(data.agent);
+            setApproved(false);
+            setRole('captain');
+            return { ...data.agent, approved: false, requiresApproval: true };
           }
-          const data = await res.json();
-          setCaptain(data.agent);
-          setToken(data.token);
-          console.log(data);
-          setRole("captain");
-          await AsyncStorage.setItem("token", data.token);
-          await AsyncStorage.setItem("role", "captain");
-          await AsyncStorage.setItem("user", JSON.stringify(data.agent));
-          return data.agent;
-        } finally {
-          setIsLoading(false);
+          throw new Error(data.message || 'Captain login failed');
         }
-      },
+        
+        setCaptain(data.agent);
+        setToken(data.token);
+        setApproved(data.approved);
+        console.log(data);
+        setRole('captain');
+        await AsyncStorage.setItem('token', data.token);
+        await AsyncStorage.setItem('role', 'captain');
+        await AsyncStorage.setItem('user', JSON.stringify(data.agent));
+        return data.agent;
+      } finally {
+        setIsLoading(false);
+      }
+    },
 
-      signupCaptain: async (payload: CaptainSignupPayload) => {
-        setIsLoading(true);
-        console.log(payload);
-        try {
-          const res = await fetch(`${BASE_URL}/api/auth/agent/captainsignup`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-          if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.message || "Captain signup failed");
-          }
-          const data = await res.json();
-          console.log(data);
-          setCaptain(data.agent);
-          setToken(data.token);
-          setRole("captain");
-          await AsyncStorage.setItem("token", data.token);
-          await AsyncStorage.setItem("role", "captain");
-          await AsyncStorage.setItem("user", JSON.stringify(data.agent));
-          return data.agent;
-        } finally {
-          setIsLoading(false);
+    signupCaptain: async (payload: CaptainSignupPayload) => {
+      setIsLoading(true);
+      console.log(payload);
+      try {
+        const res = await fetch(`${BASE_URL}/api/auth/agent/captainsignup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.message || 'Captain signup failed');
         }
-      },
+        const data = await res.json();
+        console.log(data);
+        setCaptain(data.agent);
+        setApproved(data.approved);
+        // Don't set token or role for unapproved signups
+        if (data.approved) {
+          setToken(data.token);
+          setRole('captain');
+          await AsyncStorage.setItem('token', data.token);
+          await AsyncStorage.setItem('role', 'captain');
+        }
+        await AsyncStorage.setItem('user', JSON.stringify(data.agent));
+        return data.agent;
+      } finally {
+        setIsLoading(false);
+      }
+    },
 
       verifyOTP: async (email: string, otp: string) => {
         setIsLoading(true);

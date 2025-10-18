@@ -20,24 +20,41 @@ function estimateFareKm(distanceKm, vehicleType = 'bike') {
 
 async function create(req, res) {
 	try {
-		const { pickup, destination, vehicleType } = req.body;
+		const { pickup, destination, vehicleType, vehicleSubType } = req.body;
 		if (!pickup?.lat || !pickup?.lng || !destination?.lat || !destination?.lng || !vehicleType) {
 			return res.status(400).json({ message: 'Missing fields' });
 		}
 		const distanceKm = haversineKm(pickup, destination);
 		const fareEstimate = estimateFareKm(distanceKm, vehicleType);
-    const doc = await Transport.create({
+		const doc = await Transport.create({
 			userRef: req.user.id,
 			pickup,
 			destination,
 			vehicleType,
+			vehicleSubType,
 			fareEstimate,
 			distanceKm,
 			rideAccepted: false,
 			status: 'pending',
 		});
+		
+		// Notify user
 		const io = getIO();
 		io?.to(`user:${req.user.id}`).emit('ride-created', { ride: doc });
+		
+		// Notify captains of new trip
+		const { notifyCaptainsNewTransport } = require('../utils/notificationService');
+		notifyCaptainsNewTransport(doc._id.toString(), {
+			vehicleType: doc.vehicleType,
+			vehicleSubType: doc.vehicleSubType,
+			fareEstimate: doc.fareEstimate,
+			pickup: doc.pickup,
+			destination: doc.destination,
+			distanceKm: doc.distanceKm,
+			status: doc.status,
+			userRef: doc.userRef
+		});
+		
 		return res.status(201).json(doc);
 	} catch (err) {
 		return res.status(500).json({ message: 'Server error' });

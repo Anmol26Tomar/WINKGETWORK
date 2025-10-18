@@ -38,6 +38,12 @@ export default function Home() {
           <Link to="/login" state={{ presetRole: 'admin' }} className="px-4 py-3 rounded-md border hover:bg-gray-50">Admin</Link>
           <Link to="/login" state={{ presetRole: 'vendor' }} className="px-4 py-3 rounded-md border hover:bg-gray-50">Vendor</Link>
         </div>
+        <div className="pt-4 border-t">
+          <p className="text-sm text-gray-500 mb-3">Or browse businesses by category</p>
+          <Link to="/categories" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 inline-block">
+            Browse Categories
+          </Link>
+        </div>
       </div>
     </div>
   )
