@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,10 @@ import {
   TouchableOpacity,
   Alert,
   Switch,
+  RefreshControl,
+  SafeAreaView,
+  StatusBar,
+  Animated,
 } from 'react-native';
 import {
   User,
@@ -20,6 +24,14 @@ import {
   Settings,
   Shield,
   Award,
+  HelpCircle,
+  CheckCircle,
+  XCircle,
+  FileText,
+  Upload,
+  Camera,
+  AlertCircle,
+  MessageCircle,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { captainService } from '../../services/api';
@@ -28,7 +40,34 @@ import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
 import { useAuth } from '@/context/AuthContext';
 import { SERVICE_CONFIGS } from '../../config/serviceConfig';
-import { ServiceType } from '../../types';
+import { ServiceType, Captain } from '../../types';
+
+const DOCUMENT_TYPES = [
+  {
+    id: 'license',
+    name: 'Driving License',
+    description: 'Valid driving license',
+    required: true,
+  },
+  {
+    id: 'vehicle',
+    name: 'Vehicle Registration',
+    description: 'Vehicle registration certificate',
+    required: true,
+  },
+  {
+    id: 'pan',
+    name: 'PAN Card',
+    description: 'PAN card for tax purposes',
+    required: true,
+  },
+  {
+    id: 'aadhar',
+    name: 'Aadhar Card',
+    description: 'Aadhar card for identity verification',
+    required: true,
+  },
+];
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -38,6 +77,80 @@ export default function ProfileScreen() {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [city, setCity] = useState(displayCaptain?.city || '');
   const [updating, setUpdating] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [captainProfile, setCaptainProfile] = useState<Captain | null>(null);
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [slideAnim] = useState(new Animated.Value(50));
+  const [scaleAnim] = useState(new Animated.Value(0.9));
+  const [bounceAnim] = useState(new Animated.Value(0));
+  const [shimmerAnim] = useState(new Animated.Value(0));
+  const [rotateAnim] = useState(new Animated.Value(0));
+  const [helpModalVisible, setHelpModalVisible] = useState(false);
+
+  useEffect(() => {
+    // Enhanced animations for smoother UX
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 40,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+      Animated.spring(bounceAnim, {
+        toValue: 1,
+        tension: 100,
+        friction: 3,
+        useNativeDriver: true,
+      }),
+      Animated.timing(rotateAnim, {
+        toValue: 1,
+        duration: 1200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Start shimmer effect for document status
+    const shimmerLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(shimmerAnim, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shimmerAnim, {
+          toValue: 0,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    shimmerLoop.start();
+
+    fetchCaptainProfile();
+  }, []);
+
+  const fetchCaptainProfile = async () => {
+    try {
+      setLoading(true);
+      const profile = await captainService.getProfile();
+      setCaptainProfile(profile);
+    } catch (error) {
+      console.error('Error fetching captain profile:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleToggleAvailability = async (value: boolean) => {
     try {
@@ -65,6 +178,17 @@ export default function ProfileScreen() {
       Alert.alert('Error', 'Failed to update city');
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refreshProfile();
+    } catch (error) {
+      console.error('Error refreshing profile:', error);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -109,7 +233,7 @@ export default function ProfileScreen() {
       </View>
       {onEdit && (
         <TouchableOpacity onPress={onEdit} style={styles.editButton}>
-          <Settings size={18} color="#2563EB" />
+          <Settings size={18} color="#FF6B35" />
         </TouchableOpacity>
       )}
     </View>
@@ -126,23 +250,94 @@ export default function ProfileScreen() {
     value: string;
     color: string;
   }) => (
-    <View style={styles.statCard}>
-      <View style={[styles.statIconContainer, { backgroundColor: `${color}20` }]}>
+    <Animated.View 
+      style={[
+        styles.statCard,
+        {
+          transform: [
+            { scale: scaleAnim },
+            { translateY: bounceAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, -2]
+            })}
+          ],
+        },
+      ]}
+    >
+      <Animated.View 
+        style={[
+          styles.statIconContainer, 
+          { 
+            backgroundColor: `${color}20`,
+            transform: [{ scale: bounceAnim }]
+          }
+        ]}
+      >
         <Icon size={24} color={color} />
-      </View>
-      <Text style={styles.statValue}>{value}</Text>
+      </Animated.View>
+      <Animated.Text 
+        style={[
+          styles.statValue,
+          {
+            opacity: shimmerAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.8, 1]
+            })
+          }
+        ]}
+      >
+        {value}
+      </Animated.Text>
       <Text style={styles.statLabel}>{label}</Text>
-    </View>
+    </Animated.View>
   );
 
+  const getDocumentStatus = (docId: string) => {
+    if (!captainProfile) return 'pending';
+    
+    switch (docId) {
+      case 'license':
+        return captainProfile.licenseVerified ? 'verified' : 'pending';
+      case 'vehicle':
+        return captainProfile.vehicleVerified ? 'verified' : 'pending';
+      case 'pan':
+        return captainProfile.panVerified ? 'verified' : 'pending';
+      case 'aadhar':
+        return captainProfile.aadharVerified ? 'verified' : 'pending';
+      default:
+        return 'pending';
+    }
+  };
+
+  const getOverallStatus = () => {
+    if (!captainProfile) return 'pending';
+    return captainProfile.isApproved ? 'verified' : 'pending';
+  };
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FF6B35" />
+      
+      {/* Help Button */}
+      <TouchableOpacity 
+        style={styles.helpButton}
+        onPress={() => setHelpModalVisible(true)}
+      >
+        <HelpCircle size={24} color="#FF6B35" />
+      </TouchableOpacity>
+
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Profile</Text>
         <Text style={styles.headerSubtitle}>Manage your account</Text>
       </View>
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView 
+        style={styles.scrollView} 
+        contentContainerStyle={{ paddingBottom: 40 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+      >
         {/* Profile Card */}
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
@@ -155,7 +350,7 @@ export default function ProfileScreen() {
           </View>
           <Text style={styles.name}>{displayCaptain?.full_name}</Text>
           <View style={styles.vehicleBadge}>
-            <Truck size={14} color="#2563EB" />
+            <Truck size={14} color="#FF6B35" />
             <Text style={styles.vehicleText}>
               {displayCaptain?.vehicle_type?.toUpperCase()} •{' '}
               {displayCaptain?.service_scope?.replace('_', ' ').toUpperCase()}
@@ -169,25 +364,25 @@ export default function ProfileScreen() {
             icon={Star}
             label="Rating"
             value={typeof displayCaptain?.rating === 'number' ? displayCaptain.rating.toFixed(1) : '0.0'}
-            color="#F59E0B"
+            color="#FF6B35"
           />
           <StatCard
             icon={TrendingUp}
             label="Total Trips"
             value={typeof displayCaptain?.total_trips === 'number' ? String(displayCaptain.total_trips) : '0'}
-            color="#10B981"
+            color="#FF6B35"
           />
           <StatCard
             icon={Award}
             label="Experience"
             value={`${displayCaptain?.experience_years || 2}Y`}
-            color="#8B5CF6"
+            color="#FF6B35"
           />
           <StatCard
             icon={Truck}
             label="Today"
             value={`${displayCaptain?.trips_today || 0}`}
-            color="#2563EB"
+            color="#FF6B35"
           />
         </View>
 
@@ -203,8 +398,8 @@ export default function ProfileScreen() {
             <Switch
               value={isAvailable}
               onValueChange={handleToggleAvailability}
-              trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
-              thumbColor={isAvailable ? '#2563EB' : '#F3F4F6'}
+              trackColor={{ false: '#D1D5DB', true: '#FFB399' }}
+              thumbColor={isAvailable ? '#FF6B35' : '#F3F4F6'}
             />
           </View>
         </View>
@@ -234,7 +429,7 @@ export default function ProfileScreen() {
                 return (
                   <View key={serviceType} style={styles.serviceItem}>
                     <View style={styles.serviceIcon}>
-                      <Truck size={16} color="#2563EB" />
+                      <Truck size={16} color="#FF6B35" />
                     </View>
                     <Text style={styles.serviceText}>{config?.name || serviceType}</Text>
                   </View>
@@ -243,6 +438,94 @@ export default function ProfileScreen() {
             </View>
           </View>
         )}
+
+        {/* Document Verification */}
+        <Animated.View 
+          style={[
+            styles.section,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          <Text style={styles.sectionTitle}>Document Verification</Text>
+          <View style={styles.documentsContainer}>
+            {/* Overall Status */}
+            <View style={styles.overallStatusCard}>
+              <View style={styles.statusHeader}>
+                <Text style={styles.statusTitle}>Registration Status</Text>
+                <View style={[
+                  styles.statusBadge,
+                  { backgroundColor: getOverallStatus() === 'verified' ? '#10B981' : '#FF6B35' }
+                ]}>
+                  <Text style={styles.statusText}>
+                    {getOverallStatus() === 'verified' ? 'VERIFIED' : 'PENDING'}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.statusDescription}>
+                {getOverallStatus() === 'verified' 
+                  ? 'All documents verified. You can start accepting trips!'
+                  : 'Complete document verification to start accepting trips.'
+                }
+              </Text>
+            </View>
+
+            {/* Individual Documents */}
+            {DOCUMENT_TYPES.map((doc, index) => {
+              const status = getDocumentStatus(doc.id);
+              return (
+                <Animated.View
+                  key={doc.id}
+                  style={[
+                    styles.documentItem,
+                    {
+                      opacity: fadeAnim,
+                      transform: [{ 
+                        translateX: slideAnim.interpolate({
+                          inputRange: [0, 50],
+                          outputRange: [0, 50],
+                          extrapolate: 'clamp',
+                        })
+                      }],
+                    },
+                  ]}
+                >
+                  <View style={styles.documentLeft}>
+                    <View style={[
+                      styles.documentIcon,
+                      { backgroundColor: status === 'verified' ? '#10B981' : '#FEF3F2' }
+                    ]}>
+                      {status === 'verified' ? (
+                        <CheckCircle size={20} color="#FFFFFF" />
+                      ) : (
+                        <FileText size={20} color="#6B7280" />
+                      )}
+                    </View>
+                    <View style={styles.documentInfo}>
+                      <Text style={styles.documentName}>{doc.name}</Text>
+                      <Text style={styles.documentDescription}>{doc.description}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.documentRight}>
+                    {status === 'verified' ? (
+                      <View style={styles.verifiedBadge}>
+                        <CheckCircle size={16} color="#10B981" />
+                        <Text style={styles.verifiedText}>Verified</Text>
+                      </View>
+                    ) : (
+                      <TouchableOpacity style={styles.uploadButton}>
+                        <Upload size={16} color="#FF6B35" />
+                        <Text style={styles.uploadText}>Upload</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </Animated.View>
+              );
+            })}
+          </View>
+        </Animated.View>
 
         {/* Logout */}
         <View style={styles.section}>
@@ -276,7 +559,34 @@ export default function ProfileScreen() {
           loading={updating}
         />
       </Modal>
-    </View>
+
+      {/* Help Modal */}
+      <Modal
+        visible={helpModalVisible}
+        onClose={() => setHelpModalVisible(false)}
+        title="Help & Support"
+      >
+        <View style={styles.helpContent}>
+          <Text style={styles.helpText}>
+            Need help? Contact our support team for assistance with your captain account.
+          </Text>
+          <View style={styles.helpOptions}>
+            <TouchableOpacity style={styles.helpOption}>
+              <Phone size={20} color="#FF6B35" />
+              <Text style={styles.helpOptionText}>Call Support</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.helpOption}>
+              <Mail size={20} color="#FF6B35" />
+              <Text style={styles.helpOptionText}>Email Support</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.helpOption}>
+              <MessageCircle size={20} color="#FF6B35" />
+              <Text style={styles.helpOptionText}>Live Chat</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
   );
 }
 
@@ -332,34 +642,16 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#FF6B35',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 4,
     borderColor: '#FFFFFF',
-    shadowColor: '#2563EB',
+    shadowColor: '#FF6B35',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
-  },
-  verifiedBadge: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   name: {
     fontSize: 26,
@@ -371,7 +663,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#FEF3F2',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -379,7 +671,7 @@ const styles = StyleSheet.create({
   vehicleText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#2563EB',
+    color: '#FF6B35',
     letterSpacing: 0.5,
   },
   statsContainer: {
@@ -548,7 +840,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 8,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#FEF3F2',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -557,5 +849,153 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#111827',
     flex: 1,
+  },
+  helpButton: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    zIndex: 1000,
+  },
+  documentsContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  overallStatusCard: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  statusHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  statusTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  statusDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 20,
+  },
+  documentItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  documentLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  documentIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  documentInfo: {
+    flex: 1,
+  },
+  documentName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  documentDescription: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  documentRight: {
+    alignItems: 'center',
+  },
+  verifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  verifiedText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FF6B35',
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#FEF3F2',
+    borderRadius: 8,
+  },
+  uploadText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FF6B35',
+  },
+  helpContent: {
+    paddingVertical: 8,
+  },
+  helpText: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  helpOptions: {
+    gap: 12,
+  },
+  helpOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+  },
+  helpOptionText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
   },
 });

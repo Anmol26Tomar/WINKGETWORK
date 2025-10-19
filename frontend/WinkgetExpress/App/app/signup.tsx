@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
     backgroundColor: "#FFFFFF",
   },
-  tagActive: { backgroundColor: "#2563EB", borderColor: "#2563EB" },
+  tagActive: { backgroundColor: "#FF6B35", borderColor: "#FF6B35" },
   tagTxt: { color: "#111827", fontWeight: "600" },
   tagTxtActive: { color: "#FFFFFF" },
 
@@ -345,15 +345,25 @@ const styles = StyleSheet.create({
     borderColor: "#D1D5DB",
     backgroundColor: "#FFFFFF",
   },
-  optionBtnActive: { borderColor: "#2563EB", backgroundColor: "#EFF6FF" },
+  optionBtnActive: { borderColor: "#FF6B35", backgroundColor: "#FEF3F2" },
   optionTxt: { fontSize: 14, fontWeight: "600", color: "#6B7280" },
-  optionTxtActive: { color: "#2563EB" },
+  optionTxtActive: { color: "#FF6B35" },
 
+<<<<<<< HEAD
+  btn: {
+    backgroundColor: "#FF6B35",
+    padding: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 12,
+  },
+=======
   btn: { backgroundColor: "#1E40AF", padding: 16, borderRadius: 14, alignItems: "center", marginTop: 12,
     shadowColor: "rgba(2,6,23,0.15)", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 1, shadowRadius: 12, elevation: 3 },
+>>>>>>> 8ddfe9bcbf6d296c6af74a4afc9f4c14ba1cc746
   btnDisabled: { opacity: 0.7 },
   btnTxt: { color: "#fff", fontWeight: "700" },
 
   switchTxt: { marginTop: 16, color: "#6B7280" },
-  link: { color: "#2563EB", fontWeight: "700" },
+  link: { color: "#FF6B35", fontWeight: "700" },
 })

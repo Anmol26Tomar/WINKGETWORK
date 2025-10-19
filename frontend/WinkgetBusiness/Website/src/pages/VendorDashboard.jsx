@@ -92,8 +92,12 @@ export default function VendorDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Loading vendor dashboard...</div>
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="text-lg text-gray-600">Loading vendor dashboard...</div>
+          <div className="text-sm text-gray-500 mt-2">Please wait while we fetch your data</div>
+        </div>
       </div>
     );
   }
@@ -121,7 +125,7 @@ export default function VendorDashboard() {
       />
 
       {/* Header */}
-      <div className="bg-white p-6 rounded-lg border">
+      <div className="bg-white p-8 rounded-xl border shadow-sm">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">{vendor.shopName}</h1>
@@ -181,9 +185,9 @@ export default function VendorDashboard() {
       )}
 
       {/* Navigation Tabs */}
-      <div className="bg-white rounded-lg border">
-        <div className="border-b">
-          <nav className="flex space-x-8 px-6">
+      <div className="bg-white rounded-xl border shadow-sm">
+        <div className="border-b border-gray-100">
+          <nav className="flex space-x-8 px-8">
             {[
               { id: "overview", label: "Overview" },
               { id: "products", label: "Products", restricted: true },
@@ -217,7 +221,7 @@ export default function VendorDashboard() {
           </nav>
         </div>
 
-        <div className="p-6">
+        <div className="p-8">
           {/* Overview Tab */}
           {activeTab === "overview" && (
             <div className="space-y-6">

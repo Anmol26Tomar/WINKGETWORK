@@ -126,3 +126,6 @@ export function canProvideService(
 
   return vehicleMatch && scopeMatch;
 }
+
+// Default export for Expo Router
+export default function ServiceConfigRoute() { return null as any; }

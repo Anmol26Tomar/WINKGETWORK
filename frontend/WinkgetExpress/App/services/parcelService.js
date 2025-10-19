@@ -1,7 +1,11 @@
 import { getToken } from "../utils/secureStore";
 import { Platform } from "react-native";
 
+<<<<<<< HEAD
+const DEFAULT_BASE = 'http://192.168.1.15:3001';
+=======
 const DEFAULT_BASE = "http://10.170.131.51:5000";
+>>>>>>> 8ddfe9bcbf6d296c6af74a4afc9f4c14ba1cc746
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || DEFAULT_BASE;
 const MAPTILER_KEY = process.env.EXPO_PUBLIC_MAPTILER_KEY || "";
 
