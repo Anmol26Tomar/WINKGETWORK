@@ -15,10 +15,18 @@ function haversineKm(a, b) {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-function estimateFareKm(distanceKm, vehicleType = "bike") {
+function estimateFareKm(distanceKm, vehicleType = "bike", typeOfDelivery = "standard") {
   const base = vehicleType === "truck" ? 50 : vehicleType === "cab" ? 30 : 20;
   const perKm = vehicleType === "truck" ? 20 : vehicleType === "cab" ? 12 : 8;
-  return Math.round((base + distanceKm * perKm) * 100) / 100;
+  
+  let fare = base + distanceKm * perKm;
+  
+  // Add express delivery surcharge (50% extra for express delivery)
+  if (typeOfDelivery === "express") {
+    fare = fare * 1.5;
+  }
+  
+  return Math.round(fare * 100) / 100;
 }
 
 function generateOtp() {
@@ -29,11 +37,11 @@ function generateOtp() {
 
 async function estimate(req, res) {
   try {
-    const { pickup, delivery, vehicleType = "bike" } = req.body;
+    const { pickup, delivery, vehicleType = "bike", typeOfDelivery = "standard" } = req.body;
     if (!pickup?.lat || !pickup?.lng || !delivery?.lat || !delivery?.lng)
       return res.status(400).json({ message: "Missing coordinates" });
     const km = haversineKm(pickup, delivery);
-    const fare = estimateFareKm(km, vehicleType);
+    const fare = estimateFareKm(km, vehicleType, typeOfDelivery);
     return res.json({ distanceKm: km, fare });
   } catch (err) {
     return res.status(500).json({ message: "Server error" });
@@ -49,6 +57,8 @@ async function createParcel(req, res) {
       receiverName,
       receiverContact,
       vehicleType = "bike",
+      vehicleSubType,
+      typeOfDelivery = "standard",
       fareEstimate,
     } = req.body;
     if (
@@ -69,6 +79,8 @@ async function createParcel(req, res) {
       receiverName,
       receiverContact,
       vehicleType,
+      vehicleSubType,
+      typeOfDelivery,
       fareEstimate,
       accepted: false,
       status: "pending",
@@ -77,6 +89,8 @@ async function createParcel(req, res) {
     const { notifyCaptainsNewParcel } = require("../utils/notificationService");
     notifyCaptainsNewParcel(doc._id.toString(), {
       vehicleType: doc.vehicleType,
+      vehicleSubType: doc.vehicleSubType,
+      typeOfDelivery: doc.typeOfDelivery,
       fareEstimate: doc.fareEstimate,
       pickup: doc.pickup,
       delivery: doc.delivery,

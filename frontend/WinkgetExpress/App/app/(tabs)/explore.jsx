@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, StatusBar, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, StatusBar, TextInput, TouchableOpacity, Alert, ScrollView, RefreshControl } from 'react-native';
 import MapView, { Marker, Polyline, UrlTile } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
@@ -20,6 +20,7 @@ export default function ExploreScreen() {
     const [deliverySearch, setDeliverySearch] = useState('');
     const [searchResults, setSearchResults] = useState({ pickup: [], delivery: [] });
     const [showResults, setShowResults] = useState({ pickup: false, delivery: false });
+    const [refreshing, setRefreshing] = useState(false);
     const searchTimeoutRef = useRef(null);
 
     const region = useMemo(() => ({ latitude: 28.6139, longitude: 77.2090, latitudeDelta: 0.08, longitudeDelta: 0.08 }), []);
@@ -28,22 +29,38 @@ export default function ExploreScreen() {
         ? `https://api.maptiler.com/maps/streets/512/{z}/{x}/{y}.png?key=${mapTilerKey}`
         : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
+    const getCurrentLocation = async () => {
+        try {
+            if (!Location.requestForegroundPermissionsAsync) return;
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') return;
+            const loc = await Location.getCurrentPositionAsync({});
+            const { latitude, longitude } = loc.coords;
+            const addr = await getAddressFromCoords(latitude, longitude);
+            const point = { lat: latitude, lng: longitude, address: addr };
+            setPickup(point);
+            setPickupSearch(addr);
+            setTimeout(() => mapRef.current?.animateToRegion({ latitude, longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 }, 600), 300);
+        } catch {}
+    };
+
     useEffect(() => {
-        (async () => {
-            try {
-                if (!Location.requestForegroundPermissionsAsync) return;
-                const { status } = await Location.requestForegroundPermissionsAsync();
-                if (status !== 'granted') return;
-                const loc = await Location.getCurrentPositionAsync({});
-                const { latitude, longitude } = loc.coords;
-                const addr = await getAddressFromCoords(latitude, longitude);
-                const point = { lat: latitude, lng: longitude, address: addr };
-                setPickup(point);
-                setPickupSearch(addr);
-                setTimeout(() => mapRef.current?.animateToRegion({ latitude, longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 }, 600), 300);
-            } catch {}
-        })();
+        getCurrentLocation();
     }, []);
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        try {
+            await getCurrentLocation();
+            // Clear delivery if it exists to allow fresh selection
+            if (delivery) {
+                setDelivery(null);
+                setDeliverySearch('');
+            }
+        } finally {
+            setRefreshing(false);
+        }
+    };
 
     const debounced = (fn, ref, delay = 500) => (arg1, arg2) => {
         if (ref.current) clearTimeout(ref.current);
@@ -115,7 +132,20 @@ export default function ExploreScreen() {
 	return (
         <SafeAreaView style={styles.safe}>
             <StatusBar barStyle="dark-content" />
-            <View style={styles.container}>
+            <ScrollView 
+                style={styles.container}
+                contentContainerStyle={styles.contentContainer}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor={Colors.primary}
+                        colors={[Colors.primary]}
+                    />
+                }
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+            >
                 <View style={styles.banner}>
                     <View style={styles.bannerLeft}>
                         <View style={styles.iconCircle}><Ionicons name="flash" size={22} color="#fff" /></View>
@@ -209,7 +239,7 @@ export default function ExploreScreen() {
                         <Text style={styles.footerText}>Support</Text>
                     </View>
                 </View>
-            </View>
+            </ScrollView>
             <ServiceFlowDrawer ref={drawerRef} onSuccess={(res) => {
                 try {
                     if (res?.type === 'parcel' && res?.id) router.push({ pathname: '/parcel-tracking', params: { id: res.id } });
@@ -223,7 +253,8 @@ export default function ExploreScreen() {
 
 const styles = StyleSheet.create({
     safe: { flex: 1, backgroundColor: Colors.background },
-    container: { flex: 1, padding: Spacing.xl },
+    container: { flex: 1 },
+    contentContainer: { padding: Spacing.xl, paddingBottom: Spacing.xxl },
     heading: { fontSize: 22, fontWeight: '800', color: Colors.text, marginBottom: 4 },
     subHeading: { color: Colors.mutedText, marginBottom: Spacing.md },
     label: { fontWeight: '700', color: Colors.text, marginBottom: 6, marginTop: Spacing.sm },

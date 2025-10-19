@@ -197,7 +197,11 @@ export default function ParcelTracking({ parcelId, onStatusUpdate }) {
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Vehicle:</Text>
-            <Text style={styles.detailValue}>{parcel.vehicleType}</Text>
+            <Text style={styles.detailValue}>
+              {parcel.vehicleType === 'truck' && parcel.vehicleSubType 
+                ? parcel.vehicleSubType 
+                : parcel.vehicleType}
+            </Text>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Package:</Text>
