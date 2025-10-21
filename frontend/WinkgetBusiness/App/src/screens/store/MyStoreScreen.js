@@ -672,7 +672,7 @@ const MyStoreScreen = () => {
       {/* Sticky Header */}
       <View style={styles.stickyHeader}>
         <LinearGradient
-          colors={["#10B981", "#059669"]}
+          colors={["#007BFF", "#4FC3F7", "#EAF3FF"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
@@ -706,7 +706,7 @@ const MyStoreScreen = () => {
       <View style={styles.stickySearchContainer}>
         <View style={styles.searchBarWrapper}>
           <View style={styles.searchInputContainer}>
-            <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
+            <Ionicons name="mic-outline" size={18} color="#6B7280" style={styles.searchIcon} />
             <Searchbar
               placeholder="Search products..."
               onChangeText={setSearchQuery}
@@ -715,12 +715,16 @@ const MyStoreScreen = () => {
               inputStyle={styles.modernSearchInput}
               placeholderTextColor="#9CA3AF"
             />
-            {searchQuery.length > 0 && (
+            {searchQuery.length > 0 ? (
               <TouchableOpacity 
                 onPress={() => setSearchQuery('')}
                 style={styles.clearButton}
               >
-                <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+                <Ionicons name="close-circle" size={18} color="#6B7280" />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.searchButton}>
+                <Ionicons name="search" size={18} color="#007BFF" />
               </TouchableOpacity>
             )}
           </View>
@@ -856,9 +860,9 @@ const MyStoreScreen = () => {
           onPress={() => setShowAdvancedFilters(true)}
         >
           <View style={styles.sortButtonContent}>
-            <Ionicons name="options" size={18} color="#10B981" />
+            <Ionicons name="options" size={18} color="#007BFF" />
             <Text style={styles.modernSortButtonText}>Sort & Filter</Text>
-            <Ionicons name="chevron-down" size={16} color="#10B981" />
+            <Ionicons name="chevron-down" size={16} color="#007BFF" />
           </View>
         </TouchableOpacity>
         
@@ -1163,7 +1167,7 @@ const MyStoreScreen = () => {
                     <Ionicons 
                       name={getCategoryIcon(subcategory.name)} 
                       size={20} 
-                      color={selectedCategory === subcategory.name ? "#10B981" : "#6B7280"} 
+                      color={selectedCategory === subcategory.name ? "#007BFF" : "#6B7280"} 
                     />
                     <Text style={[
                       styles.subcategoryName,
@@ -1254,7 +1258,7 @@ const MyStoreScreen = () => {
                     {option.label}
                   </Text>
                   {sortBy === option.key && (
-                    <Ionicons name="checkmark" size={20} color="#10B981" />
+                    <Ionicons name="checkmark" size={20} color="#007BFF" />
                   )}
                 </TouchableOpacity>
               ))}
@@ -1368,7 +1372,7 @@ const MyStoreScreen = () => {
                     {option.label}
                   </Text>
                   {availability === option.key && (
-                    <Ionicons name="checkmark" size={20} color="#10B981" />
+                    <Ionicons name="checkmark" size={20} color="#007BFF" />
                   )}
                 </TouchableOpacity>
               ))}
@@ -1404,7 +1408,7 @@ const MyStoreScreen = () => {
                       {star}+ Stars
                     </Text>
                     {rating === star && (
-                      <Ionicons name="checkmark" size={20} color="#10B981" />
+                      <Ionicons name="checkmark" size={20} color="#007BFF" />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -1443,9 +1447,16 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   headerGradient: {
-    paddingTop: 50,
-    paddingBottom: 20,
+    paddingTop: 60,
+    paddingBottom: 28,
     paddingHorizontal: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   headerContent: {
     alignItems: "center",
@@ -1458,25 +1469,37 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
   },
   storeTextContainer: {
     flex: 1,
     alignItems: "flex-start",
   },
   storeName: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "white",
-    marginBottom: 2,
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    textAlign: "center",
+    marginBottom: 8,
+    fontFamily: "Inter",
+    textShadowColor: "rgba(0, 0, 0, 0.2)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 4,
   },
   storeCategory: {
     fontSize: 14,
-    color: "rgba(255, 255, 255, 0.9)",
-    fontWeight: "500",
+    color: "#F0F9FF",
+    opacity: 0.9,
+    textAlign: "center",
+    fontFamily: "Inter",
   },
   // Modern Search Bar
   modernSearchContainer: {
@@ -1509,13 +1532,17 @@ const styles = StyleSheet.create({
   searchInputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F8FAFC",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    height: 48,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    borderWidth: 0,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    height: 46,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 6,
   },
   searchIcon: {
     marginRight: 12,
@@ -1536,7 +1563,23 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     marginLeft: 8,
-    padding: 4,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: "#F3F4F6",
+    minWidth: 36,
+    minHeight: 36,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  searchButton: {
+    marginLeft: 8,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: "#EAF3FF",
+    minWidth: 36,
+    minHeight: 36,
+    justifyContent: "center",
+    alignItems: "center",
   },
   // Sticky Search Container
   stickySearchContainer: {
@@ -1564,19 +1607,19 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 998,
-    backgroundColor: "white",
-    paddingVertical: 20,
+    backgroundColor: "#FAFBFC",
+    paddingVertical: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    borderBottomColor: "#E1E5E9",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: 1,
+      height: 2,
     },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
   },
   // Sticky Subcategory Container
   stickySubcategoryContainer: {
@@ -1585,19 +1628,19 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 997,
-    backgroundColor: "white",
-    paddingVertical: 20,
+    backgroundColor: "#FAFBFC",
+    paddingVertical: 14,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    borderBottomColor: "#E1E5E9",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: 1,
+      height: 2,
     },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
   },
   // Sticky Sort Filter Container
   stickySortFilterContainer: {
@@ -1657,7 +1700,7 @@ const styles = StyleSheet.create({
   modernSortButtonText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#10B981",
+    color: "#007BFF",
     marginLeft: 8,
     marginRight: 6,
   },
@@ -1691,53 +1734,58 @@ const styles = StyleSheet.create({
     borderBottomColor: "#E5E7EB",
   },
   filterSectionLabel: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#1F2937",
-    marginBottom: 16,
+    fontSize: 17,
+    fontWeight: "800",
+    color: "#0F172A",
+    marginBottom: 14,
+    letterSpacing: 0.2,
   },
   categoryScroll: {
     paddingRight: 20,
+    paddingLeft: 2,
   },
   categoryChip: {
     flexDirection: "row",
     alignItems: "center",
-    marginRight: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: "#F8FAFC",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    minHeight: 40,
+    marginRight: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 25,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    minHeight: 44,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: 1,
+      height: 2,
     },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  categoryChipIcon: {
-    marginRight: 6,
-  },
-  categoryChipActive: {
-    backgroundColor: "#10B981",
-    borderColor: "#10B981",
-    shadowColor: "#10B981",
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 3,
   },
+  categoryChipIcon: {
+    marginRight: 8,
+  },
+  categoryChipActive: {
+    backgroundColor: "#007BFF",
+    borderColor: "#007BFF",
+    shadowColor: "#007BFF",
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
+    transform: [{ scale: 1.05 }],
+  },
   categoryChipText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#6B7280",
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#475569",
+    letterSpacing: 0.1,
   },
   categoryChipTextActive: {
     color: "white",
-    fontWeight: "700",
+    fontWeight: "800",
+    letterSpacing: 0.2,
   },
   activeFiltersContainer: {
     backgroundColor: "white",
@@ -1748,19 +1796,22 @@ const styles = StyleSheet.create({
   filterChip: {
     marginRight: 8,
     marginLeft: 16,
+    backgroundColor: '#007BFF',
   },
   clearAllButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     marginLeft: 8,
     marginRight: 16,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: "#EAF3FF",
     borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#007BFF",
   },
   clearAllText: {
     fontSize: 14,
-    fontWeight: "500",
-    color: "#6B7280",
+    fontWeight: "600",
+    color: "#007BFF",
   },
   // Modal Styles
   modalContainer: {
@@ -1798,9 +1849,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   subcategoryItemActive: {
-    backgroundColor: "#ECFDF5",
+    backgroundColor: "#EAF3FF",
     borderWidth: 1,
-    borderColor: "#10B981",
+    borderColor: "#007BFF",
   },
   subcategoryName: {
     fontSize: 16,
@@ -1809,7 +1860,7 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   subcategoryNameActive: {
-    color: "#10B981",
+    color: "#007BFF",
   },
   secondarySubcategories: {
     marginLeft: 32,
@@ -1823,16 +1874,16 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   secondarySubcategoryItemActive: {
-    backgroundColor: "#D1FAE5",
+    backgroundColor: "#EAF3FF",
     borderWidth: 1,
-    borderColor: "#10B981",
+    borderColor: "#007BFF",
   },
   secondarySubcategoryName: {
     fontSize: 14,
     color: "#6B7280",
   },
   secondarySubcategoryNameActive: {
-    color: "#10B981",
+    color: "#007BFF",
     fontWeight: "500",
   },
   modalFooter: {
@@ -1851,7 +1902,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   modalButtonPrimary: {
-    backgroundColor: "#10B981",
+    backgroundColor: "#007BFF",
     marginRight: 0,
     marginLeft: 8,
   },
@@ -1867,7 +1918,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingVertical: 12,
     paddingHorizontal: 24,
-    backgroundColor: "#10B981",
+    backgroundColor: "#007BFF",
     borderRadius: 8,
     alignSelf: "center",
   },
@@ -1886,46 +1937,50 @@ const styles = StyleSheet.create({
   },
   subcategoryScroll: {
     paddingRight: 20,
+    paddingLeft: 2,
   },
   subcategoryChip: {
     flexDirection: "row",
     alignItems: "center",
     marginRight: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: "#F8FAFC",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    minHeight: 36,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    minHeight: 38,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 1,
     },
-    shadowOpacity: 0.03,
-    shadowRadius: 1,
-    elevation: 1,
-  },
-  subcategoryChipIcon: {
-    marginRight: 4,
-  },
-  subcategoryChipActive: {
-    backgroundColor: "#10B981",
-    borderColor: "#10B981",
-    shadowColor: "#10B981",
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.06,
     shadowRadius: 3,
     elevation: 2,
   },
+  subcategoryChipIcon: {
+    marginRight: 6,
+  },
+  subcategoryChipActive: {
+    backgroundColor: "#007BFF",
+    borderColor: "#007BFF",
+    shadowColor: "#007BFF",
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
+    transform: [{ scale: 1.03 }],
+  },
   subcategoryChipText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#6B7280",
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#475569",
+    letterSpacing: 0.1,
   },
   subcategoryChipTextActive: {
     color: "white",
-    fontWeight: "700",
+    fontWeight: "800",
+    letterSpacing: 0.2,
   },
   // Sort and Filter Bar
   sortFilterContainer: {
@@ -2010,16 +2065,16 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   sortOptionActive: {
-    backgroundColor: "#ECFDF5",
+    backgroundColor: "#EAF3FF",
     borderWidth: 1,
-    borderColor: "#10B981",
+    borderColor: "#007BFF",
   },
   sortOptionText: {
     fontSize: 16,
     color: "#374151",
   },
   sortOptionTextActive: {
-    color: "#10B981",
+    color: "#007BFF",
     fontWeight: "500",
   },
   // Price Range
@@ -2054,7 +2109,7 @@ const styles = StyleSheet.create({
   },
   priceSliderText: {
     fontSize: 14,
-    color: "#10B981",
+    color: "#007BFF",
     fontWeight: "500",
   },
   // Brands
@@ -2073,8 +2128,8 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
   },
   brandChipActive: {
-    backgroundColor: "#10B981",
-    borderColor: "#10B981",
+    backgroundColor: "#007BFF",
+    borderColor: "#007BFF",
   },
   brandChipText: {
     fontSize: 14,
@@ -2100,8 +2155,8 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
   },
   colorChipActive: {
-    backgroundColor: "#10B981",
-    borderColor: "#10B981",
+    backgroundColor: "#007BFF",
+    borderColor: "#007BFF",
   },
   colorChipText: {
     fontSize: 14,
@@ -2123,16 +2178,16 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   availabilityOptionActive: {
-    backgroundColor: "#ECFDF5",
+    backgroundColor: "#EAF3FF",
     borderWidth: 1,
-    borderColor: "#10B981",
+    borderColor: "#007BFF",
   },
   availabilityOptionText: {
     fontSize: 16,
     color: "#374151",
   },
   availabilityOptionTextActive: {
-    color: "#10B981",
+    color: "#007BFF",
     fontWeight: "500",
   },
   // Rating
@@ -2149,9 +2204,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#F9FAFB",
   },
   ratingOptionActive: {
-    backgroundColor: "#ECFDF5",
+    backgroundColor: "#EAF3FF",
     borderWidth: 1,
-    borderColor: "#10B981",
+    borderColor: "#007BFF",
   },
   ratingStars: {
     flexDirection: "row",
@@ -2163,7 +2218,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   ratingTextActive: {
-    color: "#10B981",
+    color: "#007BFF",
     fontWeight: "500",
   },
   // Advanced Modal Footer
@@ -2183,7 +2238,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   advancedModalButtonPrimary: {
-    backgroundColor: "#10B981",
+    backgroundColor: "#007BFF",
     marginRight: 0,
     marginLeft: 8,
   },
@@ -2273,7 +2328,7 @@ const styles = StyleSheet.create({
   filterText: {
     marginLeft: 4,
     fontSize: 14,
-    color: "#10B981",
+    color: "#007BFF",
     fontWeight: "600",
   },
   productsGrid: {
@@ -2351,7 +2406,7 @@ const styles = StyleSheet.create({
   featuredProductPrice: {
     fontSize: isTablet ? 20 : 18,
     fontWeight: "bold",
-    color: "#10B981",
+    color: "#007BFF",
   },
   allProductsSection: {
     marginBottom: 24,
@@ -2515,7 +2570,7 @@ const styles = StyleSheet.create({
   currentPrice: {
     fontSize: isTablet ? 18 : 16,
     fontWeight: "bold",
-    color: "#10B981",
+    color: "#007BFF",
   },
   originalPrice: {
     fontSize: isTablet ? 14 : 12,
@@ -2700,7 +2755,7 @@ const styles = StyleSheet.create({
   relatedProductPrice: {
     fontSize: 14,
     fontWeight: "bold",
-    color: "#10B981",
+    color: "#007BFF",
   },
   // Quick Add to Cart Button
   quickAddButton: {
@@ -2709,20 +2764,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "transparent",
     borderWidth: 1,
-    borderColor: "#10B981",
+    borderColor: "#007BFF",
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
     marginTop: 8,
   },
   quickAddButtonActive: {
-    backgroundColor: "#10B981",
-    borderColor: "#10B981",
+    backgroundColor: "#007BFF",
+    borderColor: "#007BFF",
   },
   quickAddText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#10B981",
+    color: "#007BFF",
     marginLeft: 4,
   },
   quickAddTextActive: {

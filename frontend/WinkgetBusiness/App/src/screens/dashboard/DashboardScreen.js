@@ -51,21 +51,67 @@ const DashboardScreen = ({ navigation }) => {
 
 
   const loadCategories = () => {
-    const topLevelCategories = rawCategories.map(category => ({
-      name: category.category,
-      icon: getCategoryIcon(category.category),
-    }));
-    setCategories(topLevelCategories);
-  };
+    // Previous categories first, then additional categories
+    const previousCategories = [
+      { name: 'Electronics', icon: 'mobile-alt' },
+      { name: 'Fashion', icon: 'tshirt' },
+      { name: 'Home & Furniture', icon: 'home' },
+      { name: 'Beauty & Personal Care', icon: 'spa' },
+      { name: 'Grocery & Essentials', icon: 'shopping-basket' },
+    ];
 
+    const additionalCategories = [
+      { name: 'Contractor', icon: 'tools' },
+      { name: 'Placement Service', icon: 'user-tie' },
+      { name: 'Event Organisers', icon: 'calendar-alt' },
+      { name: 'Restaurants', icon: 'utensils' },
+      { name: 'Real Estate', icon: 'home' },
+      { name: 'Home Decor', icon: 'couch' },
+      { name: 'Automobile', icon: 'car' },
+      { name: 'Software & Website', icon: 'laptop-code' },
+      { name: 'Tour & Travels', icon: 'suitcase-rolling' },
+      { name: 'Hotel', icon: 'hotel' },
+      { name: 'Packers & Movers', icon: 'truck-moving' },
+      { name: 'Electricians', icon: 'bolt' },
+      { name: 'Plumbers', icon: 'water' },
+      { name: 'Education & Training', icon: 'chalkboard-teacher' },
+      { name: 'Beauty & Wellness', icon: 'spa' },
+      { name: 'Medical & Healthcare', icon: 'stethoscope' },
+      { name: 'Pet Services', icon: 'paw' },
+      { name: 'Photography', icon: 'camera-retro' },
+    ];
+
+    const enhancedCategories = [...previousCategories, ...additionalCategories];
+    setCategories(enhancedCategories);
+  };
 
   const getCategoryIcon = (categoryName) => {
     const iconMap = {
-      'Electronics': 'phone-portrait',
-      'Fashion': 'shirt',
+      // Previous categories
+      'Electronics': 'mobile-alt',
+      'Fashion': 'tshirt',
       'Home & Furniture': 'home',
-      'Beauty & Personal Care': 'sparkles',
-      'Grocery & Essentials': 'basket',
+      'Beauty & Personal Care': 'spa',
+      'Grocery & Essentials': 'shopping-basket',
+      // Additional categories
+      'Contractor': 'tools',
+      'Placement Service': 'user-tie',
+      'Event Organisers': 'calendar-alt',
+      'Restaurants': 'utensils',
+      'Real Estate': 'home',
+      'Home Decor': 'couch',
+      'Automobile': 'car',
+      'Software & Website': 'laptop-code',
+      'Tour & Travels': 'suitcase-rolling',
+      'Hotel': 'hotel',
+      'Packers & Movers': 'truck-moving',
+      'Electricians': 'bolt',
+      'Plumbers': 'water',
+      'Education & Training': 'chalkboard-teacher',
+      'Beauty & Wellness': 'spa',
+      'Medical & Healthcare': 'stethoscope',
+      'Pet Services': 'paw',
+      'Photography': 'camera-retro',
     };
     return iconMap[categoryName] || 'grid';
   };
@@ -155,7 +201,7 @@ const DashboardScreen = ({ navigation }) => {
             }}
             onPressItem={(vendor) => {
               console.log('🌟 Featured vendor pressed:', vendor);
-              // Navigate directly to vendor store screen
+              // Navigate directly to vendor profile/store screen
               navigation.navigate('VendorStore', { 
                 vendorId: vendor.id,
                 vendorName: vendor.shopName || vendor.storeName || vendor.name,

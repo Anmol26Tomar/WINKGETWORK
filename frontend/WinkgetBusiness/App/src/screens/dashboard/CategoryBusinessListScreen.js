@@ -8,6 +8,7 @@ import {
   Image,
   Alert,
   RefreshControl,
+  TextInput,
 } from 'react-native';
 import { Card, Title, Paragraph, Button, ActivityIndicator } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,12 +18,29 @@ import api, { API_ENDPOINTS } from '../../config/api';
 const CategoryBusinessListScreen = ({ route, navigation }) => {
   const { category } = route.params;
   const [businesses, setBusinesses] = useState([]);
+  const [filteredBusinesses, setFilteredBusinesses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadBusinesses();
   }, [category]);
+
+  useEffect(() => {
+    // Filter businesses based on search query
+    if (searchQuery.trim() === '') {
+      setFilteredBusinesses(businesses);
+    } else {
+      const filtered = businesses.filter(business => {
+        const businessName = (business.shopName || business.storeName || business.name || '').toLowerCase();
+        const ownerName = (business.ownerName || '').toLowerCase();
+        const query = searchQuery.toLowerCase();
+        return businessName.includes(query) || ownerName.includes(query);
+      });
+      setFilteredBusinesses(filtered);
+    }
+  }, [searchQuery, businesses]);
 
   const loadBusinesses = async () => {
     try {
@@ -45,6 +63,7 @@ const CategoryBusinessListScreen = ({ route, navigation }) => {
         
         // Display vendor details dynamically
         setBusinesses(vendors || []);
+        setFilteredBusinesses(vendors || []);
         
         // Show success message if no vendors found (empty results)
         if (totalFound === 0) {
@@ -120,37 +139,64 @@ const CategoryBusinessListScreen = ({ route, navigation }) => {
 
   const renderBusinessCard = (business) => (
     <Card key={business._id} style={styles.businessCard}>
-      <Card.Content>
+      <Card.Content style={styles.cardContent}>
+        {/* Business Header with Image */}
         <View style={styles.businessHeader}>
           <View style={styles.businessInfo}>
-            <Title style={styles.businessName}>
-              {business.shopName || business.storeName || business.name || 'Business Name'}
-            </Title>
-            <Paragraph style={styles.businessDescription}>
+            <View style={styles.businessTitleRow}>
+              <Title style={styles.businessName}>
+                {business.shopName || business.storeName || business.name || 'Business Name'}
+              </Title>
+              {business.averageRating > 0 && (
+                <View style={styles.ratingContainer}>
+                  <Ionicons name="star" size={16} color="#F59E0B" />
+                  <Text style={styles.ratingText}>{business.averageRating.toFixed(1)}</Text>
+                </View>
+              )}
+            </View>
+            <Paragraph style={styles.businessDescription} numberOfLines={2}>
               {business.aboutBusiness || business.briefInfo || 'No description available'}
             </Paragraph>
           </View>
-          {business.businessProfilePic && (
-            <Image 
-              source={{ uri: business.businessProfilePic }} 
-              style={styles.businessImage}
-            />
-          )}
+          <View style={styles.imageContainer}>
+            {business.businessProfilePic ? (
+              <Image 
+                source={{ uri: business.businessProfilePic }} 
+                style={styles.businessImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.placeholderImage}>
+                <Ionicons name="business" size={24} color="#9CA3AF" />
+              </View>
+            )}
+          </View>
         </View>
         
+        {/* Business Details Grid */}
         <View style={styles.businessDetails}>
-          {/* Owner Name */}
-          {business.ownerName && (
-            <View style={styles.detailRow}>
-              <Ionicons name="person" size={16} color="#6B7280" />
-              <Text style={styles.detailText}>Owner: {business.ownerName}</Text>
-            </View>
-          )}
+          {/* Owner and Contact Row */}
+          <View style={styles.detailsRow}>
+            {business.ownerName && (
+              <View style={styles.detailItem}>
+                <Ionicons name="person" size={16} color="#007BFF" />
+                <Text style={styles.detailLabel}>Owner</Text>
+                <Text style={styles.detailValue} numberOfLines={1}>{business.ownerName}</Text>
+              </View>
+            )}
+            {business.businessContact && (
+              <View style={styles.detailItem}>
+                <Ionicons name="call" size={16} color="#007BFF" />
+                <Text style={styles.detailLabel}>Phone</Text>
+                <Text style={styles.detailValue} numberOfLines={1}>{business.businessContact}</Text>
+              </View>
+            )}
+          </View>
           
-          {/* Address */}
-          <View style={styles.detailRow}>
-            <Ionicons name="location" size={16} color="#6B7280" />
-            <Text style={styles.detailText}>
+          {/* Address Row */}
+          <View style={styles.addressRow}>
+            <Ionicons name="location" size={16} color="#007BFF" />
+            <Text style={styles.addressText} numberOfLines={2}>
               {business.businessAddress?.street && `${business.businessAddress.street}, `}
               {business.businessAddress?.city || 'City not specified'}
               {business.businessAddress?.state && `, ${business.businessAddress.state}`}
@@ -158,67 +204,51 @@ const CategoryBusinessListScreen = ({ route, navigation }) => {
             </Text>
           </View>
           
-          {/* Contact Information */}
-          {business.businessContact && (
-            <View style={styles.detailRow}>
-              <Ionicons name="call" size={16} color="#6B7280" />
-              <Text style={styles.detailText}>{business.businessContact}</Text>
-            </View>
-          )}
-          
-          {business.businessEmail && (
-            <View style={styles.detailRow}>
-              <Ionicons name="mail" size={16} color="#6B7280" />
-              <Text style={styles.detailText}>{business.businessEmail}</Text>
-            </View>
-          )}
-          
-          {/* Rating */}
-          {business.averageRating > 0 && (
-            <View style={styles.detailRow}>
-              <Ionicons name="star" size={16} color="#F59E0B" />
-              <Text style={styles.detailText}>
-                {business.averageRating.toFixed(1)} ({business.totalReviews} reviews)
-              </Text>
-            </View>
-          )}
-          
-          {/* Website */}
-          {business.websiteLink && (
-            <View style={styles.detailRow}>
-              <Ionicons name="globe" size={16} color="#6B7280" />
-              <Text style={[styles.detailText, styles.linkText]}>Visit Website</Text>
-            </View>
-          )}
+          {/* Email and Website Row */}
+          <View style={styles.detailsRow}>
+            {business.businessEmail && (
+              <View style={styles.detailItem}>
+                <Ionicons name="mail" size={16} color="#007BFF" />
+                <Text style={styles.detailLabel}>Email</Text>
+                <Text style={styles.detailValue} numberOfLines={1}>{business.businessEmail}</Text>
+              </View>
+            )}
+            {business.websiteLink && (
+              <View style={styles.detailItem}>
+                <Ionicons name="globe" size={16} color="#007BFF" />
+                <Text style={styles.detailLabel}>Website</Text>
+                <Text style={[styles.detailValue, styles.linkText]} numberOfLines={1}>Visit Website</Text>
+              </View>
+            )}
+          </View>
         </View>
 
+        {/* Action Buttons */}
         <View style={styles.businessActions}>
-          <Button 
-            mode="outlined" 
-            style={styles.actionButton}
+          <TouchableOpacity 
+            style={styles.viewDetailsButton}
             onPress={() => {
-              // Navigate to MyBusinessScreen with business ID
-              navigation.navigate('MyBusiness', { 
-                businessId: business._id,
-                businessName: business.shopName || business.storeName || business.name
+              navigation.navigate('VendorStore', { 
+                vendorId: business._id,
+                vendorName: business.shopName || business.storeName || business.name,
+                vendor: business
               });
             }}
           >
-            View Details
-          </Button>
-          <Button 
-            mode="contained" 
-            style={styles.actionButton}
+            <Ionicons name="eye" size={16} color="#3B82F6" />
+            <Text style={styles.viewDetailsText}>View Details</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.contactButton}
             onPress={() => {
-              // Contact functionality
               if (business.businessContact) {
                 Alert.alert(
                   'Contact Business',
-                  `Call ${business.shopName} at ${business.businessContact}?`,
+                  `Call ${business.shopName || business.storeName || business.name} at ${business.businessContact}?`,
                   [
                     { text: 'Cancel', style: 'cancel' },
                     { text: 'Call', onPress: () => {
-                      // In a real app, you would use Linking to make a phone call
                       Alert.alert('Call', `Would call ${business.businessContact}`);
                     }}
                   ]
@@ -228,8 +258,9 @@ const CategoryBusinessListScreen = ({ route, navigation }) => {
               }
             }}
           >
-            Contact
-          </Button>
+            <Ionicons name="call" size={16} color="white" />
+            <Text style={styles.contactText}>Contact</Text>
+          </TouchableOpacity>
         </View>
       </Card.Content>
     </Card>
@@ -253,7 +284,9 @@ const CategoryBusinessListScreen = ({ route, navigation }) => {
     >
       {/* Header */}
       <LinearGradient
-        colors={['#10B981', '#059669']}
+        colors={["#007BFF", "#4FC3F7", "#EAF3FF"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
       >
         <View style={styles.header}>
@@ -261,14 +294,16 @@ const CategoryBusinessListScreen = ({ route, navigation }) => {
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color="white" />
+            <Ionicons name="arrow-back" size={24} color="#007BFF" />
           </TouchableOpacity>
           <View style={styles.headerContent}>
-            <Ionicons 
-              name={getCategoryIcon(category)} 
-              size={48} 
-              color="white" 
-            />
+            <View style={styles.categoryIconContainer}>
+              <Ionicons 
+                name={getCategoryIcon(category)} 
+                size={32} 
+                color="#007BFF" 
+              />
+            </View>
             <Title style={styles.headerTitle}>{category}</Title>
             <Text style={styles.headerSubtitle}>
               {businesses.length} businesses found
@@ -278,6 +313,29 @@ const CategoryBusinessListScreen = ({ route, navigation }) => {
       </LinearGradient>
 
       <View style={styles.content}>
+        {/* Search Bar */}
+        {businesses.length > 0 && (
+          <View style={styles.searchContainer}>
+            <Ionicons name="mic-outline" size={18} color="#6B7280" style={styles.searchLeftIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder={`Search businesses in ${category}...`}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholderTextColor="#9CA3AF"
+            />
+            {searchQuery.length > 0 ? (
+              <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
+                <Ionicons name="close-circle" size={18} color="#6B7280" />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.searchButton}>
+                <Ionicons name="search" size={18} color="#007BFF" />
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
         {businesses.length === 0 ? (
           <Card style={styles.emptyCard}>
             <Card.Content>
@@ -301,19 +359,36 @@ const CategoryBusinessListScreen = ({ route, navigation }) => {
           <>
             <Card style={styles.summaryCard}>
               <Card.Content>
-                <Title style={styles.summaryTitle}>📊 Category Summary</Title>
-                <Paragraph style={styles.summaryText}>
-                  Found {businesses.length} businesses in the {category} category.
-                  {businesses.length > 0 && (
-                    <Text> Average rating: {
-                      (businesses.reduce((sum, b) => sum + (b.averageRating || 0), 0) / businesses.length).toFixed(1)
-                    }</Text>
-                  )}
-                </Paragraph>
+                <View style={styles.summaryHeader}>
+                  <View style={styles.summaryIconContainer}>
+                    <Ionicons name="analytics" size={24} color="#007BFF" />
+                  </View>
+                  <Title style={styles.summaryTitle}>Category Summary</Title>
+                </View>
+                <View style={styles.summaryStats}>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statNumber}>{filteredBusinesses.length}</Text>
+                    <Text style={styles.statLabel}>Businesses</Text>
+                  </View>
+                  <View style={styles.statDivider} />
+                  <View style={styles.statItem}>
+                    <Text style={styles.statNumber}>
+                      {businesses.length > 0 ? 
+                        (businesses.reduce((sum, b) => sum + (b.averageRating || 0), 0) / businesses.length).toFixed(1) 
+                        : '0.0'
+                      }
+                    </Text>
+                    <Text style={styles.statLabel}>Avg Rating</Text>
+                  </View>
+                </View>
+                <View style={styles.categoryInfo}>
+                  <Text style={styles.categoryName}>{category}</Text>
+                  <Text style={styles.categoryLabel}>Category</Text>
+                </View>
               </Card.Content>
             </Card>
 
-            {businesses.map(renderBusinessCard)}
+            {filteredBusinesses.map(renderBusinessCard)}
           </>
         )}
       </View>
@@ -338,11 +413,14 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   headerGradient: {
-    paddingTop: 50,
-    paddingBottom: 30,
+    paddingTop: 60,
+    paddingBottom: 28,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    elevation: 8,
   },
   header: {
-    paddingHorizontal: 20,
     position: 'relative',
   },
   backButton: {
@@ -350,86 +428,251 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     zIndex: 1,
-    padding: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
   },
   headerContent: {
     alignItems: 'center',
     marginTop: 20,
   },
+  categoryIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+    marginBottom: 16,
+  },
   headerTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
-    marginTop: 16,
+    fontWeight: '800',
+    color: '#fff',
+    fontFamily: 'Inter',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 4,
     marginBottom: 8,
   },
   headerSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 14,
+    color: '#F0F9FF',
+    opacity: 0.9,
+    textAlign: 'center',
+    fontFamily: 'Inter',
   },
   content: {
     padding: 20,
   },
   summaryCard: {
     marginBottom: 20,
-    elevation: 2,
-    borderRadius: 12,
+    elevation: 3,
+    borderRadius: 16,
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  summaryIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#EAF3FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   summaryTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#1F2937',
-    marginBottom: 8,
   },
-  summaryText: {
-    fontSize: 14,
+  summaryStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+    minHeight: 60,
+    justifyContent: 'center',
+  },
+  statNumber: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#007BFF',
+    marginBottom: 4,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  statLabel: {
+    fontSize: 12,
     color: '#6B7280',
-    lineHeight: 20,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: '#E5E7EB',
+    marginHorizontal: 8,
+  },
+  categoryInfo: {
+    alignItems: 'center',
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  categoryName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#007BFF',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  categoryLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
+    textAlign: 'center',
   },
   businessCard: {
-    marginBottom: 16,
-    elevation: 2,
-    borderRadius: 12,
+    marginBottom: 20,
+    elevation: 4,
+    borderRadius: 16,
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+  },
+  cardContent: {
+    padding: 20,
   },
   businessHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   businessInfo: {
     flex: 1,
-    marginRight: 12,
+    marginRight: 16,
+  },
+  businessTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   businessName: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#1F2937',
-    marginBottom: 4,
+    flex: 1,
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  ratingText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#F59E0B',
+    marginLeft: 4,
   },
   businessDescription: {
     fontSize: 14,
     color: '#6B7280',
     lineHeight: 20,
   },
+  imageContainer: {
+    width: 70,
+    height: 70,
+  },
   businessImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
+    width: 70,
+    height: 70,
+    borderRadius: 12,
+  },
+  placeholderImage: {
+    width: 70,
+    height: 70,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   businessDetails: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
-  detailRow: {
+  detailsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
-  detailText: {
+  detailItem: {
+    flex: 1,
+    marginRight: 8,
+    backgroundColor: '#F8FAFC',
+    padding: 12,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#007BFF',
+  },
+  detailLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  detailValue: {
+    fontSize: 14,
+    color: '#374151',
+    fontWeight: '600',
+  },
+  addressRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#F8FAFC',
+    padding: 12,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#007BFF',
+    marginBottom: 12,
+  },
+  addressText: {
     fontSize: 14,
     color: '#374151',
     marginLeft: 8,
     flex: 1,
+    lineHeight: 20,
   },
   linkText: {
     color: '#3B82F6',
@@ -438,14 +681,46 @@ const styles = StyleSheet.create({
   businessActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 12,
   },
-  actionButton: {
+  viewDetailsButton: {
     flex: 1,
-    marginHorizontal: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F0F9FF',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#3B82F6',
+  },
+  viewDetailsText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#3B82F6',
+    marginLeft: 6,
+  },
+  contactButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#007BFF',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  contactText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'white',
+    marginLeft: 6,
   },
   emptyCard: {
-    elevation: 2,
-    borderRadius: 12,
+    elevation: 3,
+    borderRadius: 16,
+    backgroundColor: 'white',
   },
   emptyContent: {
     alignItems: 'center',
@@ -466,6 +741,49 @@ const styles = StyleSheet.create({
   },
   refreshButton: {
     marginTop: 8,
+  },
+  searchContainer: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    height: 46,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 6,
+    marginBottom: 16,
+  },
+  searchLeftIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    color: '#111827',
+    fontSize: 14,
+  },
+  searchButton: {
+    marginLeft: 8,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#EAF3FF',
+    minWidth: 36,
+    minHeight: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  clearButton: {
+    marginLeft: 8,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    minWidth: 36,
+    minHeight: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

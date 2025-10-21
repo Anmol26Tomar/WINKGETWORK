@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, RefreshControl } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { FadeInUpView } from './animations';
@@ -8,25 +8,31 @@ import api, { API_ENDPOINTS } from '../../../config/api';
 const FeaturedBusinesses = ({ onPressItem, onPressViewAll }) => {
   const [featuredVendors, setFeaturedVendors] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('All');
 
   useEffect(() => {
     loadFeaturedVendors();
   }, []);
 
-  const loadFeaturedVendors = async () => {
+  const loadFeaturedVendors = async (isRefresh = false) => {
     try {
-      setLoading(true);
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       console.log('🌟 Loading featured vendors...');
       
       // Get vendors from different categories
-      const categories = ['Electronics', 'Fashion', 'Home & Furniture', 'Beauty & Personal Care'];
+      const categories = ['Electronics', 'Fashion', 'Home & Furniture', 'Beauty & Personal Care', 'Grocery & Essentials'];
       const allVendors = [];
       
       for (const category of categories) {
         try {
           const response = await api.get(`${API_ENDPOINTS.VENDORS.BY_CATEGORY}/${encodeURIComponent(category)}`);
           if (response.data.success && response.data.vendors) {
-            const categoryVendors = response.data.vendors.slice(0, 2).map(vendor => ({
+            const categoryVendors = response.data.vendors.slice(0, 3).map(vendor => ({
               ...vendor,
               category: category,
               id: vendor._id
@@ -38,9 +44,14 @@ const FeaturedBusinesses = ({ onPressItem, onPressViewAll }) => {
         }
       }
       
-      // Shuffle and take top 8 vendors
-      const shuffled = allVendors.sort(() => 0.5 - Math.random());
-      setFeaturedVendors(shuffled.slice(0, 8));
+      // If no vendors from API, use sample data
+      if (allVendors.length === 0) {
+        setFeaturedVendors(getSampleVendors());
+      } else {
+        // Shuffle and take top 12 vendors
+        const shuffled = allVendors.sort(() => 0.5 - Math.random());
+        setFeaturedVendors(shuffled.slice(0, 12));
+      }
       
     } catch (error) {
       console.error('❌ Error loading featured vendors:', error);
@@ -48,7 +59,21 @@ const FeaturedBusinesses = ({ onPressItem, onPressViewAll }) => {
       setFeaturedVendors(getSampleVendors());
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const filterVendorsByCategory = (vendors, category) => {
+    if (category === 'All') return vendors;
+    return vendors.filter(vendor => vendor.category === category);
+  };
+
+  const handleRefresh = () => {
+    loadFeaturedVendors(true);
+  };
+
+  const handleCategoryFilter = (category) => {
+    setSelectedCategory(category);
   };
 
   const getSampleVendors = () => [
@@ -87,6 +112,24 @@ const FeaturedBusinesses = ({ onPressItem, onPressViewAll }) => {
       averageRating: 4.7,
       totalReviews: 124,
       businessAddress: { city: 'Gorakhpur', state: 'UP' }
+    },
+    {
+      id: '5',
+      shopName: 'FreshMart Grocery',
+      category: 'Grocery & Essentials',
+      businessProfilePic: null,
+      averageRating: 4.5,
+      totalReviews: 78,
+      businessAddress: { city: 'Gorakhpur', state: 'UP' }
+    },
+    {
+      id: '6',
+      shopName: 'Gadget World',
+      category: 'Electronics',
+      businessProfilePic: null,
+      averageRating: 4.4,
+      totalReviews: 92,
+      businessAddress: { city: 'Gorakhpur', state: 'UP' }
     }
   ];
 
@@ -117,7 +160,12 @@ const FeaturedBusinesses = ({ onPressItem, onPressViewAll }) => {
       <TouchableOpacity 
         style={styles.card} 
         activeOpacity={0.8} 
-        onPress={() => onPressItem?.(vendor)}
+        onPress={() => {
+          // Navigate directly to vendor profile
+          if (onPressItem) {
+            onPressItem(vendor);
+          }
+        }}
       >
         <LinearGradient
           colors={['#FFFFFF', '#F8FAFF']}
@@ -178,13 +226,24 @@ const FeaturedBusinesses = ({ onPressItem, onPressViewAll }) => {
     </FadeInUpView>
   );
 
+  const filteredVendors = filterVendorsByCategory(featuredVendors, selectedCategory);
+  const categories = ['All', 'Electronics', 'Fashion', 'Home & Furniture', 'Beauty & Personal Care', 'Grocery & Essentials'];
+
   if (loading) {
     return (
       <View style={styles.wrapper}>
-        <Text style={styles.title}>Featured Vendors</Text>
+        <View style={styles.headerContainer}>
+          <View style={styles.titleSection}>
+            <Text style={styles.title}>Featured Vendors</Text>
+            <Text style={styles.subtitle}>Loading businesses...</Text>
+          </View>
+          <TouchableOpacity style={styles.viewAllButton} onPress={() => onPressViewAll?.()}>
+            <Text style={styles.viewAllText}>View All</Text>
+            <Ionicons name="chevron-forward" size={16} color="#007BFF" />
+          </TouchableOpacity>
+        </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color="#007BFF" />
-          <Text style={styles.loadingText}>Loading featured vendors...</Text>
         </View>
       </View>
     );
@@ -196,23 +255,57 @@ const FeaturedBusinesses = ({ onPressItem, onPressViewAll }) => {
 
   return (
     <View style={styles.wrapper}>
+      {/* Simplified Header */}
       <View style={styles.headerContainer}>
-        <Text style={styles.title}>Featured Vendors</Text>
+        <View style={styles.titleSection}>
+          <Text style={styles.title}>Featured Vendors</Text>
+          <Text style={styles.subtitle}>{filteredVendors.length} businesses available</Text>
+        </View>
         <TouchableOpacity style={styles.viewAllButton} onPress={() => onPressViewAll?.()}>
           <Text style={styles.viewAllText}>View All</Text>
           <Ionicons name="chevron-forward" size={16} color="#007BFF" />
         </TouchableOpacity>
       </View>
+
+      {/* Category Filter Pills */}
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false} 
+        contentContainerStyle={styles.categoryFilterContainer}
+        style={styles.categoryFilterScroll}
+      >
+        {categories.map((category) => (
+          <TouchableOpacity
+            key={category}
+            style={[
+              styles.categoryPill,
+              selectedCategory === category && styles.categoryPillActive
+            ]}
+            onPress={() => handleCategoryFilter(category)}
+          >
+            <Text style={[
+              styles.categoryPillText,
+              selectedCategory === category && styles.categoryPillTextActive
+            ]}>
+              {category}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
       
+      {/* Vendors ScrollView */}
       <ScrollView 
         horizontal 
         showsHorizontalScrollIndicator={false} 
         contentContainerStyle={styles.scroller}
         decelerationRate="fast"
-        snapToInterval={200}
+        snapToInterval={300}
         snapToAlignment="start"
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
       >
-        {featuredVendors.map((vendor, index) => renderVendorCard(vendor, index))}
+        {filteredVendors.map((vendor, index) => renderVendorCard(vendor, index))}
       </ScrollView>
     </View>
   );
@@ -225,14 +318,23 @@ const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
+    alignItems: 'flex-start',
+    marginBottom: 12,
     paddingHorizontal: 4,
   },
+  titleSection: {
+    flex: 1,
+  },
   title: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
     color: '#111827',
+    fontFamily: 'Inter',
+    marginBottom: 2,
+  },
+  subtitle: {
+    fontSize: 12,
+    color: '#6B7280',
     fontFamily: 'Inter',
   },
   viewAllButton: {
@@ -249,13 +351,40 @@ const styles = StyleSheet.create({
     color: '#007BFF',
     marginRight: 4,
   },
+  categoryFilterScroll: {
+    marginBottom: 16,
+  },
+  categoryFilterContainer: {
+    paddingHorizontal: 4,
+    gap: 8,
+  },
+  categoryPill: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  categoryPillActive: {
+    backgroundColor: '#007BFF',
+    borderColor: '#007BFF',
+  },
+  categoryPillText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  categoryPillTextActive: {
+    color: '#FFFFFF',
+  },
   scroller: {
     paddingRight: 20,
   },
   card: {
-    width: 240,
+    width: 280,
     borderRadius: 20,
-    marginRight: 16,
+    marginRight: 20,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
