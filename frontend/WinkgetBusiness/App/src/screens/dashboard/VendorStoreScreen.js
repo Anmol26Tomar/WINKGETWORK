@@ -8,6 +8,7 @@ import {
   Image,
   ActivityIndicator,
   Alert,
+  Linking,
 } from 'react-native';
 import { Card, Title, Paragraph, Button } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,6 +20,7 @@ const VendorStoreScreen = ({ route, navigation }) => {
   const [vendor, setVendor] = useState(initialVendor);
   const [loading, setLoading] = useState(!initialVendor);
   const [products, setProducts] = useState([]);
+  const [activeTab, setActiveTab] = useState('Info');
 
   useEffect(() => {
     if (!initialVendor) {
@@ -34,6 +36,7 @@ const VendorStoreScreen = ({ route, navigation }) => {
       
       const response = await api.get(`${API_ENDPOINTS.VENDORS.DETAILS}/${vendorId}`);
       if (response.data.success) {
+        console.log('✅ Vendor data:', response.data.vendor);
         setVendor(response.data.vendor);
       }
     } catch (error) {
@@ -101,8 +104,7 @@ const VendorStoreScreen = ({ route, navigation }) => {
         [
           { text: 'Cancel', style: 'cancel' },
           { text: 'Call', onPress: () => {
-            // In a real app, you would use Linking to make a phone call
-            Alert.alert('Call', `Would call ${vendor.businessContact}`);
+            Linking.openURL(`tel:${vendor.businessContact}`);
           }}
         ]
       );
@@ -111,8 +113,226 @@ const VendorStoreScreen = ({ route, navigation }) => {
     }
   };
 
-  const handleMessageVendor = () => {
-    Alert.alert('Message', 'Messaging feature would be implemented here');
+  const handleEmailVendor = () => {
+    if (vendor?.businessEmail) {
+      Linking.openURL(`mailto:${vendor.businessEmail}`);
+    } else {
+      Alert.alert('No Email', 'Email information not available for this vendor.');
+    }
+  };
+
+  const handleOpenLocation = () => {
+    if (vendor?.businessAddress) {
+      const address = vendor.businessAddress.street && vendor.businessAddress.city 
+        ? `${vendor.businessAddress.street}, ${vendor.businessAddress.city}`
+        : vendor.businessAddress.city || 'Deoria';
+      
+      const mapsUrl = `https://maps.google.com/?q=${encodeURIComponent(address)}`;
+      Linking.openURL(mapsUrl).catch(() => {
+        Alert.alert('Error', 'Could not open maps application');
+      });
+    } else {
+      Alert.alert('No Address', 'Address information not available for this vendor.');
+    }
+  };
+
+  const handleOpenWebsite = () => {
+    if (vendor?.website) {
+      Linking.openURL(vendor.website);
+    } else {
+      Alert.alert('No Website', 'Website not available for this vendor.');
+    }
+  };
+
+  const handleViewReviews = () => {
+    Alert.alert('Reviews', 'Reviews feature will be implemented here');
+  };
+
+  const handleOpenQueries = () => {
+    Alert.alert('Queries', 'Queries feature will be implemented here');
+  };
+
+  const handleShareVendor = () => {
+    Alert.alert('Share', 'Share feature will be implemented here');
+  };
+
+  const handleTabPress = (tabName) => {
+    setActiveTab(tabName);
+    if (tabName === 'Marketplace') {
+      // Navigate to MyStore screen for this vendor
+      navigation.navigate('MyStore', {
+        vendorId: vendorId,
+        vendorName: getVendorDisplayName(),
+        vendor: vendor
+      });
+    } else if (tabName === 'Reviews') {
+      // This will be handled by the reviews component
+    }
+  };
+
+  const handleSocialMedia = (platform) => {
+    const socialUrls = {
+      whatsapp: `https://wa.me/${vendor?.businessContact || '1234567890'}`,
+      facebook: `https://facebook.com/${vendor?.socialMedia?.facebook || ''}`,
+      instagram: `https://instagram.com/${vendor?.socialMedia?.instagram || ''}`,
+      linkedin: `https://linkedin.com/in/${vendor?.socialMedia?.linkedin || ''}`,
+    };
+    
+    if (socialUrls[platform]) {
+      Linking.openURL(socialUrls[platform]).catch(() => {
+        Alert.alert('Error', `Could not open ${platform}`);
+      });
+    } else {
+      Alert.alert('Not Available', `${platform} link not available for this vendor`);
+    }
+  };
+
+  const getVendorDisplayName = () => {
+    const name = vendor?.shopName || vendor?.storeName || vendor?.name || vendorName || 'Vendor Store';
+    return name;
+  };
+
+  const getVendorDisplayNameShort = () => {
+    const name = vendor?.shopName || vendor?.storeName || vendor?.name || vendorName || 'Vendor Store';
+    // Truncate very long names for header display
+    return name.length > 20 ? name.substring(0, 20) + '...' : name;
+  };
+
+  const getVendorCategory = () => {
+    return vendor?.businessCategory || 'Business';
+  };
+
+  const getVendorRating = () => {
+    // Return actual rating or generate a random one for demo
+    if (vendor?.averageRating) {
+      return vendor.averageRating.toFixed(1);
+    }
+    // Generate random rating between 3.5 and 5.0 for demo
+    return (Math.random() * 1.5 + 3.5).toFixed(1);
+  };
+
+  const getVendorBannerImage = () => {
+    // Different banner images based on business category
+    const bannerImages = {
+      'Electronics': 'https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+      'Fashion': 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+      'Restaurants': 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+      'Beauty & Personal Care': 'https://images.unsplash.com/photo-1560066984-138dadb4c035?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+      'Home & Furniture': 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+      'Grocery & Essentials': 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+      'Automobile': 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+      'Medical & Healthcare': 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+      'Education & Training': 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+      'Real Estate': 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+    };
+    return bannerImages[getVendorCategory()] || 'https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80';
+  };
+
+  const getVendorProfileImage = () => {
+    // Different profile images based on business category
+    const profileImages = {
+      'Electronics': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80',
+      'Fashion': 'https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80',
+      'Restaurants': 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80',
+      'Beauty & Personal Care': 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80',
+      'Home & Furniture': 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80',
+      'Grocery & Essentials': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80',
+      'Automobile': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80',
+      'Medical & Healthcare': 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80',
+      'Education & Training': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80',
+      'Real Estate': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80',
+    };
+    return profileImages[getVendorCategory()] || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80';
+  };
+
+  const formatAddress = () => {
+    if (!vendor?.businessAddress) {
+      return 'No address provided';
+    }
+
+    const { street, city, state, pincode } = vendor.businessAddress;
+    const addressParts = [];
+    
+    if (street) addressParts.push(street);
+    if (city) addressParts.push(city);
+    if (state) addressParts.push(state);
+    if (pincode) addressParts.push(pincode);
+
+    return addressParts.join(', ') || 'No address provided';
+  };
+
+  const renderDemoReviews = () => {
+    const demoReviews = [
+      {
+        id: 1,
+        customerName: 'John Doe',
+        rating: 5,
+        date: '2024-01-15',
+        comment: 'Excellent service! Very professional and delivered on time. Highly recommended.',
+        avatar: 'JD'
+      },
+      {
+        id: 2,
+        customerName: 'Sarah Wilson',
+        rating: 4,
+        date: '2024-01-10',
+        comment: 'Good quality products and fast delivery. Will definitely order again.',
+        avatar: 'SW'
+      },
+      {
+        id: 3,
+        customerName: 'Mike Johnson',
+        rating: 5,
+        date: '2024-01-08',
+        comment: 'Outstanding customer service and great products. Very satisfied!',
+        avatar: 'MJ'
+      },
+      {
+        id: 4,
+        customerName: 'Emily Brown',
+        rating: 4,
+        date: '2024-01-05',
+        comment: 'Good experience overall. Products were as described.',
+        avatar: 'EB'
+      }
+    ];
+
+    return (
+      <View style={styles.reviewsContainer}>
+        <View style={styles.reviewsHeader}>
+          <View style={styles.sectionIconContainer}>
+            <Ionicons name="star" size={20} color="#8B5CF6" />
+          </View>
+          <Text style={styles.reviewsTitle}>Customer Reviews</Text>
+        </View>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {demoReviews.map((review) => (
+            <View key={review.id} style={styles.reviewItem}>
+              <View style={styles.reviewHeader}>
+                <View style={styles.reviewAvatar}>
+                  <Text style={styles.reviewAvatarText}>{review.avatar}</Text>
+                </View>
+                <View style={styles.reviewInfo}>
+                  <Text style={styles.reviewCustomerName}>{review.customerName}</Text>
+                  <View style={styles.reviewRating}>
+                    {[...Array(5)].map((_, index) => (
+                      <Ionicons
+                        key={index}
+                        name={index < review.rating ? "star" : "star-outline"}
+                        size={14}
+                        color="#F59E0B"
+                      />
+                    ))}
+                  </View>
+                </View>
+                <Text style={styles.reviewDate}>{review.date}</Text>
+              </View>
+              <Text style={styles.reviewComment}>{review.comment}</Text>
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+    );
   };
 
   if (loading) {
@@ -137,142 +357,279 @@ const VendorStoreScreen = ({ route, navigation }) => {
     );
   }
 
+  console.log('🎯 VendorStoreScreen rendering with vendor:', vendor);
+  
   return (
-    <ScrollView style={styles.container}>
-      {/* Header */}
-      <LinearGradient
-        colors={[getCategoryColor(vendor.category), '#FFFFFF']}
-        style={styles.headerGradient}
-      >
-        <View style={styles.header}>
+    <View style={styles.container}>
+      {/* Premium Header Design */}
+      <View style={styles.headerContainer}>
+        {/* Status Bar Spacer */}
+        <View style={styles.statusBarSpacer} />
+        
+        {/* Top Navigation Bar */}
+        <View style={styles.topNavigationBar}>
           <TouchableOpacity 
             style={styles.backButton}
             onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
           >
-            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+            <Ionicons name="arrow-back" size={24} color="#8B5CF6" />
           </TouchableOpacity>
           
-          <View style={styles.vendorInfo}>
-            <View style={styles.vendorImageContainer}>
-              {vendor.businessProfilePic ? (
+          <View style={styles.headerActions}>
+            <TouchableOpacity 
+              style={styles.headerActionButton}
+              onPress={handleShareVendor}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="share-outline" size={20} color="#8B5CF6" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.headerActionButton}
+              onPress={() => Alert.alert('More', 'More options coming soon')}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="ellipsis-horizontal" size={20} color="#8B5CF6" />
+            </TouchableOpacity>
+          </View>
+        </View>
+        
+        {/* Main Header Content */}
+        <View style={styles.mainHeaderContent}>
+          <View style={styles.vendorProfileSection}>
+            <View style={styles.vendorLogoContainer}>
+              {vendor?.businessProfilePic ? (
                 <Image 
                   source={{ uri: vendor.businessProfilePic }} 
-                  style={styles.vendorImage}
+                  style={styles.vendorLogo}
                 />
               ) : (
-                <View style={[styles.imagePlaceholder, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-                  <Ionicons 
-                    name={getCategoryIcon(vendor.category)} 
-                    size={32} 
-                    color="#FFFFFF" 
-                  />
-                </View>
+                // Demo profile image per vendor (varies by category for now)
+                <Image 
+                  source={{ uri: getVendorProfileImage() }} 
+                  style={styles.vendorLogo}
+                />
               )}
+              <View style={styles.onlineIndicator} />
             </View>
-            <Text style={styles.vendorName}>
-              {vendor.shopName || vendor.storeName || vendor.name || vendorName}
-            </Text>
-            <Text style={styles.vendorCategory}>{vendor.category}</Text>
             
-            <View style={styles.ratingContainer}>
-              <Ionicons name="star" size={16} color="#F59E0B" />
-              <Text style={styles.ratingText}>
-                {vendor.averageRating ? vendor.averageRating.toFixed(1) : '4.5'}
+            <View style={styles.vendorDetails}>
+              <Text style={styles.vendorTitle} numberOfLines={2}>
+                {getVendorDisplayName()}
               </Text>
-              <Text style={styles.reviewCount}>
-                ({vendor.totalReviews || 0} reviews)
-              </Text>
+              
+              <View style={styles.ratingAndStatusContainer}>
+                <View style={styles.ratingContainer}>
+                  <Ionicons name="star" size={14} color="#F59E0B" />
+                  <Text style={styles.ratingText}>Rating : {getVendorRating()}</Text>
+                </View>
+                <View style={styles.statusBadge}>
+                  <Text style={styles.statusText}>Active</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+          
+          <TouchableOpacity 
+            style={styles.contactNowButton}
+            activeOpacity={0.8}
+            onPress={handleCallVendor}
+          >
+            <Ionicons name="call" size={16} color="#FFFFFF" style={styles.contactButtonIcon} />
+            <Text style={styles.contactNowText}>Contact Now</Text>
+          </TouchableOpacity>
+        </View>
+        
+        {/* Location and Quick Info */}
+        <View style={styles.locationAndInfoContainer}>
+          <View style={styles.locationContainer}>
+            <Ionicons name="location" size={16} color="#6B7280" />
+            <Text style={styles.locationText} numberOfLines={2}>
+              {formatAddress()}
+            </Text>
+          </View>
+          
+          <View style={styles.quickInfoContainer}>
+            <View style={styles.quickInfoItem}>
+              <Ionicons name="time" size={14} color="#6B7280" />
+              <Text style={styles.quickInfoText}>24/7</Text>
+            </View>
+            <View style={styles.quickInfoItem}>
+              <Ionicons name="checkmark-circle" size={14} color="#10B981" />
+              <Text style={styles.quickInfoText}>Verified</Text>
             </View>
           </View>
         </View>
-      </LinearGradient>
+      </View>
 
-      {/* Action Buttons */}
-      <View style={styles.actionButtons}>
-        <TouchableOpacity style={styles.primaryButton} onPress={handleCallVendor}>
-          <Ionicons name="call" size={20} color="#FFFFFF" />
-          <Text style={styles.primaryButtonText}>Call Now</Text>
+      {/* Enhanced Contact Action Bar */}
+      <View style={styles.contactActionsContainer}>
+        <TouchableOpacity 
+          style={styles.contactActionButton} 
+          onPress={handleCallVendor}
+          activeOpacity={0.7}
+        >
+          <View style={styles.contactActionIconContainer}>
+            <Ionicons name="call" size={20} color="#8B5CF6" />
+          </View>
+          <Text style={styles.contactActionLabel}>Call</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.secondaryButton} onPress={handleMessageVendor}>
-          <Ionicons name="chatbubble" size={20} color="#007BFF" />
-          <Text style={styles.secondaryButtonText}>Message</Text>
+        <TouchableOpacity 
+          style={styles.contactActionButton} 
+          onPress={() => handleSocialMedia('whatsapp')}
+          activeOpacity={0.7}
+        >
+          <View style={styles.contactActionIconContainer}>
+            <Ionicons name="logo-whatsapp" size={20} color="#8B5CF6" />
+          </View>
+          <Text style={styles.contactActionLabel}>Whatsapp</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.contactActionButton} 
+          onPress={handleOpenLocation}
+          activeOpacity={0.7}
+        >
+          <View style={styles.contactActionIconContainer}>
+            <Ionicons name="location" size={20} color="#8B5CF6" />
+          </View>
+          <Text style={styles.contactActionLabel}>Location</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.contactActionButton} 
+          onPress={handleShareVendor}
+          activeOpacity={0.7}
+        >
+          <View style={styles.contactActionIconContainer}>
+            <Ionicons name="share" size={20} color="#8B5CF6" />
+          </View>
+          <Text style={styles.contactActionLabel}>Share</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Vendor Details */}
-      <View style={styles.content}>
-        {vendor.businessAddress && (
-          <Card style={styles.detailCard}>
-            <Card.Content>
-              <Title style={styles.cardTitle}>📍 Location</Title>
-              <View style={styles.locationContainer}>
-                <Ionicons name="location" size={16} color="#6B7280" />
-                <Text style={styles.locationText}>
-                  {vendor.businessAddress.street && `${vendor.businessAddress.street}, `}
-                  {vendor.businessAddress.city || 'City'}
-                  {vendor.businessAddress.state && `, ${vendor.businessAddress.state}`}
-                  {vendor.businessAddress.pincode && ` - ${vendor.businessAddress.pincode}`}
-                </Text>
-              </View>
-            </Card.Content>
-          </Card>
-        )}
+      {/* Enhanced Navigation Tabs */}
+      <View style={styles.navigationTabs}>
+        <TouchableOpacity 
+          style={[styles.navTab, activeTab === 'Info' && styles.activeNavTab]}
+          activeOpacity={0.7}
+          onPress={() => handleTabPress('Info')}
+        >
+          <Text style={[styles.navTabText, activeTab === 'Info' && styles.activeNavTabText]}>Info</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.navTab, activeTab === 'Marketplace' && styles.activeNavTab]}
+          activeOpacity={0.7}
+          onPress={() => handleTabPress('Marketplace')}
+        >
+          <Text style={[styles.navTabText, activeTab === 'Marketplace' && styles.activeNavTabText]}>Marketplace</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.navTab, activeTab === 'Reviews' && styles.activeNavTab]}
+          activeOpacity={0.7}
+          onPress={() => handleTabPress('Reviews')}
+        >
+          <Text style={[styles.navTabText, activeTab === 'Reviews' && styles.activeNavTabText]}>Reviews</Text>
+        </TouchableOpacity>
+      </View>
 
-        {vendor.businessContact && (
-          <Card style={styles.detailCard}>
-            <Card.Content>
-              <Title style={styles.cardTitle}>📞 Contact</Title>
-              <View style={styles.contactContainer}>
-                <Ionicons name="call" size={16} color="#6B7280" />
-                <Text style={styles.contactText}>{vendor.businessContact}</Text>
-              </View>
-            </Card.Content>
-          </Card>
-        )}
-
-        {vendor.aboutBusiness && (
-          <Card style={styles.detailCard}>
-            <Card.Content>
-              <Title style={styles.cardTitle}>ℹ️ About</Title>
-              <Paragraph style={styles.descriptionText}>{vendor.aboutBusiness}</Paragraph>
-            </Card.Content>
-          </Card>
-        )}
-
-        {/* Products Section */}
-        <Card style={styles.productsCard}>
-          <Card.Content>
-            <Title style={styles.cardTitle}>🛍️ Products & Services</Title>
-            {products.length > 0 ? (
-              products.map((product) => (
-                <View key={product.id} style={styles.productItem}>
-                  <View style={styles.productInfo}>
-                    <Text style={styles.productName}>{product.name}</Text>
-                    <Text style={styles.productDescription}>{product.description}</Text>
-                  </View>
-                  <Text style={styles.productPrice}>₹{product.price}</Text>
+      {/* Dynamic Content Based on Active Tab */}
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {activeTab === 'Info' && (
+          <>
+            {/* Enhanced Business Information */}
+            <View style={styles.businessInfoCard}>
+              <View style={styles.businessInfoHeader}>
+                <View style={styles.sectionIconContainer}>
+                  <Ionicons name="business" size={20} color="#8B5CF6" />
                 </View>
-              ))
-            ) : (
-              <Text style={styles.noProductsText}>No products listed yet.</Text>
+                <Text style={styles.businessInfoTitle}>Business Information</Text>
+              </View>
+              <View style={styles.businessInfoContent}>
+                <TouchableOpacity style={styles.businessInfoRow} activeOpacity={0.7}>
+                  <View style={styles.businessInfoIconContainer}>
+                    <Ionicons name="mail" size={16} color="#6B7280" />
+                  </View>
+                  <Text style={styles.businessInfoValue}>{vendor.businessEmail || 'No email provided'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.businessInfoRow} activeOpacity={0.7}>
+                  <View style={styles.businessInfoIconContainer}>
+                    <Ionicons name="call" size={16} color="#6B7280" />
+                  </View>
+                  <Text style={styles.businessInfoValue}>{vendor.businessContact || 'No contact provided'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.businessInfoRow} activeOpacity={0.7}>
+                  <View style={styles.businessInfoIconContainer}>
+                    <Ionicons name="location" size={16} color="#6B7280" />
+                  </View>
+                  <Text style={styles.businessInfoValue}>{formatAddress()}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.businessInfoRow} activeOpacity={0.7}>
+                  <View style={styles.businessInfoIconContainer}>
+                    <Ionicons name="document-text" size={16} color="#6B7280" />
+                  </View>
+                  <Text style={styles.businessInfoValue}>{vendor.aboutBusiness || 'No description provided.'}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Enhanced Vendor Products Section */}
+            {products.length > 0 && (
+              <View style={styles.productsCard}>
+                <View style={styles.productsHeader}>
+                  <View style={styles.sectionIconContainer}>
+                    <Ionicons name="grid" size={20} color="#8B5CF6" />
+                  </View>
+                  <Text style={styles.productsTitle}>Available Products</Text>
+                </View>
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false} 
+                  contentContainerStyle={styles.productsScrollContainer}
+                  decelerationRate="fast"
+                >
+                  {products.map((product) => (
+                    <TouchableOpacity key={product.id} style={styles.productItem} activeOpacity={0.8}>
+                      <View style={styles.productImagePlaceholder}>
+                        <Ionicons name="image" size={24} color="#6B7280" />
+                      </View>
+                      <Text style={styles.productName}>{product.name}</Text>
+                      <Text style={styles.productDescription}>{product.description}</Text>
+                      <Text style={styles.productPrice}>₹{product.price}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
             )}
-          </Card.Content>
-        </Card>
-      </View>
-    </ScrollView>
+          </>
+        )}
+
+        {activeTab === 'Marketplace' && (
+          <View style={styles.marketplaceContainer}>
+            <View style={styles.emptyStateContainer}>
+              <Ionicons name="storefront-outline" size={64} color="#D1D5DB" />
+              <Text style={styles.emptyStateTitle}>Marketplace Coming Soon</Text>
+              <Text style={styles.emptyStateText}>
+                The marketplace feature will be available soon. You'll be able to browse and purchase products directly from vendors.
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {activeTab === 'Reviews' && renderDemoReviews()}
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
   },
   loadingText: {
     marginTop: 16,
@@ -283,7 +640,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
     padding: 20,
   },
   errorTitle: {
@@ -299,181 +656,552 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
   },
-  headerGradient: {
-    paddingTop: 50,
-    paddingBottom: 30,
-    paddingHorizontal: 20,
+  // Premium Header Styles
+  headerContainer: {
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  header: {
+  statusBarSpacer: {
+    height: 44, // Status bar height
+  },
+  topNavigationBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
   },
   backButton: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    padding: 8,
-    zIndex: 1,
-  },
-  vendorInfo: {
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  vendorImageContainer: {
-    marginBottom: 16,
-  },
-  vendorImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-  },
-  imagePlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F8FAFC',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  vendorName: {
-    fontSize: 24,
-    fontWeight: '800',
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerActionButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  mainHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+  },
+  vendorProfileSection: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  vendorLogoContainer: {
+    position: 'relative',
+    marginRight: 16,
+  },
+  vendorLogo: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    borderWidth: 3,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  vendorLogoPlaceholder: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: '#8B5CF6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  vendorLogoText: {
     color: '#FFFFFF',
-    textAlign: 'center',
-    marginBottom: 8,
-    fontFamily: 'Inter',
+    fontSize: 28,
+    fontWeight: 'bold',
   },
-  vendorCategory: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
-    marginBottom: 12,
+  onlineIndicator: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#10B981',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+  },
+  vendorDetails: {
+    flex: 1,
+    paddingTop: 4,
+    minHeight: 60,
+    justifyContent: 'center',
+  },
+  vendorTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 4,
+    fontFamily: 'Inter',
+    lineHeight: 24,
+    flexWrap: 'wrap',
+  },
+  vendorSubtitle: {
+    fontSize: 15,
+    color: '#6B7280',
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  ratingAndStatusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   ratingText: {
-    fontSize: 16,
+    fontSize: 12,
+    color: '#92400E',
     fontWeight: '600',
-    color: '#F59E0B',
-    marginLeft: 8,
+    marginLeft: 4,
   },
-  reviewCount: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginLeft: 8,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    padding: 20,
-    gap: 12,
-  },
-  primaryButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#007BFF',
-    paddingVertical: 16,
+  statusBadge: {
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 12,
   },
-  primaryButtonText: {
-    fontSize: 16,
+  statusText: {
+    fontSize: 12,
+    color: '#065F46',
     fontWeight: '600',
+  },
+  contactNowButton: {
+    backgroundColor: '#8B5CF6',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+    marginLeft: 12,
+  },
+  contactButtonIcon: {
+    marginRight: 6,
+  },
+  contactNowText: {
     color: '#FFFFFF',
-    marginLeft: 8,
-  },
-  secondaryButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#EAF3FF',
-    paddingVertical: 16,
-    borderRadius: 12,
-  },
-  secondaryButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#007BFF',
-    marginLeft: 8,
-  },
-  content: {
-    padding: 20,
-  },
-  detailCard: {
-    marginBottom: 16,
-    elevation: 2,
-    borderRadius: 12,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 12,
-    fontFamily: 'Inter',
-  },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  locationText: {
     fontSize: 14,
-    color: '#374151',
-    marginLeft: 8,
-    flex: 1,
-    lineHeight: 20,
-  },
-  contactContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  contactText: {
-    fontSize: 16,
-    color: '#374151',
-    marginLeft: 8,
     fontWeight: '600',
   },
-  descriptionText: {
-    fontSize: 14,
-    color: '#6B7280',
-    lineHeight: 22,
-  },
-  productsCard: {
-    marginBottom: 20,
-    elevation: 2,
-    borderRadius: 12,
-  },
-  productItem: {
+  locationAndInfoContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
-  productInfo: {
+  locationContainer: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginRight: 16,
+  },
+  locationText: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginLeft: 6,
+    flex: 1,
+    lineHeight: 18,
+  },
+  quickInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  quickInfoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginLeft: 6,
+  },
+  quickInfoText: {
+    fontSize: 11,
+    color: '#6B7280',
+    fontWeight: '500',
+    marginLeft: 4,
+  },
+  // Enhanced Contact Action Bar
+  contactActionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  contactActionButton: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    minWidth: 60,
+  },
+  contactActionIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  contactActionLabel: {
+    fontSize: 12,
+    color: '#8B5CF6',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  // Navigation Tabs
+  navigationTabs: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  navTab: {
+    flex: 1,
+    paddingVertical: 16,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  activeNavTab: {
+    borderBottomColor: '#8B5CF6',
+  },
+  navTabText: {
+    fontSize: 16,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  activeNavTabText: {
+    color: '#8B5CF6',
+    fontWeight: '600',
+  },
+  // Content Styles
+  content: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  businessInfoCard: {
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  businessInfoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  sectionIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  businessInfoTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  businessInfoContent: {
+    gap: 16,
+  },
+  businessInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  businessInfoIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  businessInfoValue: {
+    fontSize: 14,
+    color: '#1F2937',
+    flex: 1,
+    fontWeight: '500',
+  },
+  socialLinksCard: {
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  socialLinksHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  socialLinksTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  socialLinksContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: 20,
+  },
+  socialLink: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  recentPostsCard: {
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  recentPostsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  recentPostsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  emptyStateContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  noPostsText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    fontStyle: 'italic',
+    marginTop: 8,
+  },
+  productsCard: {
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+  },
+  productsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  productsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  productsScrollContainer: {
+    paddingRight: 20,
+  },
+  productItem: {
+    width: 150,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginRight: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  productImagePlaceholder: {
+    width: 60,
+    height: 60,
+    borderRadius: 12,
+    backgroundColor: '#E5E7EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   productName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+    textAlign: 'center',
+    marginBottom: 6,
+    lineHeight: 18,
+  },
+  productDescription: {
+    fontSize: 12,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 8,
+    lineHeight: 16,
+  },
+  productPrice: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#8B5CF6',
+  },
+  // Reviews Styles
+  reviewsContainer: {
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+  },
+  reviewsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  reviewsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  reviewItem: {
+    backgroundColor: '#F8FAFC',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  reviewAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#8B5CF6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  reviewAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  reviewInfo: {
+    flex: 1,
+  },
+  reviewCustomerName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1F2937',
     marginBottom: 4,
   },
-  productDescription: {
-    fontSize: 14,
+  reviewRating: {
+    flexDirection: 'row',
+  },
+  reviewDate: {
+    fontSize: 12,
     color: '#6B7280',
   },
-  productPrice: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#007BFF',
-  },
-  noProductsText: {
+  reviewComment: {
     fontSize: 14,
+    color: '#374151',
+    lineHeight: 20,
+  },
+  // Marketplace Styles
+  marketplaceContainer: {
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+    flex: 1,
+  },
+  emptyStateTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyStateText: {
+    fontSize: 16,
     color: '#6B7280',
     textAlign: 'center',
-    fontStyle: 'italic',
+    lineHeight: 24,
   },
 });
 

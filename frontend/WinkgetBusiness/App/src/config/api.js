@@ -13,8 +13,11 @@ const getBaseUrl = () => {
       : `${envUrl.replace(/\/$/, '')}/api`;
   }
 
-  // Android emulator: 10.0.2.2 connects to host machine
-  if (Platform.OS === 'android') return 'http://172.20.48.110:5000/api';
+  // Android emulator: Try multiple IP addresses
+  if (Platform.OS === 'android') {
+    // Try actual machine IP first, then fallback to 10.0.2.2
+    return 'http://10.134.88.162:5000/api';
+  }
 
   // iOS simulator / web: localhost works
   return 'http://localhost:5000/api';
@@ -25,14 +28,50 @@ console.log('📡 Base API URL:', BASE_URL);
 console.log('🌐 Platform:', Platform.OS);
 console.log('🔧 Environment URL:', process.env.EXPO_PUBLIC_API_BASE_URL);
 
+// Test connectivity with fallback
+const testConnectivity = async () => {
+  const baseUrl = BASE_URL.replace('/api', '');
+  
+  try {
+    const response = await fetch(`${baseUrl}/health`);
+    const data = await response.json();
+    console.log('✅ Backend connectivity test:', data);
+  } catch (error) {
+    console.error('❌ Backend connectivity test failed:', error.message);
+    
+    // If Android and first IP failed, try 10.0.2.2
+    if (Platform.OS === 'android' && baseUrl.includes('10.134.88.162')) {
+      console.log('🔄 Trying fallback IP: 10.0.2.2');
+      try {
+        const fallbackResponse = await fetch('http://10.0.2.2:5000/health');
+        const fallbackData = await fallbackResponse.json();
+        console.log('✅ Fallback connectivity test successful:', fallbackData);
+        console.log('💡 Consider updating API URL to: http://10.0.2.2:5000/api');
+      } catch (fallbackError) {
+        console.error('❌ Fallback connectivity test also failed:', fallbackError.message);
+      }
+    }
+  }
+};
+
+// Run connectivity test
+testConnectivity();
+
 // 🚀 Create Axios instance
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 10000,
+  timeout: 15000, // Increased timeout for network issues
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+// Alternative IP addresses for Android emulator
+const ANDROID_IP_ALTERNATIVES = [
+  'http://10.134.88.162:5000/api',  // Current machine IP
+  'http://10.0.2.2:5000/api',        // Traditional Android emulator IP
+  'http://localhost:5000/api',       // Localhost (if using web)
+];
 
 // 🔐 Request interceptor to attach auth token
 api.interceptors.request.use(
@@ -69,10 +108,10 @@ api.interceptors.response.use(
 // 📁 API Endpoints
 export const API_ENDPOINTS = {
   AUTH: {
-    REGISTER: '/auth/register',
-    LOGIN: '/auth/login',
-    PROFILE: '/auth/profile',
-    UPDATE_PROFILE: '/auth/profile',
+    REGISTER: '/business/auth/signup',
+    LOGIN: '/business/auth/login',
+    PROFILE: '/business/auth/me',
+    UPDATE_PROFILE: '/business/auth/me',
   },
   VENDORS: {
     LIST: '/business/vendors/public',

@@ -9,41 +9,179 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import Icon from 'react-native-vector-icons/FontAwesome5';
 import { FadeInView, FadeInUpView } from './components/animations';
 
 const CategoryPage = ({ navigation }) => {
-  const categories = [
+  // Previous categories first, then additional categories (same as CategoryGrid)
+  const previousCategories = [
     {
       name: 'Electronics',
-      icon: 'phone-portrait',
-      color: '#007BFF',
+      icon: 'mobile-alt',
+      color: '#06B6D4',
       description: 'Smartphones, laptops, gadgets and more',
+      count: 36,
     },
     {
       name: 'Fashion',
-      icon: 'shirt',
-      color: '#E91E63',
+      icon: 'tshirt',
+      color: '#EC4899',
       description: 'Clothing, accessories, and style items',
+      count: 28,
     },
     {
       name: 'Home & Furniture',
       icon: 'home',
-      color: '#4CAF50',
+      color: '#10B981',
       description: 'Furniture, decor, and home essentials',
+      count: 31,
     },
     {
       name: 'Beauty & Personal Care',
-      icon: 'sparkles',
-      color: '#FF9800',
+      icon: 'spa',
+      color: '#F59E0B',
       description: 'Skincare, makeup, and personal care',
+      count: 25,
     },
     {
       name: 'Grocery & Essentials',
-      icon: 'basket',
-      color: '#9C27B0',
+      icon: 'shopping-basket',
+      color: '#10B981',
       description: 'Food, groceries, and daily essentials',
+      count: 42,
     },
   ];
+
+  const additionalCategories = [
+    {
+      name: 'Contractor',
+      icon: 'tools',
+      color: '#3B82F6',
+      description: 'Construction, renovation, and repair services',
+      count: 24,
+    },
+    {
+      name: 'Placement Service',
+      icon: 'user-tie',
+      color: '#8B5CF6',
+      description: 'Job placement and recruitment services',
+      count: 18,
+    },
+    {
+      name: 'Event Organisers',
+      icon: 'calendar-alt',
+      color: '#F59E0B',
+      description: 'Wedding, party, and event planning services',
+      count: 32,
+    },
+    {
+      name: 'Restaurants',
+      icon: 'utensils',
+      color: '#EF4444',
+      description: 'Food delivery, dining, and catering services',
+      count: 45,
+    },
+    {
+      name: 'Real Estate',
+      icon: 'home',
+      color: '#10B981',
+      description: 'Property buying, selling, and rental services',
+      count: 28,
+    },
+    {
+      name: 'Home Decor',
+      icon: 'couch',
+      color: '#F97316',
+      description: 'Interior design and home decoration services',
+      count: 21,
+    },
+    {
+      name: 'Automobile',
+      icon: 'car',
+      color: '#6366F1',
+      description: 'Car sales, service, and maintenance',
+      count: 35,
+    },
+    {
+      name: 'Software & Website',
+      icon: 'laptop-code',
+      color: '#06B6D4',
+      description: 'Web development and software solutions',
+      count: 29,
+    },
+    {
+      name: 'Tour & Travels',
+      icon: 'suitcase-rolling',
+      color: '#84CC16',
+      description: 'Travel planning and tour services',
+      count: 16,
+    },
+    {
+      name: 'Hotel',
+      icon: 'hotel',
+      color: '#EC4899',
+      description: 'Accommodation and hospitality services',
+      count: 22,
+    },
+    {
+      name: 'Packers & Movers',
+      icon: 'truck-moving',
+      color: '#6B7280',
+      description: 'Moving and relocation services',
+      count: 19,
+    },
+    {
+      name: 'Electricians',
+      icon: 'bolt',
+      color: '#F59E0B',
+      description: 'Electrical installation and repair services',
+      count: 31,
+    },
+    {
+      name: 'Plumbers',
+      icon: 'water',
+      color: '#3B82F6',
+      description: 'Plumbing installation and repair services',
+      count: 26,
+    },
+    {
+      name: 'Education & Training',
+      icon: 'chalkboard-teacher',
+      color: '#8B5CF6',
+      description: 'Educational courses and training programs',
+      count: 33,
+    },
+    {
+      name: 'Beauty & Wellness',
+      icon: 'spa',
+      color: '#EC4899',
+      description: 'Spa, salon, and wellness services',
+      count: 27,
+    },
+    {
+      name: 'Medical & Healthcare',
+      icon: 'stethoscope',
+      color: '#EF4444',
+      description: 'Healthcare and medical services',
+      count: 38,
+    },
+    {
+      name: 'Pet Services',
+      icon: 'paw',
+      color: '#F59E0B',
+      description: 'Pet care, grooming, and veterinary services',
+      count: 14,
+    },
+    {
+      name: 'Photography',
+      icon: 'camera-retro',
+      color: '#6366F1',
+      description: 'Photography and videography services',
+      count: 20,
+    },
+  ];
+
+  const categories = [...previousCategories, ...additionalCategories];
 
   const handleCategoryPress = (category) => {
     navigation.navigate('CategoryBusinessList', { category: category.name });
@@ -62,13 +200,14 @@ const CategoryPage = ({ navigation }) => {
         >
           <View style={styles.cardContent}>
             <View style={[styles.iconContainer, { backgroundColor: `${category.color}20` }]}>
-              <Ionicons name={category.icon} size={28} color={category.color} />
+              <Icon name={category.icon} size={24} color={category.color} />
             </View>
             <View style={styles.textContainer}>
               <Text style={styles.categoryName}>{category.name}</Text>
               <Text style={styles.categoryDescription}>{category.description}</Text>
+              <Text style={styles.businessCount}>{category.count} businesses</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#6B7280" />
+            <Icon name="chevron-right" size={16} color="#6B7280" />
           </View>
         </LinearGradient>
       </TouchableOpacity>
@@ -88,7 +227,7 @@ const CategoryPage = ({ navigation }) => {
             <Ionicons name="business" size={40} color="#FFFFFF" />
           </View>
           <Text style={styles.headerTitle}>Categories</Text>
-          <Text style={styles.headerSubtitle}>Explore all business categories</Text>
+          <Text style={styles.headerSubtitle}>Explore all {categories.length} business categories</Text>
         </View>
       </LinearGradient>
 
@@ -199,6 +338,13 @@ const styles = StyleSheet.create({
   categoryDescription: {
     fontSize: 14,
     color: '#6B7280',
+    fontFamily: 'Inter',
+    marginBottom: 4,
+  },
+  businessCount: {
+    fontSize: 12,
+    color: '#3B82F6',
+    fontWeight: '600',
     fontFamily: 'Inter',
   },
 });
