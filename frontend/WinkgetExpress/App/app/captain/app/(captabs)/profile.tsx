@@ -7,10 +7,15 @@ import {
   TouchableOpacity,
   Alert,
   Switch,
+<<<<<<< Updated upstream
   RefreshControl,
   SafeAreaView,
   StatusBar,
   Animated,
+=======
+  TextInput,
+  Modal,
+>>>>>>> Stashed changes
 } from 'react-native';
 import {
   User,
@@ -34,6 +39,7 @@ import {
   MessageCircle,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+<<<<<<< Updated upstream
 import { captainService } from '../../services/api';
 import { Modal } from '../../components/Modal';
 import { Input } from '../../components/Input';
@@ -68,14 +74,16 @@ const DOCUMENT_TYPES = [
     required: true,
   },
 ];
+=======
+import { useAuth } from '../../../../context/AuthContext';
+>>>>>>> Stashed changes
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { captain, logout, refreshProfile } = useAuth();
-  const displayCaptain = captain;
-  const [isAvailable, setIsAvailable] = useState(displayCaptain?.is_available || false);
+  const [isAvailable, setIsAvailable] = useState(captain?.is_available || false);
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [city, setCity] = useState(displayCaptain?.city || '');
+  const [city, setCity] = useState(captain?.city || '');
   const [updating, setUpdating] = useState(false);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -155,7 +163,7 @@ export default function ProfileScreen() {
   const handleToggleAvailability = async (value: boolean) => {
     try {
       setIsAvailable(value);
-      await captainService.updateAvailability(value);
+      // TODO: Implement API call to update availability
       await refreshProfile();
     } catch (error: any) {
       setIsAvailable(!value);
@@ -170,7 +178,7 @@ export default function ProfileScreen() {
     }
     setUpdating(true);
     try {
-      await captainService.updateProfile({ city });
+      // TODO: Implement API call to update city
       await refreshProfile();
       setEditModalVisible(false);
       Alert.alert('Success', 'City updated successfully');
@@ -233,7 +241,11 @@ export default function ProfileScreen() {
       </View>
       {onEdit && (
         <TouchableOpacity onPress={onEdit} style={styles.editButton}>
+<<<<<<< Updated upstream
           <Settings size={18} color="#FF6B35" />
+=======
+          <Settings size={18} color="#FB923C" />
+>>>>>>> Stashed changes
         </TouchableOpacity>
       )}
     </View>
@@ -292,6 +304,7 @@ export default function ProfileScreen() {
     </Animated.View>
   );
 
+<<<<<<< Updated upstream
   const getDocumentStatus = (docId: string) => {
     if (!captainProfile) return 'pending';
     
@@ -313,6 +326,11 @@ export default function ProfileScreen() {
     if (!captainProfile) return 'pending';
     return captainProfile.isApproved ? 'verified' : 'pending';
   };
+=======
+  // Get display name and initial
+  const displayName = captain?.fullName || captain?.name || 'Captain';
+  const initial = displayName.charAt(0).toUpperCase();
+>>>>>>> Stashed changes
 
   return (
     <SafeAreaView style={styles.container}>
@@ -342,47 +360,71 @@ export default function ProfileScreen() {
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
-              <User size={48} color="#FFFFFF" />
+              <Text style={styles.avatarText}>{initial}</Text>
             </View>
             <View style={styles.verifiedBadge}>
               <Shield size={16} color="#10B981" />
             </View>
           </View>
-          <Text style={styles.name}>{displayCaptain?.full_name}</Text>
+          <Text style={styles.name}>{displayName}</Text>
           <View style={styles.vehicleBadge}>
+<<<<<<< Updated upstream
             <Truck size={14} color="#FF6B35" />
+=======
+            <Truck size={14} color="#FB923C" />
+>>>>>>> Stashed changes
             <Text style={styles.vehicleText}>
-              {displayCaptain?.vehicle_type?.toUpperCase()} •{' '}
-              {displayCaptain?.service_scope?.replace('_', ' ').toUpperCase()}
+              {captain?.vehicleType?.toUpperCase() || 'CAPTAIN'} •{' '}
+              {captain?.serviceType?.replace('-', ' ').toUpperCase() || 'SERVICE'}
             </Text>
           </View>
         </View>
 
-        {/* Real-World Stats */}
+        {/* Stats */}
         <View style={styles.statsContainer}>
           <StatCard
             icon={Star}
             label="Rating"
+<<<<<<< Updated upstream
             value={typeof displayCaptain?.rating === 'number' ? displayCaptain.rating.toFixed(1) : '0.0'}
             color="#FF6B35"
+=======
+            value={captain?.rating ? captain.rating.toFixed(1) : '0.0'}
+            color="#F59E0B"
+>>>>>>> Stashed changes
           />
           <StatCard
             icon={TrendingUp}
             label="Total Trips"
+<<<<<<< Updated upstream
             value={typeof displayCaptain?.total_trips === 'number' ? String(displayCaptain.total_trips) : '0'}
             color="#FF6B35"
+=======
+            value={captain?.totalTrips ? String(captain.totalTrips) : '0'}
+            color="#10B981"
+>>>>>>> Stashed changes
           />
           <StatCard
             icon={Award}
             label="Experience"
+<<<<<<< Updated upstream
             value={`${displayCaptain?.experience_years || 2}Y`}
             color="#FF6B35"
+=======
+            value={`${captain?.experienceYears || 0}Y`}
+            color="#8B5CF6"
+>>>>>>> Stashed changes
           />
           <StatCard
             icon={Truck}
             label="Today"
+<<<<<<< Updated upstream
             value={`${displayCaptain?.trips_today || 0}`}
             color="#FF6B35"
+=======
+            value={`${captain?.tripsToday || 0}`}
+            color="#FB923C"
+>>>>>>> Stashed changes
           />
         </View>
 
@@ -398,8 +440,13 @@ export default function ProfileScreen() {
             <Switch
               value={isAvailable}
               onValueChange={handleToggleAvailability}
+<<<<<<< Updated upstream
               trackColor={{ false: '#D1D5DB', true: '#FFB399' }}
               thumbColor={isAvailable ? '#FF6B35' : '#F3F4F6'}
+=======
+              trackColor={{ false: '#D1D5DB', true: '#FED7AA' }}
+              thumbColor={isAvailable ? '#FB923C' : '#F3F4F6'}
+>>>>>>> Stashed changes
             />
           </View>
         </View>
@@ -408,17 +455,18 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Personal Information</Text>
           <View style={styles.infoContainer}>
-            <InfoRow icon={Phone} label="Phone" value={displayCaptain?.phone || ''} />
-            <InfoRow icon={Mail} label="Email" value={displayCaptain?.email || ''} />
+            <InfoRow icon={Phone} label="Phone" value={captain?.phone || 'Not provided'} />
+            <InfoRow icon={Mail} label="Email" value={captain?.email || 'Not provided'} />
             <InfoRow
               icon={MapPin}
               label="City"
-              value={displayCaptain?.city || 'Not set'}
+              value={captain?.city || 'Not set'}
               onEdit={() => setEditModalVisible(true)}
             />
           </View>
         </View>
 
+<<<<<<< Updated upstream
         {/* Services */}
         {displayCaptain?.service_types?.length > 0 && (
           <View style={styles.section}>
@@ -527,6 +575,8 @@ export default function ProfileScreen() {
           </View>
         </Animated.View>
 
+=======
+>>>>>>> Stashed changes
         {/* Logout */}
         <View style={styles.section}>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -544,20 +594,38 @@ export default function ProfileScreen() {
       {/* Edit Modal */}
       <Modal
         visible={editModalVisible}
-        onClose={() => setEditModalVisible(false)}
-        title="Update City"
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setEditModalVisible(false)}
       >
-        <Input
-          label="City"
-          placeholder="Enter your city"
-          value={city}
-          onChangeText={setCity}
-        />
-        <Button
-          title="Update"
-          onPress={handleUpdateCity}
-          loading={updating}
-        />
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Update City</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Enter your city"
+              value={city}
+              onChangeText={setCity}
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setEditModalVisible(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.updateButton]}
+                onPress={handleUpdateCity}
+                disabled={updating}
+              >
+                <Text style={styles.updateButtonText}>
+                  {updating ? 'Updating...' : 'Update'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
 
       {/* Help Modal */}
@@ -642,17 +710,51 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
+<<<<<<< Updated upstream
     backgroundColor: '#FF6B35',
+=======
+    backgroundColor: '#FB923C',
+>>>>>>> Stashed changes
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 4,
     borderColor: '#FFFFFF',
+<<<<<<< Updated upstream
     shadowColor: '#FF6B35',
+=======
+    shadowColor: '#FB923C',
+>>>>>>> Stashed changes
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
+<<<<<<< Updated upstream
+=======
+  avatarText: {
+    fontSize: 36,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  verifiedBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+>>>>>>> Stashed changes
   name: {
     fontSize: 26,
     fontWeight: '700',
@@ -671,7 +773,11 @@ const styles = StyleSheet.create({
   vehicleText: {
     fontSize: 12,
     fontWeight: '700',
+<<<<<<< Updated upstream
     color: '#FF6B35',
+=======
+    color: '#FB923C',
+>>>>>>> Stashed changes
     letterSpacing: 0.5,
   },
   statsContainer: {
@@ -850,6 +956,7 @@ const styles = StyleSheet.create({
     color: '#111827',
     flex: 1,
   },
+<<<<<<< Updated upstream
   helpButton: {
     position: 'absolute',
     top: 60,
@@ -998,4 +1105,73 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#111827',
   },
+=======
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    width: '90%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalInput: {
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    marginBottom: 20,
+    backgroundColor: '#F9FAFB',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+  },
+  updateButton: {
+    backgroundColor: '#FB923C',
+    shadowColor: '#FB923C',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  updateButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+>>>>>>> Stashed changes
 });

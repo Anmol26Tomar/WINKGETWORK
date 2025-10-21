@@ -152,6 +152,7 @@ export default function SignupScreen(): JSX.Element {
       >
         <View style={styles.formWrapper}>
           <Text style={styles.title}>Create account</Text>
+          <Text style={styles.subtitle}>Join Winkget and start your journey</Text>
 
           {/* Role toggle */}
           <View style={styles.toggleRow}>
@@ -306,64 +307,194 @@ function OptionButton({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9FAFB" },
-  scrollContent: { flexGrow: 1, padding: 24, paddingTop: 48 },
+  container: { 
+    flex: 1, 
+    backgroundColor: "#F8FAFC",
+    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+  },
+  scrollContent: { 
+    flexGrow: 1, 
+    padding: 24, 
+    paddingTop: 20,
+    paddingBottom: 50,
+  },
   formWrapper: { flex: 1 },
+<<<<<<< Updated upstream
   title: { fontSize: 28, fontWeight: "800", color: "#0F172A", marginBottom: 20 },
   toggleRow: { flexDirection: "row", gap: 8, marginBottom: 12 },
+=======
+  title: { 
+    fontSize: 32, 
+    fontWeight: "800", 
+    color: "#1F2937", 
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  subtitle: {
+    fontSize: 16,
+    color: "#6B7280",
+    marginBottom: 32,
+    textAlign: "center",
+  },
+  toggleRow: { 
+    flexDirection: "row", 
+    gap: 8, 
+    marginBottom: 24,
+    justifyContent: "center",
+  },
+>>>>>>> Stashed changes
   tag: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 18,
-    borderWidth: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    borderWidth: 2,
     borderColor: "#E5E7EB",
     marginRight: 6,
     backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
+  tagActive: { 
+    backgroundColor: "#FB923C", 
+    borderColor: "#FB923C",
+    shadowColor: "#FB923C",
+    shadowOpacity: 0.3,
+  },
+  tagTxt: { 
+    color: "#374151", 
+    fontWeight: "600",
+    fontSize: 16,
+  },
+  tagTxtActive: { 
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+<<<<<<< Updated upstream
   tagActive: { backgroundColor: "#FF6B35", borderColor: "#FF6B35" },
   tagTxt: { color: "#111827", fontWeight: "600" },
   tagTxtActive: { color: "#FFFFFF" },
 
   input: { backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E5E7EB", borderRadius: 12, padding: 14, marginBottom: 12,
     shadowColor: "rgba(2,6,23,0.04)", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 6, elevation: 1 },
+=======
+
+  input: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 2,
+    borderColor: "#E5E7EB",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    fontSize: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+>>>>>>> Stashed changes
 
   sectionLabel: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "700",
     color: "#1F2937",
-    marginTop: 10,
-    marginBottom: 6,
+    marginTop: 20,
+    marginBottom: 12,
   },
-  row: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
-  wrapRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  row: { 
+    flexDirection: "row", 
+    gap: 12, 
+    flexWrap: "wrap",
+    marginBottom: 16,
+  },
+  wrapRow: { 
+    flexDirection: "row", 
+    flexWrap: "wrap", 
+    gap: 12,
+    marginBottom: 16,
+  },
 
   optionBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    borderWidth: 1.5,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 2,
     borderColor: "#D1D5DB",
     backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
+  optionBtnActive: { 
+    borderColor: "#FB923C", 
+    backgroundColor: "#FEF3E7",
+    shadowColor: "#FB923C",
+    shadowOpacity: 0.2,
+  },
+  optionTxt: { 
+    fontSize: 14, 
+    fontWeight: "600", 
+    color: "#6B7280",
+  },
+  optionTxtActive: { 
+    color: "#FB923C",
+    fontWeight: "700",
+  },
+<<<<<<< Updated upstream
   optionBtnActive: { borderColor: "#FF6B35", backgroundColor: "#FEF3F2" },
   optionTxt: { fontSize: 14, fontWeight: "600", color: "#6B7280" },
   optionTxtActive: { color: "#FF6B35" },
+=======
+>>>>>>> Stashed changes
 
 <<<<<<< HEAD
   btn: {
+<<<<<<< Updated upstream
     backgroundColor: "#FF6B35",
     padding: 14,
     borderRadius: 12,
+=======
+    backgroundColor: "#FB923C",
+    padding: 18,
+    borderRadius: 16,
+>>>>>>> Stashed changes
     alignItems: "center",
-    marginTop: 12,
+    marginTop: 20,
+    shadowColor: "#FB923C",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
   },
 =======
   btn: { backgroundColor: "#1E40AF", padding: 16, borderRadius: 14, alignItems: "center", marginTop: 12,
     shadowColor: "rgba(2,6,23,0.15)", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 1, shadowRadius: 12, elevation: 3 },
 >>>>>>> 8ddfe9bcbf6d296c6af74a4afc9f4c14ba1cc746
   btnDisabled: { opacity: 0.7 },
-  btnTxt: { color: "#fff", fontWeight: "700" },
+  btnTxt: { 
+    color: "#fff", 
+    fontWeight: "700",
+    fontSize: 18,
+  },
 
+<<<<<<< Updated upstream
   switchTxt: { marginTop: 16, color: "#6B7280" },
   link: { color: "#FF6B35", fontWeight: "700" },
+=======
+  switchTxt: { 
+    marginTop: 24, 
+    color: "#6B7280",
+    textAlign: "center",
+    fontSize: 16,
+  },
+  link: { 
+    color: "#FB923C", 
+    fontWeight: "700",
+  },
+>>>>>>> Stashed changes
 })

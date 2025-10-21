@@ -7,7 +7,7 @@ import {
   RefreshControl,
   TouchableOpacity,
 } from 'react-native';
-import { DollarSign, TrendingUp, Calendar, ArrowUpRight } from 'lucide-react-native';
+import { IndianRupee, TrendingUp, Calendar, ArrowUpRight } from 'lucide-react-native';
 import { earningsService } from '../../services/api';
 import type { Earning, EarningSummary } from '../../types';
 import { useDummyData } from '../../services/dummyData';
@@ -118,7 +118,11 @@ export default function EarningsScreen() {
           <View style={styles.summaryGrid}>
             <View style={[styles.summaryCard, styles.summaryCardToday]}>
               <View style={styles.summaryCardIcon}>
+<<<<<<< Updated upstream
                 <DollarSign size={18} color="#FF6B35" />
+=======
+                <IndianRupee size={18} color="#2563EB" />
+>>>>>>> Stashed changes
               </View>
               <Text style={styles.summaryCardLabel}>Today</Text>
               <Text style={[styles.summaryCardAmount, { color: '#FF6B35' }]}>
@@ -188,7 +192,7 @@ export default function EarningsScreen() {
           </View>
           {earnings.length === 0 ? (
             <View style={styles.emptyState}>
-              <DollarSign size={48} color="#D1D5DB" />
+              <IndianRupee size={48} color="#D1D5DB" />
               <Text style={styles.emptyText}>No earnings yet</Text>
               <Text style={styles.emptySubtext}>
                 Complete trips to start earning
@@ -199,7 +203,11 @@ export default function EarningsScreen() {
               <View key={earning.id} style={styles.earningCard}>
                 <View style={styles.earningLeft}>
                   <View style={styles.iconContainer}>
+<<<<<<< Updated upstream
                     <DollarSign size={20} color="#FF6B35" />
+=======
+                    <IndianRupee size={20} color="#10B981" />
+>>>>>>> Stashed changes
                   </View>
                   <View style={styles.earningInfo}>
                     <Text style={styles.earningTitle}>Trip Payment</Text>

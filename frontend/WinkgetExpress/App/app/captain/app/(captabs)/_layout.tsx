@@ -1,12 +1,20 @@
 import { Tabs } from 'expo-router';
+<<<<<<< Updated upstream
 import { Ionicons } from '@expo/vector-icons';
+=======
+import { Home, IndianRupee, User, Wallet, Car, HelpCircle } from 'lucide-react-native';
+>>>>>>> Stashed changes
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
+<<<<<<< Updated upstream
         tabBarActiveTintColor: '#FF6B35',
+=======
+        tabBarActiveTintColor: '#FB923C',
+>>>>>>> Stashed changes
         tabBarInactiveTintColor: '#9CA3AF',
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
@@ -44,7 +52,38 @@ export default function TabLayout() {
         options={{
           title: 'Earnings',
           tabBarIcon: ({ size, color }) => (
+<<<<<<< Updated upstream
             <Ionicons name="cash" size={size} color={color} />
+=======
+            <IndianRupee size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="wallet"
+        options={{
+          title: 'Wallet',
+          tabBarIcon: ({ size, color }) => (
+            <Wallet size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="ride"
+        options={{
+          title: 'Ride',
+          tabBarIcon: ({ size, color }) => (
+            <Car size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="help"
+        options={{
+          title: 'Help',
+          tabBarIcon: ({ size, color }) => (
+            <HelpCircle size={size} color={color} />
+>>>>>>> Stashed changes
           ),
         }}
       />

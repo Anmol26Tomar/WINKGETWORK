@@ -1,12 +1,12 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   RefreshControl,
-  Alert,
   TouchableOpacity,
+<<<<<<< Updated upstream
   Linking,
   Platform,
   Animated,
@@ -535,8 +535,23 @@ export default function HomeScreen() {
   // Manual refresh
   const refreshTrips = useCallback(async () => {
     if (!displayCaptain || !userLoc) return;
+=======
+} from 'react-native';
+import AnimatedView from '../../components/AnimatedView';
+import AnimatedCard from '../../components/AnimatedCard';
+import { useRouter } from 'expo-router';
+import { useAuth } from '../../../../context/AuthContext';
+import { Navigation, Zap, Clock, Bell, MapPin } from 'lucide-react-native';
 
+export default function HomeScreen() {
+  const { captain } = useAuth();
+  const router = useRouter();
+  const [refreshing, setRefreshing] = useState(false);
+>>>>>>> Stashed changes
+
+  const onRefresh = () => {
     setRefreshing(true);
+<<<<<<< Updated upstream
 <<<<<<< HEAD
     if (userLoc) loadTrips(userLoc.lat, userLoc.lng);
   }, [userLoc, loadTrips]);
@@ -945,6 +960,12 @@ export default function HomeScreen() {
       />
     ));
   }, [pendingTrips, userLoc]);
+=======
+    setTimeout(() => setRefreshing(false), 1000);
+  };
+
+  const displayName = captain?.fullName || captain?.name || 'Captain';
+>>>>>>> Stashed changes
 
   return (
 <<<<<<< HEAD
@@ -970,27 +991,53 @@ export default function HomeScreen() {
         >
 =======
     <View style={styles.container}>
-      {/* Notification Bar for New Trips */}
-      <Animated.View 
-        style={[
-          styles.notificationBar,
-          { transform: [{ translateY: notificationAnim }] }
-        ]}
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        <View style={styles.notificationContent}>
-          <Bell size={20} color="#FFF" />
-          <Text style={styles.notificationText}>
-            {newTripNotifications.length} new trip{newTripNotifications.length !== 1 ? 's' : ''} available!
-          </Text>
-          <TouchableOpacity 
-            onPress={() => setNewTripNotifications([])}
-            style={styles.notificationClose}
-          >
-            <X size={18} color="#FFF" />
-          </TouchableOpacity>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Welcome back, {displayName}</Text>
+          <Text style={styles.headerSubtitle}>Ready to start your day?</Text>
         </View>
-      </Animated.View>
 
+        {/* Status Card */}
+        <AnimatedCard style={styles.statusCard}>
+          <View style={styles.statusHeader}>
+            <View style={styles.statusIcon}>
+              <Zap size={24} color="#10B981" />
+            </View>
+            <View>
+              <Text style={styles.statusTitle}>You're Online</Text>
+              <Text style={styles.statusSubtitle}>Ready to accept trips</Text>
+            </View>
+          </View>
+          <TouchableOpacity style={styles.statusButton}>
+            <Text style={styles.statusButtonText}>Go Offline</Text>
+          </TouchableOpacity>
+        </AnimatedCard>
+
+        {/* Quick Stats */}
+        <View style={styles.statsContainer}>
+          <AnimatedCard style={styles.statCard}>
+            <View style={styles.statIcon}>
+              <Clock size={20} color="#FB923C" />
+            </View>
+            <Text style={styles.statValue}>0</Text>
+            <Text style={styles.statLabel}>Today's Trips</Text>
+          </AnimatedCard>
+          
+          <AnimatedCard style={styles.statCard}>
+            <View style={styles.statIcon}>
+              <Navigation size={20} color="#3B82F6" />
+            </View>
+            <Text style={styles.statValue}>₹0</Text>
+            <Text style={styles.statLabel}>Today's Earnings</Text>
+          </AnimatedCard>
+        </View>
+
+<<<<<<< Updated upstream
       <Toast
         visible={toast.visible}
         message={toast.message}
@@ -1125,65 +1172,27 @@ export default function HomeScreen() {
 =======
             <Text style={styles.serviceInfo}>{vehicleType} • {serviceScope}</Text>
             <Text style={styles.serviceInfo}>⭐ {rating} | {totalTrips} trips</Text>
+=======
+        {/* Available Trips */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Available Trips</Text>
+          <AnimatedCard style={styles.emptyState}>
+            <MapPin size={48} color="#D1D5DB" />
+            <Text style={styles.emptyTitle}>No trips available</Text>
+            <Text style={styles.emptySubtitle}>We'll notify you when new trips come in</Text>
+          </AnimatedCard>
+        </View>
+>>>>>>> Stashed changes
 
-            {/* Availability toggle */}
-            <View style={styles.availabilityToggle}>
-              <Text style={styles.availabilityLabel}>{isAvailable ? 'Available' : 'Offline'}</Text>
-              <Button
-                title={isAvailable ? 'Go Offline' : 'Go Online'}
-                onPress={() => { 
-                  setIsAvailable((s) => !s); 
-                  showToast(isAvailable ? 'You are now offline' : 'You are now online', 'info'); 
-                }}
-                variant={isAvailable ? 'danger' : 'primary'}
-              />
-            </View>
+        
 
-
-            {/* Debug: Test Socket Connection */}
-            <View style={styles.debugSection}>
-              <Text style={styles.debugTitle}>Debug Info</Text>
-              <Text style={styles.debugText}>Socket: {socketRef.current?.connected ? 'Connected' : 'Disconnected'}</Text>
-              <Text style={styles.debugText}>Vehicle: {displayCaptain?.vehicleType}</Text>
-              <Text style={styles.debugText}>Available: {isAvailable ? 'Yes' : 'No'}</Text>
-              <TouchableOpacity 
-                style={styles.testButton}
-                onPress={() => {
-                  if (socketRef.current) {
-                    console.log('Testing socket connection...');
-                    socketRef.current.emit('test', { message: 'Hello from captain!' });
-                    showToast('Test message sent to socket', 'info');
-                  }
-                }}
-              >
-                <Text style={styles.testButtonText}>Test Socket</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.testButton, { backgroundColor: '#10B981', marginTop: 8 }]}
-                onPress={async () => {
-                  try {
-                    const response = await fetch('http://172.20.49.88:5000/test/transport', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ 
-                        vehicleType: displayCaptain?.vehicleType || 'truck',
-                        vehicleSubType: displayCaptain?.vehicleSubType || 'truck_mini_van'
-                      })
-                    });
-                    const data = await response.json();
-                    console.log('Test transport created:', data);
-                    showToast('Test transport request sent!', 'success');
-                  } catch (error) {
-                    console.error('Test transport error:', error);
-                    showToast('Failed to send test request', 'error');
-                  }
-                }}
-              >
-                <Text style={styles.testButtonText}>Send Test Trip</Text>
-              </TouchableOpacity>
-            </View>
+        {/* Notifications */}
+        <AnimatedCard style={styles.notificationCard}>
+          <View style={styles.notificationHeader}>
+            <Bell size={20} color="#FB923C" />
+            <Text style={styles.notificationTitle}>Stay Updated</Text>
           </View>
+<<<<<<< Updated upstream
 
           {/* Quick Stats */}
           <View style={styles.quickStats}>
@@ -1612,6 +1621,13 @@ export default function HomeScreen() {
       )}
     </SafeAreaView>
 =======
+=======
+          <Text style={styles.notificationText}>
+            Keep your location services enabled for better trip matching.
+          </Text>
+        </AnimatedCard>
+      </ScrollView>
+>>>>>>> Stashed changes
     </View>
 >>>>>>> 8ddfe9bcbf6d296c6af74a4afc9f4c14ba1cc746
   );
@@ -1625,6 +1641,7 @@ const styles = StyleSheet.create({
 =======
     backgroundColor: '#F8FAFC',
   },
+<<<<<<< Updated upstream
   notificationBar: {
     position: 'absolute',
     top: 0,
@@ -1900,24 +1917,115 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginTop: 12,
     fontWeight: '500',
+=======
+  content: {
+    paddingBottom: 24,
   },
-  newBadge: {
-    backgroundColor: '#EF4444',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+  header: {
+    backgroundColor: '#FB923C',
+    paddingTop: 50,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
   },
-  newBadgeText: {
-    color: '#FFF',
-    fontSize: 11,
+  headerTitle: {
+    fontSize: 24,
     fontWeight: '700',
-    letterSpacing: 0.5,
+    color: '#FFFFFF',
+    marginBottom: 4,
   },
-  map: {
-    height: 260,
-    borderRadius: 16,
+  headerSubtitle: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    opacity: 0.9,
+  },
+  statusCard: {
+    margin: 20,
+    marginBottom: 16,
+    padding: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  statusHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  statusIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#D1FAE5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  statusTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  statusSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  statusButton: {
+    backgroundColor: '#FEF2F2',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  statusButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#DC2626',
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    gap: 12,
+    marginBottom: 24,
+  },
+  statCard: {
+    flex: 1,
+    padding: 16,
+    alignItems: 'center',
+  },
+  statIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FEF3E7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+>>>>>>> Stashed changes
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  section: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
     marginBottom: 16,
   },
+<<<<<<< Updated upstream
   mapPlaceholder: {
     height: 260,
     alignItems: 'center',
@@ -1997,30 +2105,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 16,
 =======
+=======
+>>>>>>> Stashed changes
   emptyState: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 48,
+    padding: 32,
     alignItems: 'center',
+<<<<<<< Updated upstream
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 1,
 >>>>>>> 8ddfe9bcbf6d296c6af74a4afc9f4c14ba1cc746
+=======
+>>>>>>> Stashed changes
   },
-  emptyText: {
+  emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#111827',
     marginTop: 16,
     marginBottom: 8,
   },
-  emptySubtext: {
+  emptySubtitle: {
     fontSize: 14,
     color: '#6B7280',
     textAlign: 'center',
   },
+<<<<<<< Updated upstream
   emptyContainer: {
     alignItems: 'center',
     paddingVertical: 40,
@@ -2095,138 +2207,30 @@ const styles = StyleSheet.create({
   },
   fareContainer: {
     backgroundColor: '#F0FDF4',
+=======
+  notificationCard: {
+    margin: 20,
+>>>>>>> Stashed changes
     padding: 16,
-    borderRadius: 12,
-    marginVertical: 20,
-    alignItems: 'center',
-  },
-  fareLabel: {
-    fontSize: 12,
-    color: '#16A34A',
-    marginBottom: 4,
-    fontWeight: '600',
-  },
-  fareValue: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#16A34A',
-  },
-  modalButtonContainer: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  modalBtn: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  acceptBtn: {
-    backgroundColor: '#10B981',
-  },
-  declineBtn: {
-    backgroundColor: '#EF4444',
-  },
-  modalBtnText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 16,
-  },
-  modalText: {
-    fontSize: 14,
-    color: '#111827',
-    marginBottom: 8,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 16,
-  },
-  // Parcel card styles
-  parcelCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: '#FEF3E7',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#FED7AA',
   },
-  parcelHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  parcelId: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  parcelFare: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#10B981',
-  },
-  parcelLocations: {
-    marginBottom: 12,
-  },
-  parcelLocationRow: {
+  notificationHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
   },
-  pickupDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#10B981',
-    marginRight: 12,
-  },
-  dropoffDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#EF4444',
-    marginRight: 12,
-  },
-  parcelAddress: {
-    flex: 1,
-    fontSize: 14,
-    color: '#374151',
-    fontWeight: '500',
-  },
-  parcelDetails: {
-    marginBottom: 12,
-  },
-  parcelReceiver: {
-    fontSize: 14,
+  notificationTitle: {
+    fontSize: 16,
+    fontWeight: '600',
     color: '#111827',
-    fontWeight: '600',
-    marginBottom: 4,
+    marginLeft: 8,
   },
-  parcelPackage: {
-    fontSize: 13,
-    color: '#6B7280',
-  },
-  parcelActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-  },
-  acceptParcelButton: {
-    backgroundColor: '#10B981',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  acceptParcelButtonText: {
-    color: '#FFFFFF',
+  notificationText: {
     fontSize: 14,
-    fontWeight: '600',
+    color: '#6B7280',
+    lineHeight: 20,
   },
 });
 >>>>>>> 8ddfe9bcbf6d296c6af74a4afc9f4c14ba1cc746

@@ -1,189 +1,113 @@
-import React, { useRef } from 'react';
-import { TouchableOpacity, Text, StyleSheet, Animated, ViewStyle } from 'react-native';
-import { LucideIcon } from 'lucide-react-native';
+import React from 'react';
+import { TouchableOpacity, TouchableOpacityProps, ViewStyle, Text, TextStyle } from 'react-native';
 
-interface AnimatedButtonProps {
+interface AnimatedButtonProps extends TouchableOpacityProps {
   title: string;
-  onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'success' | 'danger';
-  size?: 'small' | 'medium' | 'large';
-  icon?: LucideIcon;
-  disabled?: boolean;
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
   style?: ViewStyle;
+  textStyle?: TextStyle;
 }
 
 export const AnimatedButton: React.FC<AnimatedButtonProps> = ({
   title,
-  onPress,
   variant = 'primary',
-  size = 'medium',
-  icon: Icon,
-  disabled = false,
+  size = 'md',
   loading = false,
   style,
+  textStyle,
+  disabled,
+  ...props
 }) => {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const opacityAnim = useRef(new Animated.Value(1)).current;
-
-  const handlePressIn = () => {
-    Animated.parallel([
-      Animated.spring(scaleAnim, {
-        toValue: 0.95,
-        useNativeDriver: true,
-        tension: 300,
-        friction: 10,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 0.8,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.parallel([
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        useNativeDriver: true,
-        tension: 300,
-        friction: 10,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
   const getVariantStyles = () => {
-    switch (variant) {
-      case 'primary':
-        return {
-          backgroundColor: '#3B82F6',
-          textColor: '#FFFFFF',
-        };
-      case 'secondary':
-        return {
-          backgroundColor: '#F3F4F6',
-          textColor: '#374151',
-        };
-      case 'success':
-        return {
-          backgroundColor: '#10B981',
-          textColor: '#FFFFFF',
-        };
-      case 'danger':
-        return {
-          backgroundColor: '#EF4444',
-          textColor: '#FFFFFF',
-        };
-      default:
-        return {
-          backgroundColor: '#3B82F6',
-          textColor: '#FFFFFF',
-        };
-    }
+    const baseStyles = {
+      borderRadius: 12,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      flexDirection: 'row' as const,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    };
+
+    const sizeStyles = {
+      sm: { paddingVertical: 8, paddingHorizontal: 16, minHeight: 36 },
+      md: { paddingVertical: 12, paddingHorizontal: 24, minHeight: 48 },
+      lg: { paddingVertical: 16, paddingHorizontal: 32, minHeight: 56 },
+    };
+
+    const variantStyles = {
+      primary: {
+        backgroundColor: '#FB923C',
+        shadowColor: '#FB923C',
+        shadowOpacity: 0.3,
+      },
+      secondary: {
+        backgroundColor: '#10B981',
+        shadowColor: '#10B981',
+        shadowOpacity: 0.3,
+      },
+      outline: {
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        borderColor: '#FB923C',
+        shadowOpacity: 0,
+      },
+      ghost: {
+        backgroundColor: 'transparent',
+        shadowOpacity: 0,
+      },
+    };
+
+    return {
+      ...baseStyles,
+      ...sizeStyles[size],
+      ...variantStyles[variant],
+      opacity: disabled || loading ? 0.6 : 1,
+    };
   };
 
-  const getSizeStyles = () => {
-    switch (size) {
-      case 'small':
-        return {
-          paddingVertical: 8,
-          paddingHorizontal: 12,
-          fontSize: 12,
-          borderRadius: 8,
-        };
-      case 'medium':
-        return {
-          paddingVertical: 12,
-          paddingHorizontal: 16,
-          fontSize: 14,
-          borderRadius: 10,
-        };
-      case 'large':
-        return {
-          paddingVertical: 16,
-          paddingHorizontal: 20,
-          fontSize: 16,
-          borderRadius: 12,
-        };
-      default:
-        return {
-          paddingVertical: 12,
-          paddingHorizontal: 16,
-          fontSize: 14,
-          borderRadius: 10,
-        };
-    }
-  };
+  const getTextStyles = (): TextStyle => {
+    const baseTextStyles = {
+      fontWeight: '700' as const,
+      textAlign: 'center' as const,
+    };
 
-  const variantStyles = getVariantStyles();
-  const sizeStyles = getSizeStyles();
+    const sizeTextStyles = {
+      sm: { fontSize: 14 },
+      md: { fontSize: 16 },
+      lg: { fontSize: 18 },
+    };
+
+    const variantTextStyles = {
+      primary: { color: '#FFFFFF' },
+      secondary: { color: '#FFFFFF' },
+      outline: { color: '#FB923C' },
+      ghost: { color: '#FB923C' },
+    };
+
+    return {
+      ...baseTextStyles,
+      ...sizeTextStyles[size],
+      ...variantTextStyles[variant],
+    };
+  };
 
   return (
-    <Animated.View
-      style={[
-        {
-          transform: [{ scale: scaleAnim }],
-          opacity: opacityAnim,
-        },
-      ]}
+    <TouchableOpacity
+      style={[getVariantStyles(), style]}
+      activeOpacity={0.8}
+      disabled={disabled || loading}
+      {...props}
     >
-      <TouchableOpacity
-        style={[
-          styles.button,
-          {
-            backgroundColor: variantStyles.backgroundColor,
-            paddingVertical: sizeStyles.paddingVertical,
-            paddingHorizontal: sizeStyles.paddingHorizontal,
-            borderRadius: sizeStyles.borderRadius,
-            opacity: disabled ? 0.5 : 1,
-          },
-          style,
-        ]}
-        onPress={onPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        disabled={disabled || loading}
-        activeOpacity={0.8}
-      >
-        <Text
-          style={[
-            styles.text,
-            {
-              color: variantStyles.textColor,
-              fontSize: sizeStyles.fontSize,
-              fontWeight: '600',
-            },
-          ]}
-        >
-          {loading ? 'Loading...' : title}
-        </Text>
-        {Icon && !loading && (
-          <Icon size={16} color={variantStyles.textColor} style={{ marginLeft: 8 }} />
-        )}
-      </TouchableOpacity>
-    </Animated.View>
+      <Text style={[getTextStyles(), textStyle]}>
+        {loading ? 'Loading...' : title}
+      </Text>
+    </TouchableOpacity>
   );
 };
 
-const styles = StyleSheet.create({
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  text: {
-    fontWeight: '600',
-  },
-});
-
+export default AnimatedButton;
