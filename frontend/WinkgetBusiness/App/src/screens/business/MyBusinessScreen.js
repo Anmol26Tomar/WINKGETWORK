@@ -24,6 +24,36 @@ const DETAILS_ENDPOINT = API_ENDPOINTS.VENDORS.DETAILS; // '/business/vendors/pu
 const DEFAULT_BUSINESS_ID = "68ea2cd8f7aa5ea6fe6e4070";
 
 const MyBusinessScreen = () => {
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [fadeAnim] = useState(new Animated.Value(0));
+
+  useEffect(() => {
+    // Simulate data loading
+    const timer = setTimeout(() => {
+      setLoading(false);
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }).start();
+    }, 900);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    // Simulate refresh
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1300);
+  };
+
+  if (loading) {
+    return <LoadingSpinner text="Loading your business..." />;
+  }
+
   const navigation = useNavigation();
   const route = useRoute();
   const { businessId, businessName } = route.params || {};
@@ -539,7 +569,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 24,
   },
   header: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
   },
   titleContainer: {
     alignItems: "center",
@@ -608,6 +638,10 @@ const styles = StyleSheet.create({
     color: "white",
   },
   content: {
+    padding: 24,
+    paddingBottom: 40,
+  },
+  cardContent: {
     padding: 20,
   },
   quickActionsRow: {
@@ -618,9 +652,13 @@ const styles = StyleSheet.create({
     marginBottom: 10, // small vertical gap before Business Information
   },
   infoCard: {
-    marginBottom: 20,
-    elevation: 2,
-    borderRadius: 12,
+    marginBottom: 24,
+    elevation: 4,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   infoTitle: {
     fontSize: 20,
@@ -639,11 +677,16 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     fontStyle: 'italic',
     marginTop: 8,
+    borderRadius: 12,
   },
   analyticsCard: {
-    marginBottom: 20,
-    elevation: 2,
-    borderRadius: 12,
+    marginBottom: 24,
+    elevation: 4,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   analyticsTitle: {
     fontSize: 18,
@@ -652,22 +695,40 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   analyticsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: 8,
     flexDirection: "row",
     justifyContent: "space-around",
   },
   analyticsItem: {
+    alignItems: 'center',
+    flex: 1,
     alignItems: "center",
   },
   analyticsNumber: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#8B5CF6',
     fontSize: 24,
     fontWeight: "bold",
     color: "#8B5CF6",
   },
   analyticsLabel: {
     fontSize: 14,
+    color: '#6B7280',
+    marginTop: 8,
+    textAlign: 'center',
     color: "#6B7280",
     marginTop: 4,
   },
+  quickActionsCard: {
+    elevation: 4,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   // quick actions removed
   // New styles for business data display
   loadingContainer: {
@@ -730,12 +791,22 @@ const styles = StyleSheet.create({
     elevation: 2,
     borderRadius: 12,
   },
+  quickActionsTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 20,
   postsTitle: {
     fontSize: 18,
     fontWeight: "bold",
     color: "#1F2937",
     marginBottom: 16,
   },
+  actionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
   postItem: {
     marginBottom: 16,
     paddingBottom: 16,

@@ -1,12 +1,12 @@
 import { Tabs } from 'expo-router';
-import { Hop as Home, DollarSign, User } from 'lucide-react-native';
+import { Home, IndianRupee, User, Wallet, Car, HelpCircle } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#2563EB',
+        tabBarActiveTintColor: '#FB923C',
         tabBarInactiveTintColor: '#9CA3AF',
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
@@ -44,7 +44,34 @@ export default function TabLayout() {
         options={{
           title: 'Earnings',
           tabBarIcon: ({ size, color }) => (
-            <DollarSign size={size} color={color} />
+            <IndianRupee size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="wallet"
+        options={{
+          title: 'Wallet',
+          tabBarIcon: ({ size, color }) => (
+            <Wallet size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="ride"
+        options={{
+          title: 'Ride',
+          tabBarIcon: ({ size, color }) => (
+            <Car size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="help"
+        options={{
+          title: 'Help',
+          tabBarIcon: ({ size, color }) => (
+            <HelpCircle size={size} color={color} />
           ),
         }}
       />

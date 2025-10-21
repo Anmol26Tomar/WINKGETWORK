@@ -150,7 +150,11 @@ export default function ParcelHistory({ serviceType = 'parcel' }) {
                 
                 <View style={styles.parcelFooter}>
                     <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
-                    <Text style={styles.vehicleText}>{item.vehicleType}</Text>
+                    <Text style={styles.vehicleText}>
+                        {item.vehicleType === 'truck' && item.vehicleSubType 
+                            ? item.vehicleSubType 
+                            : item.vehicleType}
+                    </Text>
                 </View>
             </TouchableOpacity>
         );

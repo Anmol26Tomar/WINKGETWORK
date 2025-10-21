@@ -9,11 +9,13 @@ const app = express();
 const http = require("http").createServer(app);
 const { Server } = require("socket.io");
 const { setIO } = require("./WinkgetExpress/utils/socket");
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
+const SERVER_IP = process.env.SERVER_IP || 'localhost';
 
 // Configure CORS to allow credentials
+const corsOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001','*'];
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001','*'],
+  origin: corsOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -74,7 +76,7 @@ app.use("/api/auth/admin", adminAuthRoutes);
 
 // express admin routing
 
-const io = new Server(http, { cors: { origin: "*" } });
+const io = new Server(http, { cors: { origin: process.env.SOCKET_CORS_ORIGIN || "*" } });
 setIO(io);
 
 io.on("connection", (socket) => {
@@ -106,4 +108,4 @@ io.on("connection", (socket) => {
   });
 });
 
-http.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT} and accessible from all interfaces`));
+http.listen(PORT, SERVER_IP, () => console.log(`Server running on ${SERVER_IP}:${PORT}`));

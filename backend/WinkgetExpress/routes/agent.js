@@ -535,4 +535,173 @@ router.post('/orders/:id/cancel', auth, async (req, res) => {
 	}
 });
 
+/**
+ * @route PUT /agent/availability
+ * @desc Update captain availability status
+ */
+router.put('/availability', auth, async (req, res) => {
+	try {
+		const captainId = req.user.id;
+		const { is_available } = req.body;
+		
+		const captain = await Agent.findById(captainId);
+		if (!captain) {
+			return res.status(404).json({ message: 'Captain not found' });
+		}
+		
+		captain.isAvailable = is_available;
+		await captain.save();
+		
+		return res.status(200).json({ 
+			message: 'Availability updated successfully',
+			is_available: captain.isAvailable 
+		});
+	} catch (error) {
+		console.error('Error updating availability:', error);
+		return res.status(500).json({ message: 'Internal Server Error' });
+	}
+});
+
+/**
+ * @route GET /agent/earnings
+ * @desc Get captain earnings history
+ */
+router.get('/earnings', auth, async (req, res) => {
+	try {
+		const captainId = req.user.id;
+		const { start_date, end_date } = req.query;
+		
+		// Build date filter
+		const dateFilter = {};
+		if (start_date) dateFilter.$gte = new Date(start_date);
+		if (end_date) dateFilter.$lte = new Date(end_date);
+		
+		// Get completed trips from both models
+		const [transportEarnings, parcelEarnings] = await Promise.all([
+			Transport.find({ 
+				captainRef: captainId, 
+				status: 'completed',
+				...(Object.keys(dateFilter).length > 0 && { completedAt: dateFilter })
+			}).select('fareEstimate completedAt').lean(),
+			
+			Parcel.find({ 
+				captainRef: captainId, 
+				status: 'delivered',
+				...(Object.keys(dateFilter).length > 0 && { updatedAt: dateFilter })
+			}).select('fareEstimate updatedAt').lean()
+		]);
+		
+		// Combine and format earnings
+		const earnings = [
+			...transportEarnings.map(trip => ({
+				id: trip._id,
+				amount: trip.fareEstimate || 0,
+				date: trip.completedAt || new Date(),
+				type: 'transport'
+			})),
+			...parcelEarnings.map(trip => ({
+				id: trip._id,
+				amount: trip.fareEstimate || 0,
+				date: trip.updatedAt || new Date(),
+				type: 'parcel'
+			}))
+		].sort((a, b) => new Date(b.date) - new Date(a.date));
+		
+		return res.status(200).json(earnings);
+	} catch (error) {
+		console.error('Error fetching earnings:', error);
+		return res.status(500).json({ message: 'Internal Server Error' });
+	}
+});
+
+/**
+ * @route GET /agent/earnings/summary
+ * @desc Get captain earnings summary
+ */
+router.get('/earnings/summary', auth, async (req, res) => {
+	try {
+		const captainId = req.user.id;
+		
+		// Get today's date range
+		const today = new Date();
+		today.setHours(0, 0, 0, 0);
+		const tomorrow = new Date(today);
+		tomorrow.setDate(tomorrow.getDate() + 1);
+		
+		// Get this week's date range
+		const weekStart = new Date(today);
+		weekStart.setDate(weekStart.getDate() - today.getDay());
+		
+		// Get this month's date range
+		const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+		
+		// Calculate earnings for different periods
+		const [todayEarnings, weekEarnings, monthEarnings, totalEarnings] = await Promise.all([
+			// Today's earnings
+			Promise.all([
+				Transport.aggregate([
+					{ $match: { captainRef: captainId, status: 'completed', completedAt: { $gte: today, $lt: tomorrow } } },
+					{ $group: { _id: null, total: { $sum: '$fareEstimate' } } }
+				]),
+				Parcel.aggregate([
+					{ $match: { captainRef: captainId, status: 'delivered', updatedAt: { $gte: today, $lt: tomorrow } } },
+					{ $group: { _id: null, total: { $sum: '$fareEstimate' } } }
+				])
+			]),
+			
+			// This week's earnings
+			Promise.all([
+				Transport.aggregate([
+					{ $match: { captainRef: captainId, status: 'completed', completedAt: { $gte: weekStart } } },
+					{ $group: { _id: null, total: { $sum: '$fareEstimate' } } }
+				]),
+				Parcel.aggregate([
+					{ $match: { captainRef: captainId, status: 'delivered', updatedAt: { $gte: weekStart } } },
+					{ $group: { _id: null, total: { $sum: '$fareEstimate' } } }
+				])
+			]),
+			
+			// This month's earnings
+			Promise.all([
+				Transport.aggregate([
+					{ $match: { captainRef: captainId, status: 'completed', completedAt: { $gte: monthStart } } },
+					{ $group: { _id: null, total: { $sum: '$fareEstimate' } } }
+				]),
+				Parcel.aggregate([
+					{ $match: { captainRef: captainId, status: 'delivered', updatedAt: { $gte: monthStart } } },
+					{ $group: { _id: null, total: { $sum: '$fareEstimate' } } }
+				])
+			]),
+			
+			// Total earnings
+			Promise.all([
+				Transport.aggregate([
+					{ $match: { captainRef: captainId, status: 'completed' } },
+					{ $group: { _id: null, total: { $sum: '$fareEstimate' } } }
+				]),
+				Parcel.aggregate([
+					{ $match: { captainRef: captainId, status: 'delivered' } },
+					{ $group: { _id: null, total: { $sum: '$fareEstimate' } } }
+				])
+			])
+		]);
+		
+		// Calculate totals
+		const todayTotal = (todayEarnings[0][0]?.total || 0) + (todayEarnings[1][0]?.total || 0);
+		const weekTotal = (weekEarnings[0][0]?.total || 0) + (weekEarnings[1][0]?.total || 0);
+		const monthTotal = (monthEarnings[0][0]?.total || 0) + (monthEarnings[1][0]?.total || 0);
+		const totalAmount = (totalEarnings[0][0]?.total || 0) + (totalEarnings[1][0]?.total || 0);
+		
+		return res.status(200).json({
+			today: todayTotal,
+			week: weekTotal,
+			month: monthTotal,
+			total: totalAmount
+		});
+	} catch (error) {
+		console.error('Error fetching earnings summary:', error);
+		return res.status(500).json({ message: 'Internal Server Error' });
+	}
+});
+
 module.exports = router;

@@ -1,41 +1,80 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  RefreshControl,
+  Animated,
 } from 'react-native';
 import { Card, Title, Paragraph, Button, List } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
+import LoadingSpinner from '../../components/LoadingSpinner';
 
 const ProfileScreen = () => {
   const { user, logout } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [fadeAnim] = useState(new Animated.Value(0));
+
+  useEffect(() => {
+    // Simulate data loading
+    const timer = setTimeout(() => {
+      setLoading(false);
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }).start();
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleLogout = async () => {
     await logout();
   };
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    // Simulate refresh
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1200);
+  };
+
+  if (loading) {
+    return <LoadingSpinner text="Loading your profile..." />;
+  }
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
       <LinearGradient
         colors={['#F59E0B', '#D97706']}
         style={styles.headerGradient}
       >
         <View style={styles.header}>
-          <View style={styles.profileContainer}>
+          <Animated.View 
+            style={[styles.profileContainer, { opacity: fadeAnim }]}
+          >
             <Ionicons name="person-circle" size={80} color="white" />
             <Title style={styles.name}>{user?.name || 'User'}</Title>
             <Text style={styles.email}>{user?.email || 'user@example.com'}</Text>
-          </View>
+          </Animated.View>
         </View>
       </LinearGradient>
 
-      <View style={styles.content}>
+      <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
         <Card style={styles.profileCard}>
-          <Card.Content>
+          <Card.Content style={styles.cardContent}>
             <Title style={styles.profileTitle}>Profile Information</Title>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Name:</Text>
@@ -58,7 +97,7 @@ const ProfileScreen = () => {
         </Card>
 
         <Card style={styles.settingsCard}>
-          <Card.Content>
+          <Card.Content style={styles.cardContent}>
             <Title style={styles.settingsTitle}>Settings</Title>
             <List.Item
               title="Account Settings"
@@ -66,6 +105,7 @@ const ProfileScreen = () => {
               left={(props) => <List.Icon {...props} icon="account-cog" />}
               right={(props) => <List.Icon {...props} icon="chevron-right" />}
               onPress={() => {}}
+              style={styles.listItem}
             />
             <List.Item
               title="Notifications"
@@ -73,6 +113,7 @@ const ProfileScreen = () => {
               left={(props) => <List.Icon {...props} icon="bell" />}
               right={(props) => <List.Icon {...props} icon="chevron-right" />}
               onPress={() => {}}
+              style={styles.listItem}
             />
             <List.Item
               title="Privacy & Security"
@@ -80,6 +121,7 @@ const ProfileScreen = () => {
               left={(props) => <List.Icon {...props} icon="shield-account" />}
               right={(props) => <List.Icon {...props} icon="chevron-right" />}
               onPress={() => {}}
+              style={styles.listItem}
             />
             <List.Item
               title="Help & Support"
@@ -87,6 +129,7 @@ const ProfileScreen = () => {
               left={(props) => <List.Icon {...props} icon="help-circle" />}
               right={(props) => <List.Icon {...props} icon="chevron-right" />}
               onPress={() => {}}
+              style={styles.listItem}
             />
           </Card.Content>
         </Card>
@@ -100,7 +143,7 @@ const ProfileScreen = () => {
             <Text style={styles.logoutText}>Logout</Text>
           </LinearGradient>
         </TouchableOpacity>
-      </View>
+      </Animated.View>
     </ScrollView>
   );
 };
@@ -111,44 +154,54 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   headerGradient: {
-    paddingTop: 50,
-    paddingBottom: 30,
+    paddingTop: 60,
+    paddingBottom: 40,
   },
   header: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
   },
   profileContainer: {
     alignItems: 'center',
   },
   name: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     color: 'white',
-    marginTop: 16,
-    marginBottom: 8,
+    marginTop: 20,
+    marginBottom: 12,
   },
   email: {
-    fontSize: 16,
+    fontSize: 18,
     color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
   },
   content: {
+    padding: 24,
+    paddingBottom: 40,
+  },
+  cardContent: {
     padding: 20,
   },
   profileCard: {
-    marginBottom: 20,
-    elevation: 2,
-    borderRadius: 12,
+    marginBottom: 24,
+    elevation: 4,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   profileTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#1F2937',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   infoRow: {
     flexDirection: 'row',
-    marginBottom: 12,
+    marginBottom: 16,
     alignItems: 'center',
+    paddingVertical: 4,
   },
   infoLabel: {
     fontSize: 16,
@@ -162,29 +215,42 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   editButton: {
-    marginTop: 16,
+    marginTop: 20,
+    borderRadius: 12,
   },
   settingsCard: {
-    marginBottom: 20,
-    elevation: 2,
-    borderRadius: 12,
+    marginBottom: 24,
+    elevation: 4,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   settingsTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#1F2937',
-    marginBottom: 16,
+    marginBottom: 20,
+  },
+  listItem: {
+    paddingVertical: 8,
+    marginVertical: 4,
   },
   logoutButton: {
-    borderRadius: 12,
-    elevation: 2,
+    borderRadius: 16,
+    elevation: 4,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   logoutGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
+    paddingVertical: 18,
     paddingHorizontal: 24,
   },
   logoutText: {

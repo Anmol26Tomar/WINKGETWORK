@@ -7,7 +7,7 @@ import {
   RefreshControl,
   TouchableOpacity,
 } from 'react-native';
-import { DollarSign, TrendingUp, Calendar, ArrowUpRight } from 'lucide-react-native';
+import { IndianRupee, TrendingUp, Calendar, ArrowUpRight } from 'lucide-react-native';
 import { earningsService } from '../../services/api';
 import type { Earning, EarningSummary } from '../../types';
 import { useDummyData } from '../../services/dummyData';
@@ -22,6 +22,7 @@ export default function EarningsScreen() {
 
   const fetchEarnings = async () => {
     try {
+      setLoading(true);
       const [summaryData, earningsData] = await Promise.all([
         earningsService.getSummary(),
         earningsService.getEarnings(),
@@ -29,7 +30,8 @@ export default function EarningsScreen() {
       setSummary(summaryData);
       setEarnings(earningsData);
     } catch (error) {
-      console.log('Using dummy data');
+      console.log('Error fetching earnings, using dummy data:', error);
+      // Fallback to dummy data if API fails
       setSummary(dummyData.earningSummary);
       setEarnings(dummyData.earnings);
     } finally {
@@ -63,7 +65,7 @@ export default function EarningsScreen() {
     })}`;
   };
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <View style={styles.centerContainer}>
         <Text style={styles.loadingText}>Loading earnings...</Text>
@@ -99,12 +101,12 @@ export default function EarningsScreen() {
           <View style={styles.mainCard}>
             <View style={styles.mainCardHeader}>
               <View style={styles.mainCardIconContainer}>
-                <TrendingUp size={24} color="#10B981" />
+                <TrendingUp size={24} color="#FF6B35" />
               </View>
               <View style={styles.mainCardTitleContainer}>
                 <Text style={styles.mainCardLabel}>Total Earnings</Text>
                 <View style={styles.changeIndicator}>
-                  <ArrowUpRight size={14} color="#10B981" />
+                  <ArrowUpRight size={14} color="#FF6B35" />
                   <Text style={styles.changeText}>+{todayChange.percentage}%</Text>
                 </View>
               </View>
@@ -116,10 +118,10 @@ export default function EarningsScreen() {
           <View style={styles.summaryGrid}>
             <View style={[styles.summaryCard, styles.summaryCardToday]}>
               <View style={styles.summaryCardIcon}>
-                <DollarSign size={18} color="#2563EB" />
+                <IndianRupee size={18} color="#2563EB" />
               </View>
               <Text style={styles.summaryCardLabel}>Today</Text>
-              <Text style={[styles.summaryCardAmount, { color: '#2563EB' }]}>
+              <Text style={[styles.summaryCardAmount, { color: '#FF6B35' }]}>
                 {formatCurrency(summary.today)}
               </Text>
             </View>
@@ -186,7 +188,7 @@ export default function EarningsScreen() {
           </View>
           {earnings.length === 0 ? (
             <View style={styles.emptyState}>
-              <DollarSign size={48} color="#D1D5DB" />
+              <IndianRupee size={48} color="#D1D5DB" />
               <Text style={styles.emptyText}>No earnings yet</Text>
               <Text style={styles.emptySubtext}>
                 Complete trips to start earning
@@ -197,7 +199,7 @@ export default function EarningsScreen() {
               <View key={earning.id} style={styles.earningCard}>
                 <View style={styles.earningLeft}>
                   <View style={styles.iconContainer}>
-                    <DollarSign size={20} color="#10B981" />
+                    <IndianRupee size={20} color="#10B981" />
                   </View>
                   <View style={styles.earningInfo}>
                     <Text style={styles.earningTitle}>Trip Payment</Text>
@@ -313,7 +315,7 @@ const styles = StyleSheet.create({
   },
   changeText: {
     fontSize: 12,
-    color: '#10B981',
+    color: '#FF6B35',
     fontWeight: '600',
   },
   mainCardAmount: {
@@ -344,7 +346,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   summaryCardToday: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#FEF3F2',
     borderWidth: 2,
     borderColor: '#BFDBFE',
   },
@@ -385,8 +387,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   filterButtonActive: {
-    borderColor: '#2563EB',
-    backgroundColor: '#EFF6FF',
+    borderColor: '#FF6B35',
+    backgroundColor: '#FEF3F2',
   },
   filterButtonText: {
     fontSize: 14,
@@ -394,7 +396,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   filterButtonTextActive: {
-    color: '#2563EB',
+    color: '#FF6B35',
   },
   historySection: {
     padding: 16,
@@ -469,7 +471,7 @@ const styles = StyleSheet.create({
   earningAmount: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#10B981',
+    color: '#FF6B35',
   },
   newBadge: {
     backgroundColor: '#DBEAFE',
@@ -481,7 +483,7 @@ const styles = StyleSheet.create({
   newBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#2563EB',
+    color: '#FF6B35',
   },
   emptyState: {
     backgroundColor: '#FFFFFF',

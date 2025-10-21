@@ -9,10 +9,18 @@ export function haversineKm(a, b) {
 	return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-export function estimateFareKm(distanceKm, vehicleType = 'bike') {
+export function estimateFareKm(distanceKm, vehicleType = 'bike', typeOfDelivery = 'standard') {
 	const base = vehicleType === 'truck' ? 50 : vehicleType === 'cab' ? 30 : 20;
 	const perKm = vehicleType === 'truck' ? 20 : vehicleType === 'cab' ? 12 : 8;
-	return Math.round((base + distanceKm * perKm) * 100) / 100;
+	
+	let fare = base + distanceKm * perKm;
+	
+	// Add express delivery surcharge (50% extra for express delivery)
+	if (typeOfDelivery === 'express') {
+		fare = fare * 1.5;
+	}
+	
+	return Math.round(fare * 100) / 100;
 }
 
 
