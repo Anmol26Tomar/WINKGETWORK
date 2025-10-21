@@ -138,12 +138,12 @@ export default function HelpScreen() {
                 delay={index * 100}
                 style={styles.faqItem}
               >
-                <AnimatedCard style={styles.faqItem} pressScale={0.98}>
+                <AnimatedCard style={styles.faqItem}>
                   <View style={[styles.faqIcon, { backgroundColor: category.color }]}>
                     <IconComponent size={20} color="#FFFFFF" />
                   </View>
                   <View style={styles.faqContent}>
-                    <Text style={styles.faqTitle}>{category.title}</Text>
+                    <Text style={styles.faqItemTitle}>{category.title}</Text>
                     <Text style={styles.faqDescription}>{category.description}</Text>
                   </View>
                   <ChevronRight size={20} color="#9CA3AF" />
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
   faqContent: {
     flex: 1,
   },
-  faqTitle: {
+  faqItemTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#111827',

@@ -1,20 +1,12 @@
 import { Tabs } from 'expo-router';
-<<<<<<< Updated upstream
-import { Ionicons } from '@expo/vector-icons';
-=======
 import { Home, IndianRupee, User, Wallet, Car, HelpCircle } from 'lucide-react-native';
->>>>>>> Stashed changes
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-<<<<<<< Updated upstream
-        tabBarActiveTintColor: '#FF6B35',
-=======
         tabBarActiveTintColor: '#FB923C',
->>>>>>> Stashed changes
         tabBarInactiveTintColor: '#9CA3AF',
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
@@ -43,7 +35,7 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ size, color }) => (
-            <Ionicons name="home" size={size} color={color} />
+            <Home size={size} color={color} />
           ),
         }}
       />
@@ -52,9 +44,6 @@ export default function TabLayout() {
         options={{
           title: 'Earnings',
           tabBarIcon: ({ size, color }) => (
-<<<<<<< Updated upstream
-            <Ionicons name="cash" size={size} color={color} />
-=======
             <IndianRupee size={size} color={color} />
           ),
         }}
@@ -83,7 +72,6 @@ export default function TabLayout() {
           title: 'Help',
           tabBarIcon: ({ size, color }) => (
             <HelpCircle size={size} color={color} />
->>>>>>> Stashed changes
           ),
         }}
       />
@@ -92,34 +80,7 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ size, color }) => (
-            <Ionicons name="person" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="transfer-earnings"
-        options={{
-          title: 'Wallet',
-          tabBarIcon: ({ size, color }) => (
-            <Ionicons name="wallet" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="ride"
-        options={{
-          title: 'Ride',
-          tabBarIcon: ({ size, color }) => (
-            <Ionicons name="car" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="help-support"
-        options={{
-          title: 'Help',
-          tabBarIcon: ({ size, color }) => (
-            <Ionicons name="help-circle" size={size} color={color} />
+            <User size={size} color={color} />
           ),
         }}
       />

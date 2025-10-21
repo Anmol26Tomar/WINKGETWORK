@@ -7,10 +7,8 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
-import { Wallet, IndianRupee, Clock, Filter, ArrowUpRight, HelpCircle } from 'lucide-react-native';
-import AnimatedView from '../../components/AnimatedView';
+import { IndianRupee, Filter, ArrowUpRight, HelpCircle } from 'lucide-react-native';
 import AnimatedCard from '../../components/AnimatedCard';
-import AnimatedButton from '../../components/AnimatedButton';
 
 export default function WalletScreen() {
   const [refreshing, setRefreshing] = useState(false);

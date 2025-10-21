@@ -1,4 +1,5 @@
 'use client'
+import React, { JSX } from "react";
 
 import { useMemo, useState } from "react"
 import {
@@ -319,10 +320,6 @@ const styles = StyleSheet.create({
     paddingBottom: 50,
   },
   formWrapper: { flex: 1 },
-<<<<<<< Updated upstream
-  title: { fontSize: 28, fontWeight: "800", color: "#0F172A", marginBottom: 20 },
-  toggleRow: { flexDirection: "row", gap: 8, marginBottom: 12 },
-=======
   title: { 
     fontSize: 32, 
     fontWeight: "800", 
@@ -342,7 +339,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     justifyContent: "center",
   },
->>>>>>> Stashed changes
   tag: {
     paddingVertical: 12,
     paddingHorizontal: 20,
@@ -372,14 +368,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "700",
   },
-<<<<<<< Updated upstream
-  tagActive: { backgroundColor: "#FF6B35", borderColor: "#FF6B35" },
-  tagTxt: { color: "#111827", fontWeight: "600" },
-  tagTxtActive: { color: "#FFFFFF" },
-
-  input: { backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E5E7EB", borderRadius: 12, padding: 14, marginBottom: 12,
-    shadowColor: "rgba(2,6,23,0.04)", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 6, elevation: 1 },
-=======
 
   input: {
     backgroundColor: "#FFFFFF",
@@ -395,7 +383,6 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
->>>>>>> Stashed changes
 
   sectionLabel: {
     fontSize: 16,
@@ -445,24 +432,11 @@ const styles = StyleSheet.create({
     color: "#FB923C",
     fontWeight: "700",
   },
-<<<<<<< Updated upstream
-  optionBtnActive: { borderColor: "#FF6B35", backgroundColor: "#FEF3F2" },
-  optionTxt: { fontSize: 14, fontWeight: "600", color: "#6B7280" },
-  optionTxtActive: { color: "#FF6B35" },
-=======
->>>>>>> Stashed changes
 
-<<<<<<< HEAD
-  btn: {
-<<<<<<< Updated upstream
-    backgroundColor: "#FF6B35",
-    padding: 14,
-    borderRadius: 12,
-=======
+  btn: { 
     backgroundColor: "#FB923C",
-    padding: 18,
+    padding: 16,
     borderRadius: 16,
->>>>>>> Stashed changes
     alignItems: "center",
     marginTop: 20,
     shadowColor: "#FB923C",
@@ -471,10 +445,6 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 6,
   },
-=======
-  btn: { backgroundColor: "#1E40AF", padding: 16, borderRadius: 14, alignItems: "center", marginTop: 12,
-    shadowColor: "rgba(2,6,23,0.15)", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 1, shadowRadius: 12, elevation: 3 },
->>>>>>> 8ddfe9bcbf6d296c6af74a4afc9f4c14ba1cc746
   btnDisabled: { opacity: 0.7 },
   btnTxt: { 
     color: "#fff", 
@@ -482,10 +452,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
 
-<<<<<<< Updated upstream
-  switchTxt: { marginTop: 16, color: "#6B7280" },
-  link: { color: "#FF6B35", fontWeight: "700" },
-=======
   switchTxt: { 
     marginTop: 24, 
     color: "#6B7280",
@@ -496,5 +462,5 @@ const styles = StyleSheet.create({
     color: "#FB923C", 
     fontWeight: "700",
   },
->>>>>>> Stashed changes
-})
+});
+

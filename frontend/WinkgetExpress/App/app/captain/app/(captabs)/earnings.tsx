@@ -118,11 +118,7 @@ export default function EarningsScreen() {
           <View style={styles.summaryGrid}>
             <View style={[styles.summaryCard, styles.summaryCardToday]}>
               <View style={styles.summaryCardIcon}>
-<<<<<<< Updated upstream
-                <DollarSign size={18} color="#FF6B35" />
-=======
                 <IndianRupee size={18} color="#2563EB" />
->>>>>>> Stashed changes
               </View>
               <Text style={styles.summaryCardLabel}>Today</Text>
               <Text style={[styles.summaryCardAmount, { color: '#FF6B35' }]}>
@@ -203,11 +199,7 @@ export default function EarningsScreen() {
               <View key={earning.id} style={styles.earningCard}>
                 <View style={styles.earningLeft}>
                   <View style={styles.iconContainer}>
-<<<<<<< Updated upstream
-                    <DollarSign size={20} color="#FF6B35" />
-=======
                     <IndianRupee size={20} color="#10B981" />
->>>>>>> Stashed changes
                   </View>
                   <View style={styles.earningInfo}>
                     <Text style={styles.earningTitle}>Trip Payment</Text>
