@@ -108,8 +108,4 @@ io.on("connection", (socket) => {
   });
 });
 
-<<<<<<< Updated upstream
-http.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT} and accessible from all interfaces`));
-=======
 http.listen(PORT, SERVER_IP, () => console.log(`Server running on ${SERVER_IP}:${PORT}`));
->>>>>>> Stashed changes
