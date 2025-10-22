@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
-import { Colors } from '../theme/theme';
+import { theme } from '../theme/theme';
 
 const LoadingSpinner = ({ 
   size = 'large', 
-  color = Colors.primary, 
+  color = theme.colors.primary, 
   text = 'Loading...', 
   overlay = false,
   style = {} 
@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
   text: {
     marginTop: 12,
     fontSize: 16,
-    color: Colors.textSecondary,
+    color: theme.colors.placeholder,
     textAlign: 'center',
   },
 });
