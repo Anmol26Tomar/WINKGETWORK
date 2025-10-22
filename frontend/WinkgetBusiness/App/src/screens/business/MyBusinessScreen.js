@@ -17,6 +17,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from '@react-navigation/native';
 import api, { API_ENDPOINTS } from '../../config/api';
+import LoadingSpinner from '../../components/LoadingSpinner';
 
 // Use shared Axios base URL and endpoints to avoid mismatches across environments
 const DETAILS_ENDPOINT = API_ENDPOINTS.VENDORS.DETAILS; // '/business/vendors/public'
@@ -24,14 +25,14 @@ const DETAILS_ENDPOINT = API_ENDPOINTS.VENDORS.DETAILS; // '/business/vendors/pu
 const DEFAULT_BUSINESS_ID = "68ea2cd8f7aa5ea6fe6e4070";
 
 const MyBusinessScreen = () => {
-  const [loading, setLoading] = useState(true);
+  const [bootLoading, setBootLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(0));
 
   useEffect(() => {
     // Simulate data loading
     const timer = setTimeout(() => {
-      setLoading(false);
+      setBootLoading(false);
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 500,
@@ -50,7 +51,7 @@ const MyBusinessScreen = () => {
     }, 1300);
   };
 
-  if (loading) {
+  if (bootLoading) {
     return <LoadingSpinner text="Loading your business..." />;
   }
 
@@ -729,6 +730,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
+  },
   // quick actions removed
   // New styles for business data display
   loadingContainer: {
@@ -796,6 +798,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1F2937',
     marginBottom: 20,
+  },
   postsTitle: {
     fontSize: 18,
     fontWeight: "bold",
@@ -807,6 +810,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     gap: 12,
+  },
   postItem: {
     marginBottom: 16,
     paddingBottom: 16,
@@ -981,6 +985,6 @@ const styles = StyleSheet.create({
     bottom: 24,
     backgroundColor: "#8B5CF6",
   },
-});
+})
 
 export default MyBusinessScreen;
