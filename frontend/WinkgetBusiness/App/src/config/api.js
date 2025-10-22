@@ -13,14 +13,13 @@ const getBaseUrl = () => {
       : `${envUrl.replace(/\/$/, '')}/api`;
   }
 
-  // Android emulator: Try multiple IP addresses
+  // Android: prefer your LAN IP directly
   if (Platform.OS === 'android') {
-    // Try actual machine IP first, then fallback to 10.0.2.2
-    return 'http://10.134.88.162:5000/api';
+    return 'http://192.168.1.15:5000/api';
   }
 
-  // iOS simulator / web: localhost works
-  return 'http://localhost:5000/api';
+  // iOS simulator / web
+  return 'http://192.168.1.15:5000/api';
 };
 
 const BASE_URL = getBaseUrl();
@@ -40,7 +39,7 @@ const testConnectivity = async () => {
     console.error('❌ Backend connectivity test failed:', error.message);
     
     // If Android and first IP failed, try 10.0.2.2
-    if (Platform.OS === 'android' && baseUrl.includes('10.134.88.162')) {
+    if (Platform.OS === 'android' && baseUrl.includes('192.168.1.15')) {
       console.log('🔄 Trying fallback IP: 10.0.2.2');
       try {
         const fallbackResponse = await fetch('http://10.0.2.2:5000/health');
@@ -68,9 +67,9 @@ const api = axios.create({
 
 // Alternative IP addresses for Android emulator
 const ANDROID_IP_ALTERNATIVES = [
-  'http://10.134.88.162:5000/api',  // Current machine IP
-  'http://10.0.2.2:5000/api',        // Traditional Android emulator IP
-  'http://localhost:5000/api',       // Localhost (if using web)
+  'http://192.168.1.15:5000/api',  // Current machine IP
+  'http://10.0.2.2:5000/api',      // Traditional Android emulator IP
+  'http://192.168.1.15:5000/api',  // LAN for web
 ];
 
 // 🔐 Request interceptor to attach auth token

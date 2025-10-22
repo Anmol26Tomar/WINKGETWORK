@@ -108,4 +108,4 @@ io.on("connection", (socket) => {
   });
 });
 
-http.listen(PORT, SERVER_IP, () => console.log(`Server running on ${SERVER_IP}:${PORT}`));
+http.listen(PORT, '0.0.0.0', () => console.log(`Server running on 0.0.0.0:${PORT}`));

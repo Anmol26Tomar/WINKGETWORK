@@ -77,7 +77,7 @@ export default function VerifyOTPScreen() {
     try {
       const targetPhone = phone || pendingPhone;
       if (!targetPhone) throw new Error('Missing phone');
-      const base = process.env.EXPO_PUBLIC_API_BASE || 'http://10.85.122.137:3001';
+      const base = process.env.EXPO_PUBLIC_API_BASE || 'http://192.168.1.14:5000';
       await fetch(`${base}/api/auth/agent/resend-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: targetPhone }) });
       Alert.alert('Success', 'OTP has been resent to your phone');
       setOtp(['', '', '', '', '', '']);
