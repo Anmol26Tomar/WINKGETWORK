@@ -20,6 +20,9 @@ import PromotionalBanner from './components/PromotionalBanner';
 import CategoryGrid from './components/CategoryGrid';
 import { FadeInView, FadeInUpView } from './components/animations';
 import FeaturedBusinesses from './components/FeaturedBusinesses';
+import JustdialBanner from './components/JustdialBanner';
+import ServiceIcons from './components/ServiceIcons';
+import FestivalBanner from './components/FestivalBanner';
 
 const { width, height } = Dimensions.get('window');
 
@@ -207,6 +210,37 @@ const DashboardScreen = ({ navigation }) => {
                 vendorName: vendor.shopName || vendor.storeName || vendor.name,
                 vendor: vendor
               });
+            }}
+          />
+        </FadeInUpView>
+        
+        {/* Justdial-style Banner */}
+        <FadeInUpView delay={220}>
+          <JustdialBanner 
+            onPress={() => {
+              console.log('Justdial banner pressed');
+              // Navigate to business listing page
+            }}
+          />
+        </FadeInUpView>
+        
+        {/* Service Icons Section */}
+        <FadeInUpView delay={240}>
+          <ServiceIcons 
+            onServicePress={(service) => {
+              console.log('Service pressed:', service);
+              // Handle service navigation
+            }}
+          />
+        </FadeInUpView>
+        
+        {/* Festival Decorators Banner */}
+        <FadeInUpView delay={260}>
+          <FestivalBanner 
+            onPress={() => {
+              console.log('Festival banner pressed');
+              // Navigate to event organizers or decorators
+              navigation.navigate('CategoryBusinessList', { category: 'Event Organisers' });
             }}
           />
         </FadeInUpView>

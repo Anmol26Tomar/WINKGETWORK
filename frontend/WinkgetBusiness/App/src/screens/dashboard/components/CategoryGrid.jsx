@@ -40,7 +40,8 @@ const CategoryGrid = ({ categories, onPressCategory }) => {
 
   const enhancedCategories = [...previousCategories, ...additionalCategories];
   
-  const displayCategories = showAll ? enhancedCategories : enhancedCategories.slice(0, 12);
+  // Show exactly 12 items: 11 categories + 1 "View All" button
+  const displayCategories = enhancedCategories.slice(0, 11);
 
   const toggleView = () => {
     setShowAll(!showAll);
@@ -109,32 +110,30 @@ const CategoryGrid = ({ categories, onPressCategory }) => {
       <View style={styles.grid}>
         {displayCategories.map((category, index) => renderCategoryCard(category, index))}
         
-        {/* View More/Less Button */}
-        {enhancedCategories.length > 12 && (
-          <TouchableOpacity
-            activeOpacity={0.7}
-            style={styles.card}
-            onPress={toggleView}
-          >
-            <View style={[styles.cardInner, styles.viewMoreCard]}>
-              <View style={styles.cardContent}>
-                <View style={styles.iconContainer}>
-                  <Icon 
-                    name={showAll ? "chevron-up" : "grid"} 
-                    size={16} 
-                    color="#6B7280" 
-                  />
-                </View>
-                <Text style={[styles.categoryName, styles.viewMoreText]} numberOfLines={2}>
-                  {showAll ? "View Less" : "View All"}
-                </Text>
-                <Text style={styles.categoryCount}>
-                  {showAll ? "Show fewer" : "See all categories"}
-                </Text>
+        {/* View All Button - Always show as 12th item */}
+        <TouchableOpacity
+          activeOpacity={0.7}
+          style={styles.card}
+          onPress={toggleView}
+        >
+          <View style={[styles.cardInner, styles.viewMoreCard]}>
+            <View style={styles.cardContent}>
+              <View style={styles.iconContainer}>
+                <Icon 
+                  name={showAll ? "chevron-up" : "grid"} 
+                  size={16} 
+                  color="#6B7280" 
+                />
               </View>
+              <Text style={[styles.categoryName, styles.viewMoreText]} numberOfLines={2}>
+                {showAll ? "View Less" : "View All"}
+              </Text>
+              <Text style={styles.categoryCount}>
+                {showAll ? "Show fewer" : "See all categories"}
+              </Text>
             </View>
-          </TouchableOpacity>
-        )}
+          </View>
+        </TouchableOpacity>
       </View>
     </View>
   );
