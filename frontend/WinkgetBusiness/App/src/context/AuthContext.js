@@ -76,6 +76,7 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post(API_ENDPOINTS.AUTH.LOGIN, {
         email: (email || '').trim().toLowerCase(),
         password,
+        role: 'vendor', // Business app uses vendor role by default
       });
 
       const { token, user } = response.data;
@@ -92,10 +93,33 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
     } catch (error) {
       dispatch({ type: 'SET_LOADING', payload: false });
-      const message = error?.response?.data?.message
-        || error?.response?.data?.error
-        || error?.message
-        || 'Login failed';
+      
+      // Enhanced error handling for network issues
+      let message = 'Login failed';
+      
+      if (error.code === 'NETWORK_ERROR' || error.message?.includes('Network Error')) {
+        message = 'Network Error: Unable to connect to server. Please check your internet connection.';
+      } else if (error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
+        message = 'Connection Error: Server is not running. Please contact support.';
+      } else if (error.response?.status === 401) {
+        message = 'Invalid email or password. Please try again.';
+      } else if (error.response?.status === 500) {
+        message = 'Server Error: Please try again later.';
+      } else if (error.response?.data?.message) {
+        message = error.response.data.message;
+      } else if (error.message) {
+        message = error.message;
+      }
+      
+      console.error('Login error details:', {
+        code: error.code,
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        url: error.config?.url,
+        baseURL: error.config?.baseURL
+      });
+      
       return { success: false, error: message };
     }
   };
@@ -105,9 +129,11 @@ export const AuthProvider = ({ children }) => {
       dispatch({ type: 'SET_LOADING', payload: true });
       
       const payload = {
+        role: 'vendor', // Business app uses vendor role by default
         name: (userData?.name || '').trim(),
         email: (userData?.email || '').trim().toLowerCase(),
         password: userData?.password,
+        storeName: (userData?.storeName || userData?.name || '').trim(), // Use name as storeName if not provided
         phone: userData?.phone || undefined,
       };
       console.log('📤 Sending registration request:', payload);

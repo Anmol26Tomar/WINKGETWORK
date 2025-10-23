@@ -16,6 +16,9 @@ const packageSchema = new mongoose.Schema(
 		weight: { type: Number, required: true },
 		description: { type: String, trim: true },
 		value: { type: Number, default: 0 },
+		length: { type: Number, default: 0 },
+		width: { type: Number, default: 0 },
+		height: { type: Number, default: 0 },
 	},
 	{ _id: false }
 );
@@ -39,6 +42,8 @@ const parcelSchema = new mongoose.Schema(
 		receiverName: { type: String, required: true, trim: true },
 		receiverContact: { type: String, required: true, trim: true },
 		vehicleType: { type: String, default: 'bike' },
+		vehicleSubType: { type: String, trim: true },
+		typeOfDelivery: { type: String, enum: ['standard', 'express'], default: 'standard' },
 		fareEstimate: { type: Number, required: true },
 		accepted: { type: Boolean, default: false },
 		captainRef: { type: mongoose.Schema.Types.ObjectId, ref: 'Captain', default: null },

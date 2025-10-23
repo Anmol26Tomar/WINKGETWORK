@@ -9,23 +9,18 @@ const app = express();
 const http = require("http").createServer(app);
 const { Server } = require("socket.io");
 const { setIO } = require("./WinkgetExpress/utils/socket");
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
+const SERVER_IP = process.env.SERVER_IP || 'localhost';
 
 // Configure CORS to allow credentials
-app.use(
-  cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:3000",
-      "http://localhost:3001",
-      "*",
-    ],
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-    exposedHeaders: ["Set-Cookie"],
-  })
-);
+const corsOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001','*'];
+app.use(cors({
+  origin: corsOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Set-Cookie']
+}));
 app.use(express.json());
 
 connectDB();
@@ -33,6 +28,9 @@ connectDB();
 const agentRoutes = require("./WinkgetExpress/routes/agent");
 
 app.get("/health", (req, res) => res.json({ status: "ok" }));
+
+// Health endpoint under /api to match frontend baseURL that appends /api
+app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 
 // Test endpoint to create a transport request
 app.post("/test/transport", (req, res) => {
@@ -84,7 +82,7 @@ app.use("/api/auth/admin", adminAuthRoutes);
 
 // express admin routing
 
-const io = new Server(http, { cors: { origin: "*" } });
+const io = new Server(http, { cors: { origin: process.env.SOCKET_CORS_ORIGIN || "*" } });
 setIO(io);
 
 io.on("connection", (socket) => {
@@ -119,4 +117,4 @@ io.on("connection", (socket) => {
   });
 });
 
-http.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+http.listen(PORT, '0.0.0.0', () => console.log(`Server running on 0.0.0.0:${PORT}`));
