@@ -9,7 +9,7 @@ const app = express();
 const http = require("http").createServer(app);
 const { Server } = require("socket.io");
 const { setIO } = require("./WinkgetExpress/utils/socket");
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 const SERVER_IP = process.env.SERVER_IP || 'localhost';
 
 // Configure CORS to allow credentials
