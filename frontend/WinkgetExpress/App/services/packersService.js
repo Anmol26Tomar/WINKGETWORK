@@ -34,7 +34,8 @@ export async function getPackersById(id) {
 }
 
 export async function updatePackersStatus(id, status) {
-  return request(`/api/packers/${id}/status`, { method: "PUT", body: { status } });
+  return request(`/api/packers/${id}/status`, {
+    method: "PUT",
+    body: { status },
+  });
 }
-
-
