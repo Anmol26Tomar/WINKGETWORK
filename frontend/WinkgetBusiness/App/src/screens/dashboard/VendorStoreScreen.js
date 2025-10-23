@@ -158,7 +158,9 @@ const VendorStoreScreen = ({ route, navigation }) => {
 
   const handleTabPress = (tabName) => {
     setActiveTab(tabName);
-    if (tabName === 'Marketplace') {
+    if (tabName === 'Posts') {
+      // Posts tab content will be rendered by renderVendorPosts()
+    } else if (tabName === 'Marketplace') {
       // Navigate to MyStore screen for this vendor
       navigation.navigate('MyStore', {
         vendorId: vendorId,
@@ -259,6 +261,62 @@ const VendorStoreScreen = ({ route, navigation }) => {
     if (pincode) addressParts.push(pincode);
 
     return addressParts.join(', ') || 'No address provided';
+  };
+
+  const renderVendorPosts = () => {
+    const businessPosts = vendor?.businessPosts || [];
+    
+    if (businessPosts.length === 0) {
+      return (
+        <View style={styles.postsContainer}>
+          <View style={styles.emptyStateContainer}>
+            <Ionicons name="images-outline" size={64} color="#D1D5DB" />
+            <Text style={styles.emptyStateTitle}>No Posts Yet</Text>
+            <Text style={styles.emptyStateText}>
+              This vendor hasn't shared any posts yet. Check back later for updates!
+            </Text>
+          </View>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.postsContainer}>
+        <View style={styles.postsHeader}>
+          <View style={styles.sectionIconContainer}>
+            <Ionicons name="images" size={20} color="#8B5CF6" />
+          </View>
+          <Text style={styles.postsTitle}>Business Posts</Text>
+          <Text style={styles.postsCount}>({businessPosts.length})</Text>
+        </View>
+        
+        <View style={styles.postsGrid}>
+          {businessPosts.map((postUrl, index) => (
+            <TouchableOpacity 
+              key={index} 
+              style={styles.postItem}
+              activeOpacity={0.8}
+              onPress={() => {
+                // You can add image preview functionality here
+                Alert.alert('Post', `Viewing post ${index + 1}`);
+              }}
+            >
+              <Image 
+                source={{ uri: postUrl }} 
+                style={styles.postImage}
+                resizeMode="cover"
+                onError={() => {
+                  console.log('Error loading post image:', postUrl);
+                }}
+              />
+              <View style={styles.postOverlay}>
+                <Ionicons name="eye" size={16} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    );
   };
 
   const renderDemoReviews = () => {
@@ -516,6 +574,13 @@ const VendorStoreScreen = ({ route, navigation }) => {
           <Text style={[styles.navTabText, activeTab === 'Info' && styles.activeNavTabText]}>Info</Text>
         </TouchableOpacity>
         <TouchableOpacity 
+          style={[styles.navTab, activeTab === 'Posts' && styles.activeNavTab]}
+          activeOpacity={0.7}
+          onPress={() => handleTabPress('Posts')}
+        >
+          <Text style={[styles.navTabText, activeTab === 'Posts' && styles.activeNavTabText]}>Posts</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
           style={[styles.navTab, activeTab === 'Marketplace' && styles.activeNavTab]}
           activeOpacity={0.7}
           onPress={() => handleTabPress('Marketplace')}
@@ -601,6 +666,8 @@ const VendorStoreScreen = ({ route, navigation }) => {
             )}
           </>
         )}
+
+        {activeTab === 'Posts' && renderVendorPosts()}
 
         {activeTab === 'Marketplace' && (
           <View style={styles.marketplaceContainer}>
@@ -1202,6 +1269,64 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     textAlign: 'center',
     lineHeight: 24,
+  },
+  // Posts Styles
+  postsContainer: {
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+  },
+  postsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  postsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginLeft: 12,
+  },
+  postsCount: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginLeft: 8,
+    fontWeight: '500',
+  },
+  postsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  postItem: {
+    width: '48%',
+    aspectRatio: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    position: 'relative',
+  },
+  postImage: {
+    width: '100%',
+    height: '100%',
+  },
+  postOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    opacity: 0,
   },
 });
 

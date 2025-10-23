@@ -5,6 +5,7 @@ const Vendor = require("../models/Vendor");
 const { uploadBuffer } = require("../utils/cloudinary");
 
 function signToken(user) {
+  console.log("jwtSecret",process.env.JWT_SECRET);
   return jwt.sign(
     {
       id: user._id.toString(),
