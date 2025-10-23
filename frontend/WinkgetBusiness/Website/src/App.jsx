@@ -14,6 +14,7 @@ import Login from "./pages/Login.jsx";
 import Signup from "./pages/Signup.jsx";
 import Home from "./pages/Home.jsx";
 import AdminVendors from "./pages/AdminVendors.jsx";
+import AdminCategories from "./pages/AdminCategories.jsx";
 import ContactExpress from "./pages/ContactExpress.jsx";
 import CategoryList from "./components/CategoryList.jsx";
 import BusinessList from "./components/BusinessList.jsx";
@@ -103,6 +104,7 @@ export default function App() {
           <Route element={<AppLayout />}>
             <Route path="/admin/vendors" element={<AdminVendors />} />
             <Route path="/admin/dashboard" element={<Dashboard />} />
+            <Route path="/admin/categories" element={<AdminCategories />} />
             <Route path="/admin/contact" element={<ContactExpress />} />
           </Route>
         </Route>
