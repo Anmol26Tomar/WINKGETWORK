@@ -8,14 +8,57 @@ import { estimateFareKm, haversineKm } from '../utils/fareCalculator';
 import { estimateTransport, createTransport } from '../services/transportService';
 import { requestPackersMovers } from '../services/api';
 import { Ionicons } from '@expo/vector-icons';
+import Slider from '@react-native-community/slider';
 
 const SERVICES = [
     { key: 'local_parcel', label: 'Local Parcel', icon: 'cube-outline' },
-    { key: 'all_india_parcel', label: 'All India Parcel', icon: 'earth-outline' },
+    { key: 'truck', label: 'Truck Booking', icon: 'bus-outline' },
     { key: 'bike', label: 'Bike Ride', icon: 'bicycle-outline' },
     { key: 'cab', label: 'Cab Booking', icon: 'car-outline' },
-    { key: 'truck', label: 'Truck Booking', icon: 'bus-outline' },
+    { key: 'all_india_parcel', label: 'All India Parcel', icon: 'earth-outline' },
     { key: 'packers', label: 'Packers & Movers', icon: 'home-outline' },
+];
+
+// Package size options
+const PACKAGE_SIZES = [
+    { key: 'XS', label: 'XS', description: 'Extra Small', icon: 'ellipse-outline' },
+    { key: 'S', label: 'S', description: 'Small', icon: 'ellipse-outline' },
+    { key: 'M', label: 'M', description: 'Medium', icon: 'ellipse-outline' },
+    { key: 'L', label: 'L', description: 'Large', icon: 'ellipse-outline' },
+    { key: 'XL', label: 'XL', description: 'Extra Large', icon: 'ellipse-outline' },
+    { key: 'XXL', label: 'XXL', description: 'Extra Extra Large', icon: 'ellipse-outline' },
+];
+
+// Package category options
+const PACKAGE_CATEGORIES = [
+    { key: 'Electronics', label: 'Electronics', icon: 'phone-portrait-outline' },
+    { key: 'Clothing', label: 'Clothing', icon: 'shirt-outline' },
+    { key: 'Furniture', label: 'Furniture', icon: 'bed-outline' },
+    { key: 'Documents', label: 'Documents', icon: 'document-outline' },
+    { key: 'Groceries', label: 'Groceries', icon: 'basket-outline' },
+    { key: 'Fragile Items', label: 'Fragile Items', icon: 'warning-outline' },
+    { key: 'Other', label: 'Other', icon: 'ellipsis-horizontal-outline' },
+];
+
+// Package content options
+const PACKAGE_CONTENTS = [
+    { key: 'Home Items', label: 'Home Items', icon: 'home-outline' },
+    { key: 'Office Items', label: 'Office Items', icon: 'business-outline' },
+    { key: 'Appliances', label: 'Appliances', icon: 'tv-outline' },
+    { key: 'Decor', label: 'Decor', icon: 'flower-outline' },
+    { key: 'Books', label: 'Books', icon: 'book-outline' },
+    { key: 'Personal Belongings', label: 'Personal Belongings', icon: 'person-outline' },
+    { key: 'Other', label: 'Other', icon: 'ellipsis-horizontal-outline' },
+];
+
+// Container type options
+const CONTAINER_TYPES = [
+    { key: 'Pouch', label: 'Pouch', icon: 'bag-outline' },
+    { key: 'Box', label: 'Box', icon: 'cube-outline' },
+    { key: 'Carton', label: 'Carton', icon: 'archive-outline' },
+    { key: 'Wooden Crate', label: 'Wooden Crate', icon: 'construct-outline' },
+    { key: 'Bag', label: 'Bag', icon: 'bag-handle-outline' },
+    { key: 'Custom', label: 'Custom', icon: 'settings-outline' },
 ];
 
 const HOUSEHOLD_ITEMS = [
@@ -49,7 +92,9 @@ const TRUCK_VEHICLES = [
         perKmRate: 10,
         icon: "🛺",
         examples: ["Piaggio Ape", "Mahindra Alfa", "Bajaj Maxima"],
-        useCases: ["Small parcel delivery", "Retail supply", "Local vendors"]
+        useCases: ["Small parcel delivery", "Retail supply", "Local vendors"],
+        color: "#0D9488", // Teal
+        gradient: ["#0D9488", "#14B8A6"]
     },
     {
         id: "mini_truck",
@@ -62,7 +107,9 @@ const TRUCK_VEHICLES = [
         perKmRate: 14,
         icon: "🚚",
         examples: ["Tata Ace", "Ashok Leyland Dost", "Mahindra Jeeto"],
-        useCases: ["Furniture shifting", "Small warehouse logistics", "Business deliveries"]
+        useCases: ["Furniture shifting", "Small warehouse logistics", "Business deliveries"],
+        color: "#1E3A8A", // Royal Blue
+        gradient: ["#1E3A8A", "#3B82F6"]
     },
     {
         id: "pickup_truck",
@@ -75,7 +122,9 @@ const TRUCK_VEHICLES = [
         perKmRate: 18,
         icon: "🚛",
         examples: ["Tata 407", "Eicher Pro 1049", "Mahindra Bolero Pickup"],
-        useCases: ["Construction material", "Industrial supply", "Bulk retail movement"]
+        useCases: ["Construction material", "Industrial supply", "Bulk retail movement"],
+        color: "#FBBF24", // Amber
+        gradient: ["#FBBF24", "#F59E0B"]
     },
     {
         id: "medium_truck",
@@ -88,7 +137,9 @@ const TRUCK_VEHICLES = [
         perKmRate: 25,
         icon: "🚛",
         examples: ["Eicher 14ft", "Eicher 17ft", "Tata LPT 709"],
-        useCases: ["Warehouse distribution", "Bulk delivery", "Intercity logistics"]
+        useCases: ["Warehouse distribution", "Bulk delivery", "Intercity logistics"],
+        color: "#7C3AED", // Purple
+        gradient: ["#7C3AED", "#A855F7"]
     },
     {
         id: "large_truck",
@@ -101,7 +152,9 @@ const TRUCK_VEHICLES = [
         perKmRate: 40,
         icon: "🚚",
         examples: ["Tata LPT 1613", "Ashok Leyland 2214", "Eicher Pro 6025"],
-        useCases: ["Interstate logistics", "Bulk cargo", "Manufacturing supply chain"]
+        useCases: ["Interstate logistics", "Bulk cargo", "Manufacturing supply chain"],
+        color: "#DC2626", // Red
+        gradient: ["#DC2626", "#EF4444"]
     }
 ];
 
@@ -124,11 +177,20 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
     const [parcelForm, setParcelForm] = useState({
         name: '',
         size: '',
-        weight: '',
+        weight: '1',
         description: '',
         value: '',
         receiverName: '',
         receiverContact: '',
+        containerType: '',
+        contentTypes: [], // Array to store multiple content selections
+    });
+
+    // Drawer states for dropdown selectors
+    const [drawerStates, setDrawerStates] = useState({
+        categoryOpen: false,
+        sizeOpen: false,
+        containerOpen: false,
     });
 
     const [allIndiaForm, setAllIndiaForm] = useState({
@@ -142,6 +204,9 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
         receiverPhone: '',
         description: '',
         typeOfDelivery: 'standard',
+        contentTypes: [], // Array for multiple content selections
+        containerType: '',
+        size: '',
     });
 
     const [transportForm, setTransportForm] = useState({ vehicleSubType: 'mini_truck' });
@@ -161,6 +226,25 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
         weight: '10',
         dimensions: '',
         description: '',
+        contentTypes: [], // Array for multiple content selections
+        containerType: '',
+        size: '',
+    });
+
+    // Drawer states for truck booking
+    const [truckDrawerStates, setTruckDrawerStates] = useState({
+        categoryOpen: false,
+        sizeOpen: false,
+        containerOpen: false,
+        contentOpen: false,
+    });
+
+    // Drawer states for All India Parcel
+    const [allIndiaDrawerStates, setAllIndiaDrawerStates] = useState({
+        categoryOpen: false,
+        sizeOpen: false,
+        containerOpen: false,
+        contentOpen: false,
     });
 
     const open = (ctx) => {
@@ -218,6 +302,229 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
         return Object.values(selectedItems).reduce((sum, qty) => sum + qty, 0);
     };
 
+    // Helper function to handle content type selection
+    const toggleContentType = (contentKey) => {
+        setParcelForm((prev) => {
+            const currentTypes = prev.contentTypes || [];
+            const isSelected = currentTypes.includes(contentKey);
+            
+            if (isSelected) {
+                // Remove from selection
+                return {
+                    ...prev,
+                    contentTypes: currentTypes.filter(type => type !== contentKey)
+                };
+            } else {
+                // Add to selection
+                return {
+                    ...prev,
+                    contentTypes: [...currentTypes, contentKey]
+                };
+            }
+        });
+    };
+
+    // Helper functions for drawer management
+    const toggleDrawer = (drawerType) => {
+        setDrawerStates(prev => ({
+            ...prev,
+            [drawerType]: !prev[drawerType]
+        }));
+    };
+
+    const closeAllDrawers = () => {
+        setDrawerStates({
+            categoryOpen: false,
+            sizeOpen: false,
+            containerOpen: false,
+        });
+    };
+
+    const selectCategory = (categoryKey) => {
+        setParcelForm(prev => ({ ...prev, name: categoryKey }));
+        toggleDrawer('categoryOpen');
+    };
+
+    const selectSize = (sizeKey) => {
+        setParcelForm(prev => ({ ...prev, size: sizeKey }));
+        toggleDrawer('sizeOpen');
+    };
+
+    const selectContainer = (containerKey) => {
+        setParcelForm(prev => ({ ...prev, containerType: containerKey }));
+        toggleDrawer('containerOpen');
+    };
+
+    // Truck drawer management functions
+    const toggleTruckDrawer = (drawerType) => {
+        setTruckDrawerStates(prev => ({
+            ...prev,
+            [drawerType]: !prev[drawerType]
+        }));
+    };
+
+    const closeAllTruckDrawers = () => {
+        setTruckDrawerStates({
+            categoryOpen: false,
+            sizeOpen: false,
+            containerOpen: false,
+            contentOpen: false,
+        });
+    };
+
+    const selectTruckCategory = (categoryKey) => {
+        setTruckForm(prev => ({ ...prev, pkgType: categoryKey }));
+        toggleTruckDrawer('categoryOpen');
+    };
+
+    const selectTruckSize = (sizeKey) => {
+        setTruckForm(prev => ({ ...prev, size: sizeKey }));
+        toggleTruckDrawer('sizeOpen');
+    };
+
+    const selectTruckContainer = (containerKey) => {
+        setTruckForm(prev => ({ ...prev, containerType: containerKey }));
+        toggleTruckDrawer('containerOpen');
+    };
+
+    const toggleTruckContentType = (contentKey) => {
+        setTruckForm((prev) => {
+            const currentTypes = prev.contentTypes || [];
+            const isSelected = currentTypes.includes(contentKey);
+            
+            if (isSelected) {
+                return {
+                    ...prev,
+                    contentTypes: currentTypes.filter(type => type !== contentKey)
+                };
+            } else {
+                return {
+                    ...prev,
+                    contentTypes: [...currentTypes, contentKey]
+                };
+            }
+        });
+    };
+
+    // All India Parcel drawer management functions
+    const toggleAllIndiaDrawer = (drawerType) => {
+        setAllIndiaDrawerStates(prev => ({
+            ...prev,
+            [drawerType]: !prev[drawerType]
+        }));
+    };
+
+    const closeAllAllIndiaDrawers = () => {
+        setAllIndiaDrawerStates({
+            categoryOpen: false,
+            sizeOpen: false,
+            containerOpen: false,
+            contentOpen: false,
+        });
+    };
+
+    const selectAllIndiaCategory = (categoryKey) => {
+        setAllIndiaForm(prev => ({ ...prev, pkgType: categoryKey }));
+        toggleAllIndiaDrawer('categoryOpen');
+    };
+
+    const selectAllIndiaSize = (sizeKey) => {
+        setAllIndiaForm(prev => ({ ...prev, size: sizeKey }));
+        toggleAllIndiaDrawer('sizeOpen');
+    };
+
+    const selectAllIndiaContainer = (containerKey) => {
+        setAllIndiaForm(prev => ({ ...prev, containerType: containerKey }));
+        toggleAllIndiaDrawer('containerOpen');
+    };
+
+    const toggleAllIndiaContentType = (contentKey) => {
+        setAllIndiaForm((prev) => {
+            const currentTypes = prev.contentTypes || [];
+            const isSelected = currentTypes.includes(contentKey);
+            
+            if (isSelected) {
+                return {
+                    ...prev,
+                    contentTypes: currentTypes.filter(type => type !== contentKey)
+                };
+            } else {
+                return {
+                    ...prev,
+                    contentTypes: [...currentTypes, contentKey]
+                };
+            }
+        });
+    };
+
+    // Reusable drawer component
+    const renderDrawerSelector = (title, isOpen, onToggle, options, selectedValue, onSelect, iconName) => {
+        const selectedOption = options.find(opt => opt.key === selectedValue);
+        
+        return (
+            <View>
+                <Text style={styles.fieldLabel}>{title}</Text>
+                <TouchableOpacity 
+                    style={styles.drawerSelector}
+                    onPress={onToggle}
+                >
+                    <View style={styles.drawerSelectorContent}>
+                        <View style={styles.drawerSelectorLeft}>
+                            <Ionicons 
+                                name={iconName} 
+                                size={20} 
+                                color={selectedValue ? Colors.primary : Colors.mutedText} 
+                            />
+                            <Text style={[
+                                styles.drawerSelectorText,
+                                selectedValue ? styles.drawerSelectorTextSelected : styles.drawerSelectorTextPlaceholder
+                            ]}>
+                                {selectedOption ? selectedOption.label : `Select ${title.toLowerCase()}`}
+                            </Text>
+                        </View>
+                        <Ionicons 
+                            name={isOpen ? "chevron-up" : "chevron-down"} 
+                            size={20} 
+                            color={Colors.mutedText} 
+                        />
+                    </View>
+                </TouchableOpacity>
+
+                {isOpen && (
+                    <View style={styles.drawerDropdown}>
+                        {options.map((option) => (
+                            <TouchableOpacity
+                                key={option.key}
+                                style={[
+                                    styles.drawerOption,
+                                    selectedValue === option.key ? styles.drawerOptionSelected : null
+                                ]}
+                                onPress={() => onSelect(option.key)}
+                            >
+                                <View style={styles.drawerOptionContent}>
+                                    <Ionicons 
+                                        name={option.icon} 
+                                        size={20} 
+                                        color={selectedValue === option.key ? '#fff' : Colors.primary} 
+                                    />
+                                    <Text style={[
+                                        styles.drawerOptionText,
+                                        selectedValue === option.key ? styles.drawerOptionTextSelected : null
+                                    ]}>
+                                        {option.label}
+                                    </Text>
+                                </View>
+                                {selectedValue === option.key && (
+                                    <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                                )}
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                )}
+            </View>
+        );
+    };
+
     const estimateFare = async () => {
         try {
             const { pickup, delivery } = contextRef.current;
@@ -273,74 +580,96 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
     const renderTruckVehicleSelection = () => {
         return (
             <View>
-                <Text style={styles.title}>Choose Your Truck</Text>
-                <Text style={styles.subtitle}>Select the perfect vehicle for your cargo needs</Text>
+                <View style={styles.enhancedHeader}>
+                    <Text style={styles.enhancedTitle}>Choose Your Truck</Text>
+                    <Text style={styles.enhancedSubtitle}>Select the perfect vehicle for your cargo needs</Text>
+                </View>
                 
-                <View style={styles.vehicleGrid}>
+                <View style={styles.enhancedVehicleGrid}>
                     {TRUCK_VEHICLES.map((vehicle) => (
                         <TouchableOpacity 
                             key={vehicle.id}
                             style={[
-                                styles.vehicleCard, 
-                                selectedTruckVehicle?.id === vehicle.id ? styles.vehicleCardActive : null
+                                styles.enhancedVehicleCard, 
+                                selectedTruckVehicle?.id === vehicle.id ? styles.enhancedVehicleCardActive : null
                             ]}
                             onPress={() => setSelectedTruckVehicle(vehicle)}
                         >
-                            <View style={styles.vehicleCardHeader}>
-                                <Text style={styles.vehicleIcon}>{vehicle.icon}</Text>
-                                <View style={styles.vehicleInfo}>
-                                    <Text style={[
-                                        styles.vehicleName,
-                                        selectedTruckVehicle?.id === vehicle.id ? styles.vehicleNameActive : null
-                                    ]}>
-                                        {vehicle.name}
-                                    </Text>
-                                    <Text style={styles.vehicleCapacity}>
-                                        Capacity: {vehicle.capacityPayloadKg}kg
-                                    </Text>
-                                </View>
+                            <View style={[
+                                styles.enhancedVehicleIconContainer,
+                                { backgroundColor: selectedTruckVehicle?.id === vehicle.id ? vehicle.color : '#f8f9fa' }
+                            ]}>
+                                <Text style={styles.enhancedVehicleIcon}>{vehicle.icon}</Text>
                             </View>
                             
-                            <Text style={styles.vehicleDescription}>{vehicle.description}</Text>
-                            
-                            <View style={styles.vehicleSpecs}>
-                                <View style={styles.specItem}>
-                                    <Text style={styles.specLabel}>Size</Text>
-                                    <Text style={styles.specValue}>{vehicle.vehicleLengthFt}' × {vehicle.vehicleWidthFt}'</Text>
+                            <View style={styles.enhancedVehicleContent}>
+                                <Text style={[
+                                    styles.enhancedVehicleName,
+                                    selectedTruckVehicle?.id === vehicle.id ? styles.enhancedVehicleNameActive : null
+                                ]}>
+                                    {vehicle.name}
+                                </Text>
+                                
+                                <Text style={styles.enhancedVehicleDescription}>{vehicle.description}</Text>
+                                
+                                <View style={styles.enhancedVehicleSpecs}>
+                                    <View style={styles.enhancedSpecItem}>
+                                        <Ionicons name="scale-outline" size={16} color={Colors.mutedText} />
+                                        <Text style={styles.enhancedSpecText}>{vehicle.capacityPayloadKg}kg</Text>
+                                    </View>
+                                    <View style={styles.enhancedSpecItem}>
+                                        <Ionicons name="resize-outline" size={16} color={Colors.mutedText} />
+                                        <Text style={styles.enhancedSpecText}>{vehicle.vehicleLengthFt}' × {vehicle.vehicleWidthFt}'</Text>
+                                    </View>
                                 </View>
-                                <View style={styles.specItem}>
-                                    <Text style={styles.specLabel}>Base Fare</Text>
-                                    <Text style={styles.specValue}>₹{vehicle.baseFare}</Text>
+                                
+                                <View style={styles.enhancedVehiclePricing}>
+                                    <View style={styles.enhancedPriceItem}>
+                                        <Text style={styles.enhancedPriceLabel}>Base</Text>
+                                        <Text style={styles.enhancedPriceValue}>₹{vehicle.baseFare}</Text>
+                                    </View>
+                                    <View style={styles.enhancedPriceItem}>
+                                        <Text style={styles.enhancedPriceLabel}>Per Km</Text>
+                                        <Text style={styles.enhancedPriceValue}>₹{vehicle.perKmRate}</Text>
+                                    </View>
                                 </View>
-                                <View style={styles.specItem}>
-                                    <Text style={styles.specLabel}>Per Km</Text>
-                                    <Text style={styles.specValue}>₹{vehicle.perKmRate}</Text>
-                                </View>
-                            </View>
-                            
-                            <View style={styles.vehicleUseCases}>
-                                <Text style={styles.useCaseLabel}>Best for:</Text>
-                                <View style={styles.useCaseTags}>
+                                
+                                <View style={styles.enhancedUseCases}>
                                     {vehicle.useCases.slice(0, 2).map((useCase, index) => (
-                                        <View key={index} style={styles.useCaseTag}>
-                                            <Text style={styles.useCaseTagText}>{useCase}</Text>
+                                        <View key={index} style={[
+                                            styles.enhancedUseCaseTag,
+                                            { backgroundColor: selectedTruckVehicle?.id === vehicle.id ? 'rgba(255,255,255,0.2)' : '#f0f0f0' }
+                                        ]}>
+                                            <Text style={[
+                                                styles.enhancedUseCaseText,
+                                                { color: selectedTruckVehicle?.id === vehicle.id ? '#fff' : Colors.mutedText }
+                                            ]}>
+                                                {useCase}
+                                            </Text>
                                         </View>
                                     ))}
                                 </View>
                             </View>
+                            
+                            {selectedTruckVehicle?.id === vehicle.id && (
+                                <View style={styles.enhancedSelectedIndicator}>
+                                    <Ionicons name="checkmark-circle" size={24} color="#fff" />
+                                </View>
+                            )}
                         </TouchableOpacity>
                     ))}
                 </View>
                 
                 <TouchableOpacity 
                     style={[
-                        styles.primaryBtn, 
-                        !selectedTruckVehicle ? styles.primaryBtnDisabled : null
+                        styles.enhancedPrimaryBtn, 
+                        !selectedTruckVehicle ? styles.enhancedPrimaryBtnDisabled : null
                     ]} 
                     disabled={!selectedTruckVehicle} 
                     onPress={() => setStep(1)}
                 >
-                    <Text style={styles.primaryBtnTxt}>Continue</Text>
+                    <Ionicons name="arrow-forward" size={20} color="#fff" />
+                    <Text style={styles.enhancedPrimaryBtnText}>Continue with {selectedTruckVehicle?.name}</Text>
                 </TouchableOpacity>
             </View>
         );
@@ -421,10 +750,13 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
             if (service === 'local_parcel') {
                 const weightNum = parseFloat(parcelForm.weight);
                 if (!parcelForm.name || !parcelForm.size || !weightNum || !parcelForm.receiverName || !parcelForm.receiverContact) {
-                    Alert.alert('Missing fields', 'Fill all required fields'); setLoading(false); return;
+                    Alert.alert('Missing fields', 'Please fill all required fields'); setLoading(false); return;
                 }
-                if (isNaN(weightNum) || weightNum <= 0 || weightNum > 20) {
-                    Alert.alert('Invalid weight', 'Weight must be between 0 and 20 kg.'); setLoading(false); return;
+                if (isNaN(weightNum) || weightNum <= 0 || weightNum > 50) {
+                    Alert.alert('Invalid weight', 'Weight must be between 0 and 50 kg.'); setLoading(false); return;
+                }
+                if (!parcelForm.contentTypes || parcelForm.contentTypes.length === 0) {
+                    Alert.alert('Missing content', 'Please select at least one content type'); setLoading(false); return;
                 }
                 let fare = 0;
                 try {
@@ -441,8 +773,10 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
                         name: parcelForm.name,
                         size: parcelForm.size,
                         weight: weightNum,
-                        description: parcelForm.description,
+                        description: parcelForm.contentTypes?.join(', ') || '', // Convert array to comma-separated string
+                        contentTypes: parcelForm.contentTypes || [], // Keep as array for backend
                         value: parseFloat(parcelForm.value || '0'),
+                        containerType: parcelForm.containerType,
                     },
                     receiverName: parcelForm.receiverName,
                     receiverContact: parcelForm.receiverContact,
@@ -458,6 +792,10 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
                 if (!allIndiaForm.pkgType || !weightNum || !allIndiaForm.receiverName || !allIndiaForm.receiverPhone) {
                     Alert.alert('Missing fields', 'Fill all required fields'); setLoading(false); return;
                 }
+                
+                if (!allIndiaForm.contentTypes || allIndiaForm.contentTypes.length === 0) {
+                    Alert.alert('Missing content', 'Please select at least one content type'); setLoading(false); return;
+                }
                 const km = haversineKm(pickup, delivery);
                 const kmFare = estimateFareKm(km, 'truck', allIndiaForm.typeOfDelivery);
                 const payload = {
@@ -465,9 +803,11 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
                     delivery: { lat: delivery.lat, lng: delivery.lng, address: delivery.address },
                     package: { 
                         name: allIndiaForm.pkgType, 
-                        size: allIndiaForm.dimensions || 'standard', 
+                        size: allIndiaForm.size || allIndiaForm.dimensions || 'standard', 
                         weight: weightNum, 
-                        description: allIndiaForm.description || '',
+                        description: allIndiaForm.contentTypes?.join(', ') || '',
+                        contentTypes: allIndiaForm.contentTypes || [],
+                        containerType: allIndiaForm.containerType || '',
                         length: parseFloat(allIndiaForm.length || '0'),
                         width: parseFloat(allIndiaForm.width || '0'),
                         height: parseFloat(allIndiaForm.height || '0')
@@ -517,6 +857,10 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
                     Alert.alert('Weight Exceeded', `Weight cannot exceed ${selectedTruckVehicle.capacityPayloadKg}kg for selected vehicle`); setLoading(false); return;
                 }
                 
+                if (!truckForm.contentTypes || truckForm.contentTypes.length === 0) {
+                    Alert.alert('Missing content', 'Please select at least one content type'); setLoading(false); return;
+                }
+                
                 const km = haversineKm(pickup, delivery);
                 const fare = selectedTruckVehicle.baseFare + (km * selectedTruckVehicle.perKmRate);
                 const payload = {
@@ -524,9 +868,11 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
                     delivery: { lat: delivery.lat, lng: delivery.lng, address: delivery.address },
                     package: { 
                         name: pkgType || 'Household', 
-                        size: dimensions || 'standard', 
+                        size: truckForm.size || dimensions || 'standard', 
                         weight: weightNum, 
-                        description: truckForm.description || '',
+                        description: truckForm.contentTypes?.join(', ') || '',
+                        contentTypes: truckForm.contentTypes || [],
+                        containerType: truckForm.containerType || '',
                         vehicleType: selectedTruckVehicle.id,
                         vehicleName: selectedTruckVehicle.name,
                         vehicleCapacity: selectedTruckVehicle.capacityPayloadKg
@@ -610,99 +956,423 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
     const renderDetails = () => {
         if (service === 'local_parcel') {
             return (
-                <View>
-                    <Text style={styles.fieldLabel}>Package Name</Text>
-                    <TextInput style={styles.input} placeholder="Package Name" value={parcelForm.name} onChangeText={(t) => setParcelForm((s) => ({ ...s, name: t }))} />
+                <TouchableOpacity 
+                    style={styles.formContainer} 
+                    activeOpacity={1} 
+                    onPress={closeAllDrawers}
+                >
+                    <View>
+                    {/* Package Size Drawer Selector */}
+                    {renderDrawerSelector(
+                        'Package Size',
+                        drawerStates.sizeOpen,
+                        () => toggleDrawer('sizeOpen'),
+                        PACKAGE_SIZES,
+                        parcelForm.size,
+                        selectSize,
+                        'resize-outline'
+                    )}
 
-                    <Text style={styles.fieldLabel}>Size</Text>
-                    <TextInput style={styles.input} placeholder="Size (e.g., small/medium)" value={parcelForm.size} onChangeText={(t) => setParcelForm((s) => ({ ...s, size: t }))} />
+                    {/* Weight Selection */}
+                    <Text style={styles.fieldLabel}>Weight: {parcelForm.weight} kg</Text>
+                    <View style={styles.sliderContainer}>
+                        <Slider
+                            style={styles.slider}
+                            minimumValue={0}
+                            maximumValue={50}
+                            value={parseFloat(parcelForm.weight) || 1}
+                            onValueChange={(value) => setParcelForm((s) => ({ ...s, weight: value.toString() }))}
+                            minimumTrackTintColor={Colors.primary}
+                            maximumTrackTintColor={Colors.border}
+                            thumbStyle={styles.sliderThumb}
+                            trackStyle={styles.sliderTrack}
+                        />
+                        <View style={styles.sliderLabels}>
+                            <Text style={styles.sliderLabel}>0 kg</Text>
+                            <Text style={styles.sliderLabel}>50 kg</Text>
+                        </View>
+                    </View>
 
-                    <Text style={styles.fieldLabel}>Weight (kg)</Text>
-                    <TextInput style={styles.input} placeholder="Weight (kg)" keyboardType="numeric" value={parcelForm.weight} onChangeText={(t) => setParcelForm((s) => ({ ...s, weight: t }))} />
+                    {/* Package Category Drawer Selector */}
+                    {renderDrawerSelector(
+                        'Package Category',
+                        drawerStates.categoryOpen,
+                        () => toggleDrawer('categoryOpen'),
+                        PACKAGE_CATEGORIES,
+                        parcelForm.name,
+                        selectCategory,
+                        'cube-outline'
+                    )}
 
-                    <Text style={styles.fieldLabel}>Description</Text>
-                    <TextInput style={[styles.input, styles.multiline]} placeholder="Description" multiline value={parcelForm.description} onChangeText={(t) => setParcelForm((s) => ({ ...s, description: t }))} />
+                    {/* Package Content Multi-Selector */}
+                    <Text style={styles.fieldLabel}>Package Content (Select Multiple)</Text>
+                    <View style={styles.multiSelectContainer}>
+                        {PACKAGE_CONTENTS.map((content) => {
+                            const isSelected = parcelForm.contentTypes?.includes(content.key) || false;
+                            return (
+                                <TouchableOpacity
+                                    key={content.key}
+                                    style={[
+                                        styles.multiSelectItem,
+                                        isSelected ? styles.multiSelectItemActive : null
+                                    ]}
+                                    onPress={() => toggleContentType(content.key)}
+                                >
+                                    <View style={styles.multiSelectItemContent}>
+                                        <View style={[
+                                            styles.multiSelectCheckbox,
+                                            isSelected ? styles.multiSelectCheckboxActive : null
+                                        ]}>
+                                            {isSelected && (
+                                                <Ionicons name="checkmark" size={16} color="#fff" />
+                                            )}
+                                        </View>
+                                        <Ionicons 
+                                            name={content.icon} 
+                                            size={20} 
+                                            color={isSelected ? '#fff' : Colors.primary} 
+                                        />
+                                        <Text style={[
+                                            styles.multiSelectItemText,
+                                            isSelected ? styles.multiSelectItemTextActive : null
+                                        ]}>
+                                            {content.label}
+                                        </Text>
+                                    </View>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                    
+                    {/* Selected Content Summary */}
+                    {parcelForm.contentTypes && parcelForm.contentTypes.length > 0 && (
+                        <View style={styles.selectedContentSummary}>
+                            <Text style={styles.selectedContentTitle}>
+                                Selected: {parcelForm.contentTypes.length} content type{parcelForm.contentTypes.length > 1 ? 's' : ''}
+                            </Text>
+                            <View style={styles.selectedContentTags}>
+                                {parcelForm.contentTypes.map((contentKey) => {
+                                    const content = PACKAGE_CONTENTS.find(c => c.key === contentKey);
+                                    return (
+                                        <View key={contentKey} style={styles.selectedContentTag}>
+                                            <Ionicons name={content?.icon} size={14} color={Colors.primary} />
+                                            <Text style={styles.selectedContentTagText}>{content?.label}</Text>
+                                        </View>
+                                    );
+                                })}
+                            </View>
+                        </View>
+                    )}
 
+                    {/* Container Type Drawer Selector */}
+                    {renderDrawerSelector(
+                        'Container Type',
+                        drawerStates.containerOpen,
+                        () => toggleDrawer('containerOpen'),
+                        CONTAINER_TYPES,
+                        parcelForm.containerType,
+                        selectContainer,
+                        'archive-outline'
+                    )}
+
+                    {/* Declared Value */}
                     <Text style={styles.fieldLabel}>Declared Value (₹)</Text>
-                    <TextInput style={styles.input} placeholder="Declared Value (₹)" keyboardType="numeric" value={parcelForm.value} onChangeText={(t) => setParcelForm((s) => ({ ...s, value: t }))} />
+                    <TextInput 
+                        style={styles.input} 
+                        placeholder="Declared Value (₹)" 
+                        keyboardType="numeric" 
+                        value={parcelForm.value} 
+                        onChangeText={(t) => setParcelForm((s) => ({ ...s, value: t }))} 
+                    />
 
+                    {/* Receiver Details */}
+                    <Text style={styles.sectionTitle}>Receiver Details</Text>
                     <Text style={styles.fieldLabel}>Receiver Name</Text>
-                    <TextInput style={styles.input} placeholder="Receiver Name" value={parcelForm.receiverName} onChangeText={(t) => setParcelForm((s) => ({ ...s, receiverName: t }))} />
+                    <TextInput 
+                        style={styles.input} 
+                        placeholder="Receiver Name" 
+                        value={parcelForm.receiverName} 
+                        onChangeText={(t) => setParcelForm((s) => ({ ...s, receiverName: t }))} 
+                    />
 
                     <Text style={styles.fieldLabel}>Receiver Contact</Text>
-                    <TextInput style={styles.input} placeholder="Receiver Contact" value={parcelForm.receiverContact} onChangeText={(t) => setParcelForm((s) => ({ ...s, receiverContact: t }))} />
+                    <TextInput 
+                        style={styles.input} 
+                        placeholder="Receiver Contact" 
+                        value={parcelForm.receiverContact} 
+                        onChangeText={(t) => setParcelForm((s) => ({ ...s, receiverContact: t }))} 
+                    />
                     
                     {renderEstimateFare()}
-                </View>
+                    </View>
+                </TouchableOpacity>
             );
         }
         if (service === 'all_india_parcel') {
             return (
-                <View>
-                    <Text style={styles.fieldLabel}>Type</Text>
-                    <TextInput style={styles.input} placeholder="Type (e.g., Documents)" value={allIndiaForm.pkgType} onChangeText={(t) => setAllIndiaForm((s) => ({ ...s, pkgType: t }))} />
-
-                    <Text style={styles.fieldLabel}>Weight (kg)</Text>
-                    <TextInput style={styles.input} placeholder="Weight (kg)" keyboardType="numeric" value={allIndiaForm.weight} onChangeText={(t) => setAllIndiaForm((s) => ({ ...s, weight: t }))} />
-
-                    <Text style={styles.fieldLabel}>Dimensions</Text>
-                    <TextInput style={styles.input} placeholder="Dimensions (optional)" value={allIndiaForm.dimensions} onChangeText={(t) => setAllIndiaForm((s) => ({ ...s, dimensions: t }))} />
-
-                    <Text style={styles.fieldLabel}>Length (cm)</Text>
-                    <TextInput style={styles.input} placeholder="Length in cm" keyboardType="numeric" value={allIndiaForm.length} onChangeText={(t) => setAllIndiaForm((s) => ({ ...s, length: t }))} />
-
-                    <Text style={styles.fieldLabel}>Width (cm)</Text>
-                    <TextInput style={styles.input} placeholder="Width in cm" keyboardType="numeric" value={allIndiaForm.width} onChangeText={(t) => setAllIndiaForm((s) => ({ ...s, width: t }))} />
-
-                    <Text style={styles.fieldLabel}>Height (cm)</Text>
-                    <TextInput style={styles.input} placeholder="Height in cm" keyboardType="numeric" value={allIndiaForm.height} onChangeText={(t) => setAllIndiaForm((s) => ({ ...s, height: t }))} />
-
-                    <Text style={styles.fieldLabel}>Description</Text>
-                    <TextInput style={[styles.input, styles.multiline]} placeholder="Description (optional)" multiline value={allIndiaForm.description} onChangeText={(t) => setAllIndiaForm((s) => ({ ...s, description: t }))} />
-
-                    <Text style={styles.fieldLabel}>Receiver Name</Text>
-                    <TextInput style={styles.input} placeholder="Receiver Name" value={allIndiaForm.receiverName} onChangeText={(t) => setAllIndiaForm((s) => ({ ...s, receiverName: t }))} />
-
-                    <Text style={styles.fieldLabel}>Receiver Phone</Text>
-                    <TextInput style={styles.input} placeholder="Receiver Phone" keyboardType="phone-pad" value={allIndiaForm.receiverPhone} onChangeText={(t) => setAllIndiaForm((s) => ({ ...s, receiverPhone: t }))} />
-                    
-                    <Text style={styles.fieldLabel}>Delivery Type</Text>
-                    <View style={styles.deliveryTypeContainer}>
-                        {[
-                            { key: 'standard', label: 'Standard', description: '3-5 days' },
-                            { key: 'express', label: 'Express', description: '1-2 days (+50%)' }
-                        ].map((option) => (
-                            <TouchableOpacity 
-                                key={option.key} 
-                                style={[
-                                    styles.deliveryTypeCard, 
-                                    allIndiaForm.typeOfDelivery === option.key ? styles.deliveryTypeCardActive : null
-                                ]} 
-                                onPress={() => setAllIndiaForm((s) => ({ ...s, typeOfDelivery: option.key }))}
-                            >
-                                <View style={styles.deliveryTypeHeader}>
-                                    <View style={[
-                                        styles.deliveryTypeRadio,
-                                        allIndiaForm.typeOfDelivery === option.key ? styles.deliveryTypeRadioActive : null
-                                    ]}>
-                                        {allIndiaForm.typeOfDelivery === option.key && (
-                                            <View style={styles.deliveryTypeRadioInner} />
-                                        )}
-                                    </View>
-                                    <Text style={[
-                                        styles.deliveryTypeLabel,
-                                        allIndiaForm.typeOfDelivery === option.key ? styles.deliveryTypeLabelActive : null
-                                    ]}>
-                                        {option.label}
-                                    </Text>
+                <TouchableOpacity 
+                    style={styles.formContainer} 
+                    activeOpacity={1} 
+                    onPress={closeAllAllIndiaDrawers}
+                >
+                    <View>
+                        {/* Enhanced Package Details */}
+                        <View style={styles.enhancedSection}>
+                            <Text style={styles.enhancedSectionTitle}>Package Details</Text>
+                            
+                            {/* Package Category */}
+                            {renderDrawerSelector(
+                                'Package Category',
+                                allIndiaDrawerStates.categoryOpen,
+                                () => toggleAllIndiaDrawer('categoryOpen'),
+                                PACKAGE_CATEGORIES,
+                                allIndiaForm.pkgType,
+                                selectAllIndiaCategory,
+                                'cube-outline'
+                            )}
+                            
+                            {/* Package Size */}
+                            {renderDrawerSelector(
+                                'Package Size',
+                                allIndiaDrawerStates.sizeOpen,
+                                () => toggleAllIndiaDrawer('sizeOpen'),
+                                PACKAGE_SIZES,
+                                allIndiaForm.size,
+                                selectAllIndiaSize,
+                                'resize-outline'
+                            )}
+                            
+                            {/* Weight Slider */}
+                            <Text style={styles.fieldLabel}>Weight: {allIndiaForm.weight} kg</Text>
+                            <View style={styles.enhancedSliderContainer}>
+                                <Slider
+                                    style={styles.slider}
+                                    minimumValue={0}
+                                    maximumValue={50}
+                                    value={parseFloat(allIndiaForm.weight) || 1}
+                                    onValueChange={(value) => setAllIndiaForm((s) => ({ ...s, weight: value.toString() }))}
+                                    minimumTrackTintColor={Colors.primary}
+                                    maximumTrackTintColor={Colors.border}
+                                    thumbStyle={styles.sliderThumb}
+                                    trackStyle={styles.sliderTrack}
+                                />
+                                <View style={styles.sliderLabels}>
+                                    <Text style={styles.sliderLabel}>0 kg</Text>
+                                    <Text style={styles.sliderLabel}>50 kg</Text>
                                 </View>
-                                <Text style={styles.deliveryTypeDescription}>{option.description}</Text>
-                            </TouchableOpacity>
-                        ))}
+                            </View>
+                            
+                            {/* Container Type */}
+                            {renderDrawerSelector(
+                                'Container Type',
+                                allIndiaDrawerStates.containerOpen,
+                                () => toggleAllIndiaDrawer('containerOpen'),
+                                CONTAINER_TYPES,
+                                allIndiaForm.containerType,
+                                selectAllIndiaContainer,
+                                'archive-outline'
+                            )}
+                            
+                            {/* Content Types Multi-Selector */}
+                            <Text style={styles.fieldLabel}>Content Types (Select Multiple)</Text>
+                            <View style={styles.multiSelectContainer}>
+                                {PACKAGE_CONTENTS.map((content) => {
+                                    const isSelected = allIndiaForm.contentTypes?.includes(content.key) || false;
+                                    return (
+                                        <TouchableOpacity
+                                            key={content.key}
+                                            style={[
+                                                styles.multiSelectItem,
+                                                isSelected ? styles.multiSelectItemActive : null
+                                            ]}
+                                            onPress={() => toggleAllIndiaContentType(content.key)}
+                                        >
+                                            <View style={styles.multiSelectItemContent}>
+                                                <View style={[
+                                                    styles.multiSelectCheckbox,
+                                                    isSelected ? styles.multiSelectCheckboxActive : null
+                                                ]}>
+                                                    {isSelected && (
+                                                        <Ionicons name="checkmark" size={16} color="#fff" />
+                                                    )}
+                                                </View>
+                                                <Ionicons 
+                                                    name={content.icon} 
+                                                    size={20} 
+                                                    color={isSelected ? '#fff' : Colors.primary} 
+                                                />
+                                                <Text style={[
+                                                    styles.multiSelectItemText,
+                                                    isSelected ? styles.multiSelectItemTextActive : null
+                                                ]}>
+                                                    {content.label}
+                                                </Text>
+                                            </View>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+                            
+                            {/* Selected Content Summary */}
+                            {allIndiaForm.contentTypes && allIndiaForm.contentTypes.length > 0 && (
+                                <View style={styles.selectedContentSummary}>
+                                    <Text style={styles.selectedContentTitle}>
+                                        Selected: {allIndiaForm.contentTypes.length} content type{allIndiaForm.contentTypes.length > 1 ? 's' : ''}
+                                    </Text>
+                                    <View style={styles.selectedContentTags}>
+                                        {allIndiaForm.contentTypes.map((contentKey) => {
+                                            const content = PACKAGE_CONTENTS.find(c => c.key === contentKey);
+                                            return (
+                                                <View key={contentKey} style={styles.selectedContentTag}>
+                                                    <Ionicons name={content?.icon} size={14} color={Colors.primary} />
+                                                    <Text style={styles.selectedContentTagText}>{content?.label}</Text>
+                                                </View>
+                                            );
+                                        })}
+                                    </View>
+                                </View>
+                            )}
+                            
+                            {/* Dimensions */}
+                            <Text style={styles.fieldLabel}>Dimensions (Optional)</Text>
+                            <View style={styles.enhancedInputContainer}>
+                                <Ionicons name="resize-outline" size={20} color={Colors.mutedText} />
+                                <TextInput 
+                                    style={styles.enhancedInput} 
+                                    placeholder="e.g., 10ft × 6ft × 4ft" 
+                                    value={allIndiaForm.dimensions} 
+                                    onChangeText={(t) => setAllIndiaForm((s) => ({ ...s, dimensions: t }))} 
+                                />
+                            </View>
+                            
+                            {/* Individual Dimensions */}
+                            <View style={styles.dimensionsRow}>
+                                <View style={styles.dimensionInput}>
+                                    <Text style={styles.fieldLabel}>Length (cm)</Text>
+                                    <View style={styles.enhancedInputContainer}>
+                                        <Ionicons name="resize-outline" size={16} color={Colors.mutedText} />
+                                        <TextInput 
+                                            style={styles.enhancedInput} 
+                                            placeholder="Length" 
+                                            keyboardType="numeric" 
+                                            value={allIndiaForm.length} 
+                                            onChangeText={(t) => setAllIndiaForm((s) => ({ ...s, length: t }))} 
+                                        />
+                                    </View>
+                                </View>
+                                <View style={styles.dimensionInput}>
+                                    <Text style={styles.fieldLabel}>Width (cm)</Text>
+                                    <View style={styles.enhancedInputContainer}>
+                                        <Ionicons name="resize-outline" size={16} color={Colors.mutedText} />
+                                        <TextInput 
+                                            style={styles.enhancedInput} 
+                                            placeholder="Width" 
+                                            keyboardType="numeric" 
+                                            value={allIndiaForm.width} 
+                                            onChangeText={(t) => setAllIndiaForm((s) => ({ ...s, width: t }))} 
+                                        />
+                                    </View>
+                                </View>
+                                <View style={styles.dimensionInput}>
+                                    <Text style={styles.fieldLabel}>Height (cm)</Text>
+                                    <View style={styles.enhancedInputContainer}>
+                                        <Ionicons name="resize-outline" size={16} color={Colors.mutedText} />
+                                        <TextInput 
+                                            style={styles.enhancedInput} 
+                                            placeholder="Height" 
+                                            keyboardType="numeric" 
+                                            value={allIndiaForm.height} 
+                                            onChangeText={(t) => setAllIndiaForm((s) => ({ ...s, height: t }))} 
+                                        />
+                                    </View>
+                                </View>
+                            </View>
+                        </View>
+                        
+                        {/* Enhanced Receiver Details */}
+                        <View style={styles.enhancedSection}>
+                            <Text style={styles.enhancedSectionTitle}>Receiver Details</Text>
+                            
+                            <View style={styles.enhancedInputContainer}>
+                                <Ionicons name="person-outline" size={20} color={Colors.mutedText} />
+                                <TextInput 
+                                    style={styles.enhancedInput} 
+                                    placeholder="Receiver Name" 
+                                    value={allIndiaForm.receiverName} 
+                                    onChangeText={(t) => setAllIndiaForm((s) => ({ ...s, receiverName: t }))} 
+                                />
+                            </View>
+                            
+                            <View style={styles.enhancedInputContainer}>
+                                <Ionicons name="call-outline" size={20} color={Colors.mutedText} />
+                                <TextInput 
+                                    style={styles.enhancedInput} 
+                                    placeholder="Receiver Phone" 
+                                    keyboardType="phone-pad" 
+                                    value={allIndiaForm.receiverPhone} 
+                                    onChangeText={(t) => setAllIndiaForm((s) => ({ ...s, receiverPhone: t }))} 
+                                />
+                            </View>
+                        </View>
+                        
+                        {/* Enhanced Delivery Type Selection */}
+                        <View style={styles.enhancedSection}>
+                            <Text style={styles.enhancedSectionTitle}>Delivery Options</Text>
+                            <View style={styles.enhancedDeliveryTypeContainer}>
+                                {[
+                                    { 
+                                        key: 'standard', 
+                                        label: 'Standard Delivery', 
+                                        description: '3-5 days', 
+                                        icon: 'time-outline',
+                                        color: '#10B981'
+                                    },
+                                    { 
+                                        key: 'express', 
+                                        label: 'Express Delivery', 
+                                        description: '1-2 days (+50%)', 
+                                        icon: 'flash-outline',
+                                        color: '#F59E0B'
+                                    }
+                                ].map((option) => (
+                                    <TouchableOpacity 
+                                        key={option.key} 
+                                        style={[
+                                            styles.enhancedDeliveryTypeCard, 
+                                            allIndiaForm.typeOfDelivery === option.key ? styles.enhancedDeliveryTypeCardActive : null
+                                        ]} 
+                                        onPress={() => setAllIndiaForm((s) => ({ ...s, typeOfDelivery: option.key }))}
+                                    >
+                                        <View style={[
+                                            styles.enhancedDeliveryTypeIconContainer,
+                                            { backgroundColor: allIndiaForm.typeOfDelivery === option.key ? option.color : '#F3F4F6' }
+                                        ]}>
+                                            <Ionicons 
+                                                name={option.icon} 
+                                                size={24} 
+                                                color={allIndiaForm.typeOfDelivery === option.key ? '#fff' : option.color} 
+                                            />
+                                        </View>
+                                        <View style={styles.enhancedDeliveryTypeContent}>
+                                            <Text style={[
+                                                styles.enhancedDeliveryTypeLabel,
+                                                allIndiaForm.typeOfDelivery === option.key ? styles.enhancedDeliveryTypeLabelActive : null
+                                            ]}>
+                                                {option.label}
+                                            </Text>
+                                            <Text style={styles.enhancedDeliveryTypeDescription}>{option.description}</Text>
+                                        </View>
+                                        {allIndiaForm.typeOfDelivery === option.key && (
+                                            <Ionicons name="checkmark-circle" size={24} color={option.color} />
+                                        )}
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+                        
+                        {renderEstimateFare()}
                     </View>
-                    
-                    {renderEstimateFare()}
-                </View>
+                </TouchableOpacity>
             );
         }
         if (service === 'truck') {
@@ -711,53 +1381,222 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
             }
             
             return (
-                <View>
-                    {/* Selected Vehicle Info */}
-                    <View style={styles.selectedVehicleCard}>
-                        <View style={styles.selectedVehicleHeader}>
-                            <Text style={styles.selectedVehicleIcon}>{selectedTruckVehicle.icon}</Text>
-                            <View style={styles.selectedVehicleInfo}>
-                                <Text style={styles.selectedVehicleName}>{selectedTruckVehicle.name}</Text>
-                                <Text style={styles.selectedVehicleCapacity}>
-                                    Capacity: {selectedTruckVehicle.capacityPayloadKg}kg | Size: {selectedTruckVehicle.vehicleLengthFt}' × {selectedTruckVehicle.vehicleWidthFt}'
-                                </Text>
+                <TouchableOpacity 
+                    style={styles.formContainer} 
+                    activeOpacity={1} 
+                    onPress={closeAllTruckDrawers}
+                >
+                    <View>
+                        {/* Enhanced Selected Vehicle Info */}
+                        <View style={styles.enhancedSelectedVehicleCard}>
+                            <View style={styles.enhancedSelectedVehicleHeader}>
+                                <View style={[
+                                    styles.enhancedSelectedVehicleIconContainer,
+                                    { backgroundColor: selectedTruckVehicle.color }
+                                ]}>
+                                    <Text style={styles.enhancedSelectedVehicleIcon}>{selectedTruckVehicle.icon}</Text>
+                                </View>
+                                <View style={styles.enhancedSelectedVehicleInfo}>
+                                    <Text style={styles.enhancedSelectedVehicleName}>{selectedTruckVehicle.name}</Text>
+                                    <Text style={styles.enhancedSelectedVehicleCapacity}>
+                                        {selectedTruckVehicle.capacityPayloadKg}kg • {selectedTruckVehicle.vehicleLengthFt}' × {selectedTruckVehicle.vehicleWidthFt}'
+                                    </Text>
+                                </View>
+                                <TouchableOpacity 
+                                    style={styles.enhancedChangeVehicleBtn}
+                                    onPress={() => setSelectedTruckVehicle(null)}
+                                >
+                                    <Ionicons name="refresh-outline" size={16} color="#fff" />
+                                    <Text style={styles.enhancedChangeVehicleBtnText}>Change</Text>
+                                </TouchableOpacity>
                             </View>
-                            <TouchableOpacity 
-                                style={styles.changeVehicleBtn}
-                                onPress={() => setSelectedTruckVehicle(null)}
-                            >
-                                <Text style={styles.changeVehicleBtnText}>Change</Text>
-                            </TouchableOpacity>
                         </View>
+                        
+                        {/* Enhanced Package Details */}
+                        <View style={styles.enhancedSection}>
+                            <Text style={styles.enhancedSectionTitle}>Package Details</Text>
+                            
+                            {/* Package Category */}
+                            {renderDrawerSelector(
+                                'Package Category',
+                                truckDrawerStates.categoryOpen,
+                                () => toggleTruckDrawer('categoryOpen'),
+                                PACKAGE_CATEGORIES,
+                                truckForm.pkgType,
+                                selectTruckCategory,
+                                'cube-outline'
+                            )}
+                            
+                            {/* Package Size */}
+                            {renderDrawerSelector(
+                                'Package Size',
+                                truckDrawerStates.sizeOpen,
+                                () => toggleTruckDrawer('sizeOpen'),
+                                PACKAGE_SIZES,
+                                truckForm.size,
+                                selectTruckSize,
+                                'resize-outline'
+                            )}
+                            
+                            {/* Weight Slider for Trucks */}
+                            <Text style={styles.fieldLabel}>Weight: {truckForm.weight} kg</Text>
+                            <View style={styles.enhancedSliderContainer}>
+                                <Slider
+                                    style={styles.slider}
+                                    minimumValue={0}
+                                    maximumValue={selectedTruckVehicle.capacityPayloadKg}
+                                    value={parseFloat(truckForm.weight) || 10}
+                                    onValueChange={(value) => setTruckForm((s) => ({ ...s, weight: value.toString() }))}
+                                    minimumTrackTintColor={selectedTruckVehicle.color}
+                                    maximumTrackTintColor={Colors.border}
+                                    thumbStyle={styles.sliderThumb}
+                                    trackStyle={styles.sliderTrack}
+                                />
+                                <View style={styles.sliderLabels}>
+                                    <Text style={styles.sliderLabel}>0 kg</Text>
+                                    <Text style={styles.sliderLabel}>{selectedTruckVehicle.capacityPayloadKg} kg</Text>
+                                </View>
+                            </View>
+                            
+                            {/* Container Type */}
+                            {renderDrawerSelector(
+                                'Container Type',
+                                truckDrawerStates.containerOpen,
+                                () => toggleTruckDrawer('containerOpen'),
+                                CONTAINER_TYPES,
+                                truckForm.containerType,
+                                selectTruckContainer,
+                                'archive-outline'
+                            )}
+                            
+                            {/* Content Types Multi-Selector */}
+                            <Text style={styles.fieldLabel}>Content Types (Select Multiple)</Text>
+                            <View style={styles.multiSelectContainer}>
+                                {PACKAGE_CONTENTS.map((content) => {
+                                    const isSelected = truckForm.contentTypes?.includes(content.key) || false;
+                                    return (
+                                        <TouchableOpacity
+                                            key={content.key}
+                                            style={[
+                                                styles.multiSelectItem,
+                                                isSelected ? styles.multiSelectItemActive : null
+                                            ]}
+                                            onPress={() => toggleTruckContentType(content.key)}
+                                        >
+                                            <View style={styles.multiSelectItemContent}>
+                                                <View style={[
+                                                    styles.multiSelectCheckbox,
+                                                    isSelected ? styles.multiSelectCheckboxActive : null
+                                                ]}>
+                                                    {isSelected && (
+                                                        <Ionicons name="checkmark" size={16} color="#fff" />
+                                                    )}
+                                                </View>
+                                                <Ionicons 
+                                                    name={content.icon} 
+                                                    size={20} 
+                                                    color={isSelected ? '#fff' : Colors.primary} 
+                                                />
+                                                <Text style={[
+                                                    styles.multiSelectItemText,
+                                                    isSelected ? styles.multiSelectItemTextActive : null
+                                                ]}>
+                                                    {content.label}
+                                                </Text>
+                                            </View>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+                            
+                            {/* Selected Content Summary */}
+                            {truckForm.contentTypes && truckForm.contentTypes.length > 0 && (
+                                <View style={styles.selectedContentSummary}>
+                                    <Text style={styles.selectedContentTitle}>
+                                        Selected: {truckForm.contentTypes.length} content type{truckForm.contentTypes.length > 1 ? 's' : ''}
+                                    </Text>
+                                    <View style={styles.selectedContentTags}>
+                                        {truckForm.contentTypes.map((contentKey) => {
+                                            const content = PACKAGE_CONTENTS.find(c => c.key === contentKey);
+                                            return (
+                                                <View key={contentKey} style={styles.selectedContentTag}>
+                                                    <Ionicons name={content?.icon} size={14} color={Colors.primary} />
+                                                    <Text style={styles.selectedContentTagText}>{content?.label}</Text>
+                                                </View>
+                                            );
+                                        })}
+                                    </View>
+                                </View>
+                            )}
+                            
+                            {/* Dimensions */}
+                            <Text style={styles.fieldLabel}>Dimensions (Optional)</Text>
+                            <View style={styles.enhancedInputContainer}>
+                                <Ionicons name="resize-outline" size={20} color={Colors.mutedText} />
+                                <TextInput 
+                                    style={styles.enhancedInput} 
+                                    placeholder="e.g., 10ft × 6ft × 4ft" 
+                                    value={truckForm.dimensions} 
+                                    onChangeText={(t) => setTruckForm((s) => ({ ...s, dimensions: t }))} 
+                                />
+                            </View>
+                        </View>
+                        
+                        {/* Enhanced Sender Details */}
+                        <View style={styles.enhancedSection}>
+                            <Text style={styles.enhancedSectionTitle}>Sender Details</Text>
+                            
+                            <View style={styles.enhancedInputContainer}>
+                                <Ionicons name="person-outline" size={20} color={Colors.mutedText} />
+                                <TextInput 
+                                    style={styles.enhancedInput} 
+                                    placeholder="Sender Name" 
+                                    value={truckForm.senderName} 
+                                    onChangeText={(t) => setTruckForm((s) => ({ ...s, senderName: t }))} 
+                                />
+                            </View>
+                            
+                            <View style={styles.enhancedInputContainer}>
+                                <Ionicons name="call-outline" size={20} color={Colors.mutedText} />
+                                <TextInput 
+                                    style={styles.enhancedInput} 
+                                    placeholder="Sender Phone" 
+                                    keyboardType="phone-pad" 
+                                    value={truckForm.senderPhone} 
+                                    onChangeText={(t) => setTruckForm((s) => ({ ...s, senderPhone: t }))} 
+                                />
+                            </View>
+                        </View>
+                        
+                        {/* Enhanced Receiver Details */}
+                        <View style={styles.enhancedSection}>
+                            <Text style={styles.enhancedSectionTitle}>Receiver Details</Text>
+                            
+                            <View style={styles.enhancedInputContainer}>
+                                <Ionicons name="person-outline" size={20} color={Colors.mutedText} />
+                                <TextInput 
+                                    style={styles.enhancedInput} 
+                                    placeholder="Receiver Name" 
+                                    value={truckForm.receiverName} 
+                                    onChangeText={(t) => setTruckForm((s) => ({ ...s, receiverName: t }))} 
+                                />
+                            </View>
+                            
+                            <View style={styles.enhancedInputContainer}>
+                                <Ionicons name="call-outline" size={20} color={Colors.mutedText} />
+                                <TextInput 
+                                    style={styles.enhancedInput} 
+                                    placeholder="Receiver Phone" 
+                                    keyboardType="phone-pad" 
+                                    value={truckForm.receiverPhone} 
+                                    onChangeText={(t) => setTruckForm((s) => ({ ...s, receiverPhone: t }))} 
+                                />
+                            </View>
+                        </View>
+                        
+                        {renderEstimateFare()}
                     </View>
-                    
-                    {/* Sender details */}
-                    <Text style={styles.sectionTitle}>Sender Details</Text>
-                    <Text style={styles.fieldLabel}>Name</Text>
-                    <TextInput style={styles.input} placeholder="Sender Name" value={truckForm.senderName} onChangeText={(t) => setTruckForm((s) => ({ ...s, senderName: t }))} />
-                    <Text style={styles.fieldLabel}>Phone</Text>
-                    <TextInput style={styles.input} placeholder="Sender Phone" keyboardType="phone-pad" value={truckForm.senderPhone} onChangeText={(t) => setTruckForm((s) => ({ ...s, senderPhone: t }))} />
-                    
-                    {/* Receiver details */}
-                    <Text style={styles.sectionTitle}>Receiver Details</Text>
-                    <Text style={styles.fieldLabel}>Name</Text>
-                    <TextInput style={styles.input} placeholder="Receiver Name" value={truckForm.receiverName} onChangeText={(t) => setTruckForm((s) => ({ ...s, receiverName: t }))} />
-                    <Text style={styles.fieldLabel}>Phone</Text>
-                    <TextInput style={styles.input} placeholder="Receiver Phone" keyboardType="phone-pad" value={truckForm.receiverPhone} onChangeText={(t) => setTruckForm((s) => ({ ...s, receiverPhone: t }))} />
-                    
-                    {/* Package details */}
-                    <Text style={styles.sectionTitle}>Cargo Details</Text>
-                    <Text style={styles.fieldLabel}>Type</Text>
-                    <TextInput style={styles.input} placeholder="Type (e.g., Household, Furniture)" value={truckForm.pkgType} onChangeText={(t) => setTruckForm((s) => ({ ...s, pkgType: t }))} />
-                    <Text style={styles.fieldLabel}>Weight (kg)</Text>
-                    <TextInput style={styles.input} placeholder={`Weight (kg) - Max: ${selectedTruckVehicle.capacityPayloadKg}kg`} keyboardType="numeric" value={truckForm.weight} onChangeText={(t) => setTruckForm((s) => ({ ...s, weight: t }))} />
-                    <Text style={styles.fieldLabel}>Dimensions</Text>
-                    <TextInput style={styles.input} placeholder="Dimensions (optional)" value={truckForm.dimensions} onChangeText={(t) => setTruckForm((s) => ({ ...s, dimensions: t }))} />
-                    <Text style={styles.fieldLabel}>Description</Text>
-                    <TextInput style={[styles.input, styles.multiline]} placeholder="Description (optional)" multiline value={truckForm.description} onChangeText={(t) => setTruckForm((s) => ({ ...s, description: t }))} />
-                    
-                    {renderEstimateFare()}
-                </View>
+                </TouchableOpacity>
             );
         }
         if (service === 'bike' || service === 'cab') {
@@ -901,15 +1740,17 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
                 {service === 'local_parcel' && (
                     <View style={styles.reviewBox}>
                         <Text style={styles.sectionTitle}>Package Details</Text>
-                        {renderRow('Name', parcelForm.name)}
+                        {renderRow('Category', parcelForm.name)}
                         <View style={styles.divider} />
                         {renderRow('Size', parcelForm.size)}
                         <View style={styles.divider} />
                         {renderRow('Weight (kg)', parcelForm.weight)}
                         <View style={styles.divider} />
-                        {renderRow('Declared Value (₹)', parcelForm.value)}
+                        {renderRow('Content Types', parcelForm.contentTypes?.join(', ') || 'None selected')}
                         <View style={styles.divider} />
-                        {renderRow('Description', parcelForm.description)}
+                        {renderRow('Container Type', parcelForm.containerType)}
+                        <View style={styles.divider} />
+                        {renderRow('Declared Value (₹)', parcelForm.value)}
                     </View>
                 )}
 
@@ -925,9 +1766,15 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
                 {service === 'all_india_parcel' && (
                     <View style={styles.reviewBox}>
                         <Text style={styles.sectionTitle}>Package Details</Text>
-                        {renderRow('Type', allIndiaForm.pkgType)}
+                        {renderRow('Category', allIndiaForm.pkgType)}
+                        <View style={styles.divider} />
+                        {renderRow('Size', allIndiaForm.size)}
                         <View style={styles.divider} />
                         {renderRow('Weight (kg)', allIndiaForm.weight)}
+                        <View style={styles.divider} />
+                        {renderRow('Content Types', allIndiaForm.contentTypes?.join(', ') || 'None selected')}
+                        <View style={styles.divider} />
+                        {renderRow('Container Type', allIndiaForm.containerType)}
                         <View style={styles.divider} />
                         {renderRow('Dimensions', allIndiaForm.dimensions)}
                         <View style={styles.divider} />
@@ -936,8 +1783,6 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
                         {renderRow('Width (cm)', allIndiaForm.width)}
                         <View style={styles.divider} />
                         {renderRow('Height (cm)', allIndiaForm.height)}
-                        <View style={styles.divider} />
-                        {renderRow('Description', allIndiaForm.description)}
                     </View>
                 )}
 
@@ -1090,13 +1935,32 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
                     {step === 0 ? (
                         <View>
                             <Text style={styles.title}>Select a Service</Text>
-                            <View style={styles.grid}>
+                            <View style={styles.serviceGrid}>
                                 {SERVICES.map((s) => (
-                                    <TouchableOpacity key={s.key} style={[styles.serviceBtn, service === s.key ? styles.serviceBtnActive : null]} onPress={() => setService(s.key)}>
-                                        <View style={styles.serviceIconWrap}>
-                                            <Ionicons name={s.icon} size={18} color={service === s.key ? '#fff' : Colors.primary} />
+                                    <TouchableOpacity 
+                                        key={s.key} 
+                                        style={[
+                                            styles.serviceCard, 
+                                            service === s.key ? styles.serviceCardActive : null
+                                        ]} 
+                                        onPress={() => setService(s.key)}
+                                    >
+                                        <View style={[
+                                            styles.serviceCardIconContainer,
+                                            service === s.key ? styles.serviceCardIconContainerActive : null
+                                        ]}>
+                                            <Ionicons 
+                                                name={s.icon} 
+                                                size={24} 
+                                                color={service === s.key ? '#fff' : Colors.primary} 
+                                            />
                                         </View>
-                                        <Text style={[styles.serviceTxt, service === s.key ? styles.serviceTxtActive : null]}>{s.label}</Text>
+                                        <Text style={[
+                                            styles.serviceCardText, 
+                                            service === s.key ? styles.serviceCardTextActive : null
+                                        ]}>
+                                            {s.label}
+                                        </Text>
                                     </TouchableOpacity>
                                 ))}
                             </View>
@@ -1135,6 +1999,7 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
                                             {packersStep === 0 ? 'Select Items' : 'Review'}
                                         </Text>
                                     </TouchableOpacity>
+
                                 ) : (
                                 <TouchableOpacity style={styles.primaryBtn} onPress={() => setStep(2)}>
                                     <Text style={styles.primaryBtnTxt}>Review</Text>
@@ -1671,8 +2536,706 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: Colors.primary
     },
+    // New Package UI Styles
+    badgeContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: Spacing.sm,
+        marginBottom: Spacing.md
+    },
+    sizeBadge: {
+        backgroundColor: '#fff',
+        borderWidth: 2,
+        borderColor: Colors.border,
+        borderRadius: Radius.xl,
+        paddingVertical: Spacing.sm,
+        paddingHorizontal: Spacing.md,
+        shadowColor: Colors.shadow,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3,
+        minWidth: 50,
+        alignItems: 'center'
+    },
+    sizeBadgeActive: {
+        backgroundColor: Colors.primary,
+        borderColor: Colors.primary,
+        shadowOpacity: 0.15,
+        elevation: 6
+    },
+    sizeBadgeText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: Colors.text
+    },
+    sizeBadgeTextActive: {
+        color: '#fff'
+    },
+    containerBadge: {
+        backgroundColor: '#fff',
+        borderWidth: 2,
+        borderColor: Colors.border,
+        borderRadius: Radius.xl,
+        paddingVertical: Spacing.sm,
+        paddingHorizontal: Spacing.md,
+        shadowColor: Colors.shadow,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.xs
+    },
+    containerBadgeActive: {
+        backgroundColor: Colors.primary,
+        borderColor: Colors.primary,
+        shadowOpacity: 0.15,
+        elevation: 6
+    },
+    containerBadgeText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: Colors.text
+    },
+    containerBadgeTextActive: {
+        color: '#fff'
+    },
+    sliderContainer: {
+        backgroundColor: '#fff',
+        borderRadius: Radius.lg,
+        padding: Spacing.lg,
+        marginBottom: Spacing.md,
+        borderWidth: 1,
+        borderColor: Colors.border,
+        shadowColor: Colors.shadow,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3
+    },
+    slider: {
+        width: '100%',
+        height: 40,
+        marginBottom: Spacing.sm
+    },
+    sliderThumb: {
+        backgroundColor: Colors.primary,
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        shadowColor: Colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6
+    },
+    sliderTrack: {
+        height: 6,
+        borderRadius: 3
+    },
+    sliderLabels: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+    },
+    sliderLabel: {
+        fontSize: 12,
+        color: Colors.mutedText,
+        fontWeight: '600'
+    },
+    dropdownContainer: {
+        backgroundColor: '#fff',
+        borderRadius: Radius.lg,
+        borderWidth: 1,
+        borderColor: Colors.border,
+        marginBottom: Spacing.md,
+        shadowColor: Colors.shadow,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3,
+        overflow: 'hidden'
+    },
+    dropdownItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: Spacing.md,
+        paddingHorizontal: Spacing.lg,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.border
+    },
+    dropdownItemActive: {
+        backgroundColor: Colors.primary
+    },
+    dropdownItemContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.md,
+        flex: 1
+    },
+    dropdownItemText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: Colors.text
+    },
+    dropdownItemTextActive: {
+        color: '#fff',
+        fontWeight: '700'
+    },
+    // Multi-Selector Styles
+    multiSelectContainer: {
+        backgroundColor: '#fff',
+        borderRadius: Radius.lg,
+        borderWidth: 1,
+        borderColor: Colors.border,
+        marginBottom: Spacing.md,
+        shadowColor: Colors.shadow,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3,
+        overflow: 'hidden'
+    },
+    multiSelectItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: Spacing.md,
+        paddingHorizontal: Spacing.lg,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.border
+    },
+    multiSelectItemActive: {
+        backgroundColor: Colors.primary
+    },
+    multiSelectItemContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.md,
+        flex: 1
+    },
+    multiSelectCheckbox: {
+        width: 20,
+        height: 20,
+        borderRadius: 4,
+        borderWidth: 2,
+        borderColor: Colors.border,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#fff'
+    },
+    multiSelectCheckboxActive: {
+        backgroundColor: Colors.primary,
+        borderColor: Colors.primary
+    },
+    multiSelectItemText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: Colors.text
+    },
+    multiSelectItemTextActive: {
+        color: '#fff',
+        fontWeight: '700'
+    },
+    selectedContentSummary: {
+        backgroundColor: '#f8f9ff',
+        borderRadius: Radius.md,
+        padding: Spacing.md,
+        marginBottom: Spacing.md,
+        borderWidth: 1,
+        borderColor: Colors.primary
+    },
+    selectedContentTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: Colors.primary,
+        marginBottom: Spacing.sm
+    },
+    selectedContentTags: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: Spacing.xs
+    },
+    selectedContentTag: {
+        backgroundColor: '#fff',
+        borderRadius: Radius.md,
+        paddingVertical: Spacing.xs,
+        paddingHorizontal: Spacing.sm,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.xs,
+        borderWidth: 1,
+        borderColor: Colors.primary
+    },
+    selectedContentTagText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: Colors.primary
+    },
+    // Drawer Selector Styles
+    drawerSelector: {
+        backgroundColor: '#fff',
+        borderRadius: Radius.lg,
+        borderWidth: 1,
+        borderColor: Colors.border,
+        marginBottom: Spacing.md,
+        shadowColor: Colors.shadow,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3
+    },
+    drawerSelectorContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: Spacing.md,
+        paddingHorizontal: Spacing.lg
+    },
+    drawerSelectorLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.md,
+        flex: 1
+    },
+    drawerSelectorText: {
+        fontSize: 16,
+        fontWeight: '600'
+    },
+    drawerSelectorTextSelected: {
+        color: Colors.text
+    },
+    drawerSelectorTextPlaceholder: {
+        color: Colors.mutedText
+    },
+    drawerDropdown: {
+        backgroundColor: '#fff',
+        borderRadius: Radius.lg,
+        borderWidth: 1,
+        borderColor: Colors.border,
+        marginTop: -Radius.lg,
+        marginBottom: Spacing.md,
+        shadowColor: Colors.shadow,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 12,
+        elevation: 6,
+        overflow: 'hidden'
+    },
+    drawerOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: Spacing.md,
+        paddingHorizontal: Spacing.lg,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.border
+    },
+    drawerOptionSelected: {
+        backgroundColor: Colors.primary
+    },
+    drawerOptionContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.md,
+        flex: 1
+    },
+    drawerOptionText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: Colors.text
+    },
+    drawerOptionTextSelected: {
+        color: '#fff',
+        fontWeight: '700'
+    },
+    formContainer: {
+        flex: 1
+    },
+    // Enhanced Truck Booking Styles
+    enhancedHeader: {
+        alignItems: 'center',
+        marginBottom: Spacing.xl,
+        paddingHorizontal: Spacing.lg
+    },
+    enhancedTitle: {
+        fontSize: 24,
+        fontWeight: '800',
+        color: '#1E3A8A',
+        marginBottom: Spacing.sm,
+        textAlign: 'center'
+    },
+    enhancedSubtitle: {
+        fontSize: 16,
+        color: '#6B7280',
+        textAlign: 'center',
+        lineHeight: 22
+    },
+    enhancedVehicleGrid: {
+        gap: Spacing.lg,
+        marginBottom: Spacing.xl
+    },
+    enhancedVehicleCard: {
+        backgroundColor: '#fff',
+        borderRadius: 20,
+        padding: Spacing.xl,
+        borderWidth: 2,
+        borderColor: '#E5E7EB',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 6,
+        position: 'relative'
+    },
+    enhancedVehicleCardActive: {
+        borderColor: '#1E3A8A',
+        backgroundColor: '#F8FAFC',
+        shadowOpacity: 0.2,
+        elevation: 12
+    },
+    enhancedVehicleIconContainer: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: Spacing.lg,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4
+    },
+    enhancedVehicleIcon: {
+        fontSize: 32
+    },
+    enhancedVehicleContent: {
+        flex: 1
+    },
+    enhancedVehicleName: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#1F2937',
+        marginBottom: Spacing.sm
+    },
+    enhancedVehicleNameActive: {
+        color: '#1E3A8A'
+    },
+    enhancedVehicleDescription: {
+        fontSize: 14,
+        color: '#6B7280',
+        lineHeight: 20,
+        marginBottom: Spacing.lg
+    },
+    enhancedVehicleSpecs: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: Spacing.lg,
+        backgroundColor: '#F9FAFB',
+        borderRadius: 12,
+        padding: Spacing.md
+    },
+    enhancedSpecItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.xs
+    },
+    enhancedSpecText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#374151'
+    },
+    enhancedVehiclePricing: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: Spacing.lg,
+        backgroundColor: '#F0F9FF',
+        borderRadius: 12,
+        padding: Spacing.md
+    },
+    enhancedPriceItem: {
+        alignItems: 'center'
+    },
+    enhancedPriceLabel: {
+        fontSize: 11,
+        color: '#6B7280',
+        fontWeight: '600',
+        marginBottom: 2
+    },
+    enhancedPriceValue: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#1E3A8A'
+    },
+    enhancedUseCases: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: Spacing.xs
+    },
+    enhancedUseCaseTag: {
+        paddingHorizontal: Spacing.sm,
+        paddingVertical: Spacing.xs,
+        borderRadius: 16,
+        marginRight: Spacing.xs
+    },
+    enhancedUseCaseText: {
+        fontSize: 11,
+        fontWeight: '600'
+    },
+    enhancedSelectedIndicator: {
+        position: 'absolute',
+        top: Spacing.lg,
+        right: Spacing.lg,
+        backgroundColor: '#10B981',
+        borderRadius: 12,
+        padding: Spacing.xs
+    },
+    enhancedPrimaryBtn: {
+        backgroundColor: '#1E3A8A',
+        borderRadius: 16,
+        paddingVertical: Spacing.lg,
+        paddingHorizontal: Spacing.xl,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: Spacing.sm,
+        shadowColor: '#1E3A8A',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        elevation: 8
+    },
+    enhancedPrimaryBtnDisabled: {
+        backgroundColor: '#9CA3AF',
+        shadowOpacity: 0.1
+    },
+    enhancedPrimaryBtnText: {
+        color: '#fff',
+        fontWeight: '700',
+        fontSize: 16
+    },
+    enhancedSelectedVehicleCard: {
+        backgroundColor: '#F8FAFC',
+        borderRadius: 16,
+        padding: Spacing.lg,
+        marginBottom: Spacing.lg,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2
+    },
+    enhancedSelectedVehicleHeader: {
+        flexDirection: 'row',
+        alignItems: 'center'
+    },
+    enhancedSelectedVehicleIconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: Spacing.md
+    },
+    enhancedSelectedVehicleIcon: {
+        fontSize: 24
+    },
+    enhancedSelectedVehicleInfo: {
+        flex: 1
+    },
+    enhancedSelectedVehicleName: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#1F2937',
+        marginBottom: 2
+    },
+    enhancedSelectedVehicleCapacity: {
+        fontSize: 12,
+        color: '#6B7280'
+    },
+    enhancedChangeVehicleBtn: {
+        backgroundColor: '#1E3A8A',
+        borderRadius: 8,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.sm,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.xs
+    },
+    enhancedChangeVehicleBtnText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: '600'
+    },
+    enhancedSection: {
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: Spacing.lg,
+        marginBottom: Spacing.lg,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2
+    },
+    enhancedSectionTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#1F2937',
+        marginBottom: Spacing.lg
+    },
+    enhancedSliderContainer: {
+        backgroundColor: '#F9FAFB',
+        borderRadius: 16,
+        padding: Spacing.lg,
+        marginBottom: Spacing.md,
+        borderWidth: 1,
+        borderColor: '#E5E7EB'
+    },
+    enhancedInputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F9FAFB',
+        borderRadius: 12,
+        paddingHorizontal: Spacing.lg,
+        paddingVertical: Spacing.md,
+        marginBottom: Spacing.md,
+        borderWidth: 1,
+        borderColor: '#E5E7EB'
+    },
+    enhancedInput: {
+        flex: 1,
+        fontSize: 16,
+        color: '#1F2937',
+        marginLeft: Spacing.md
+    },
+    // All India Parcel specific styles
+    dimensionsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: Spacing.sm,
+        marginBottom: Spacing.md
+    },
+    dimensionInput: {
+        flex: 1
+    },
+    enhancedDeliveryTypeContainer: {
+        gap: Spacing.md
+    },
+    enhancedDeliveryTypeCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: Spacing.lg,
+        borderWidth: 2,
+        borderColor: '#E5E7EB',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3
+    },
+    enhancedDeliveryTypeCardActive: {
+        borderColor: '#10B981',
+        backgroundColor: '#F0FDF4',
+        shadowOpacity: 0.15,
+        elevation: 6
+    },
+    enhancedDeliveryTypeIconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: Spacing.md
+    },
+    enhancedDeliveryTypeContent: {
+        flex: 1
+    },
+    enhancedDeliveryTypeLabel: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#1F2937',
+        marginBottom: 2
+    },
+    enhancedDeliveryTypeLabelActive: {
+        color: '#10B981',
+        fontWeight: '700'
+    },
+    enhancedDeliveryTypeDescription: {
+        fontSize: 14,
+        color: '#6B7280'
+    },
+    // Service Grid Styles
+    serviceGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        marginBottom: Spacing.xl,
+        paddingHorizontal: Spacing.sm
+    },
+    serviceCard: {
+        width: '48%',
+        height: 120,
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: Spacing.lg,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 2,
+        borderColor: '#E5E7EB',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3,
+        marginBottom: Spacing.md
+    },
+    serviceCardActive: {
+        borderColor: Colors.primary,
+        backgroundColor: '#F8FAFF',
+        shadowOpacity: 0.15,
+        elevation: 6
+    },
+    serviceCardIconContainer: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: '#F0F9FF',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: Spacing.md,
+        shadowColor: Colors.primary,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2
+    },
+    serviceCardIconContainerActive: {
+        backgroundColor: Colors.primary,
+        shadowOpacity: 0.2,
+        elevation: 4
+    },
+    serviceCardText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: Colors.text,
+        textAlign: 'center',
+        lineHeight: 18
+    },
+    serviceCardTextActive: {
+        color: Colors.primary,
+        fontWeight: '700'
+    },
 });
 
 export default ServiceFlowDrawer;
+
 
 
