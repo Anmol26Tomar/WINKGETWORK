@@ -12,31 +12,35 @@ import {
 import { useEffect } from "react";
 
 export default function Products() {
-<<<<<<< HEAD
-  const { state, dispatch } = useApp()
-  const [showForm, setShowForm] = useState(false)
-  const [editing, setEditing] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-=======
   const { state, dispatch } = useApp();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [showPendingModal, setShowPendingModal] = useState(false);
->>>>>>> 8ddfe9bcbf6d296c6af74a4afc9f4c14ba1cc746
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const products = useMemo(() => state.products, [state.products]);
 
   useEffect(() => {
     (async () => {
       try {
-<<<<<<< HEAD
-        setLoading(true)
-        setError(null)
-        const list = await fetchProducts()
-=======
-        const list = await fetchProducts();
->>>>>>> 8ddfe9bcbf6d296c6af74a4afc9f4c14ba1cc746
+        setLoading(true);
+        setError(null);
+        const response = await fetchProducts();
+        
+        // Handle different response formats
+        let list = [];
+        if (Array.isArray(response)) {
+          list = response;
+        } else if (response && Array.isArray(response.products)) {
+          list = response.products;
+        } else if (response && Array.isArray(response.data)) {
+          list = response.data;
+        } else {
+          console.warn('Unexpected response format from fetchProducts:', response);
+          list = [];
+        }
+        
         // normalize to id field for UI
         const normalized = list.map((p) => ({ ...p, id: p._id }));
         // replace current state with fetched
@@ -44,29 +48,19 @@ export default function Products() {
         normalized.forEach(() => {});
         // dispatching a replace is not present; emulate by resetting via logout+login would be overkill.
         // Instead, remove duplicates and add missing
-<<<<<<< HEAD
-        const existingIds = new Set(state.products.map(p => p.id))
-        normalized.forEach(p => {
-          if (!existingIds.has(p.id)) dispatch({ type: 'ADD_PRODUCT', payload: p })
-        })
-      } catch (err) {
-        setError('Failed to load products')
-        console.error('Error loading products:', err)
-      } finally {
-        setLoading(false)
-      }
-    })()
-  }, [])
-=======
         const existingIds = new Set(state.products.map((p) => p.id));
         normalized.forEach((p) => {
           if (!existingIds.has(p.id))
             dispatch({ type: "ADD_PRODUCT", payload: p });
         });
-      } catch {}
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        setError(err.message || 'Failed to fetch products');
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
->>>>>>> 8ddfe9bcbf6d296c6af74a4afc9f4c14ba1cc746
 
   const handleAdd = () => {
     // Check if vendor is approved
@@ -142,17 +136,6 @@ export default function Products() {
   }
 
   return (
-<<<<<<< HEAD
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Products</h1>
-          <p className="text-gray-600 mt-1">Manage your product catalog</p>
-        </div>
-        <button 
-          onClick={handleAdd} 
-          className="px-6 py-3 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors font-medium shadow-sm"
-=======
     <div className="space-y-6">
       {/* Pending Approval Modal */}
       <PendingApprovalModal
@@ -165,28 +148,12 @@ export default function Products() {
         <button
           onClick={handleAdd}
           className="px-3 py-2 text-sm rounded-md bg-primary-600 text-white"
->>>>>>> 8ddfe9bcbf6d296c6af74a4afc9f4c14ba1cc746
         >
           Add Product
         </button>
       </div>
 
       {showForm && (
-<<<<<<< HEAD
-        <div className="bg-white border rounded-xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-semibold text-gray-900">
-              {editing ? 'Edit Product' : 'Add New Product'}
-            </h3>
-            <button
-              onClick={() => setShowForm(false)}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-=======
         <div className="bg-white border rounded-lg p-4">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold">
@@ -199,38 +166,10 @@ export default function Products() {
               onSubmit={handleSubmit}
               onCancel={() => setShowForm(false)}
             />
->>>>>>> 8ddfe9bcbf6d296c6af74a4afc9f4c14ba1cc746
           </div>
-          <ProductForm 
-            initialValues={editing || undefined} 
-            onSubmit={handleSubmit} 
-            onCancel={() => setShowForm(false)} 
-          />
         </div>
       )}
 
-<<<<<<< HEAD
-      {products.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="text-gray-400 mb-4">
-            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-            </svg>
-          </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">No products yet</h3>
-          <p className="text-gray-600 mb-6">Get started by adding your first product to your catalog</p>
-          <button 
-            onClick={handleAdd} 
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-          >
-            Add Your First Product
-          </button>
-        </div>
-      ) : (
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {products.map(p => (
-            <ProductCard key={p.id} product={p} onEdit={handleEdit} onDelete={handleDelete} />
-=======
       {/* Show restricted access message if not approved */}
       {state.auth.vendor && !state.auth.vendor.isApproved ? (
         <div className="bg-white border rounded-lg p-8 text-center">
@@ -271,7 +210,6 @@ export default function Products() {
               onEdit={handleEdit}
               onDelete={handleDelete}
             />
->>>>>>> 8ddfe9bcbf6d296c6af74a4afc9f4c14ba1cc746
           ))}
         </div>
       )}
