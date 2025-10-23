@@ -18,6 +18,7 @@ export default function Sidebar() {
   const adminNavItems = [
     { to: "/admin/dashboard", label: "Dashboard", icon: "📊" },
     { to: "/admin/vendors", label: "Manage Vendors", icon: "👥" },
+    { to: "/admin/categories", label: "Categories", icon: "🗂️" },
     { to: "/admin/contact", label: "Contact Express", icon: "📞" },
   ];
 
