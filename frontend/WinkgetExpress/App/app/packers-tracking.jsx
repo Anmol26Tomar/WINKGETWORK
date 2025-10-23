@@ -1,12 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView, RefreshControl, Animated, Linking, Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView, RefreshControl, Animated } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { getPackersById } from '../services/packersService';
 import { Colors, Spacing, Radius } from '../constants/colors';
 import { Ionicons } from '@expo/vector-icons';
-import { listTransportByUser, getTransportById } from '../services/transportService';
-import { getCaptainById } from '../services/parcelService';
-import { useAuth } from '../context/AuthContext';
-import { getSocket } from '../services/socket';
 
 const STATUS_CONFIG = {
   pending: { 
@@ -23,34 +20,33 @@ const STATUS_CONFIG = {
     bgColor: '#E6F3FF',
     description: 'Captain assigned and ready'
   },
-  in_progress: { 
-    label: 'In Progress', 
+  in_transit: { 
+    label: 'In Transit', 
     color: '#2A5EE4', 
-    icon: '🚗',
+    icon: '🚚',
     bgColor: '#E6F0FF',
-    description: 'Your ride is underway'
+    description: 'Your items are on the way'
   },
-  completed: { 
-    label: 'Completed', 
+  delivered: { 
+    label: 'Delivered', 
     color: '#34C759', 
-    icon: '🏁',
+    icon: '📦',
     bgColor: '#E6F7E6',
-    description: 'Ride completed successfully'
+    description: 'Successfully delivered'
   },
   cancelled: { 
     label: 'Cancelled', 
     color: '#FF3B30', 
     icon: '❌',
     bgColor: '#FFE6E6',
-    description: 'Ride was cancelled'
+    description: 'Booking was cancelled'
   }
 };
 
-export default function TransportTrackingScreen() {
-	const { id } = useLocalSearchParams();
+export default function PackersTrackingScreen() {
+  const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { user } = useAuth?.() || {};
-  const [trip, setTrip] = useState(null);
+  const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const fadeAnim = useState(new Animated.Value(0))[0];
@@ -58,79 +54,23 @@ export default function TransportTrackingScreen() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      let found = null;
-      try {
-        found = await getTransportById(id);
-      } catch {
-        const uid = user?.id || user?._id;
-        if (!uid) throw new Error('User not found');
-        const data = await listTransportByUser(uid);
-        found = (data.transports || []).find(t => t._id === id);
-      }
-      if (!found) throw new Error('Not found');
-      
-      const normalized = { ...found };
-      if (normalized.rideAccepted && normalized.status !== 'accepted') normalized.status = 'accepted';
-      
-      // Hydrate captain details if only an id is present
-      if (normalized.captainRef && typeof normalized.captainRef === "string") {
-        try {
-          const cap = await getCaptainById(normalized.captainRef);
-          normalized.captainRef = cap?.agent || cap?.captain || cap?.data || cap || { _id: normalized.captainRef };
-        } catch (e) {
-          // ignore hydrate failure, keep id
-        }
-      }
-      
-      setTrip(normalized);
+      const data = await getPackersById(id);
+      setBooking(data);
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 500,
         useNativeDriver: true,
       }).start();
     } catch (e) {
-      console.error('Error fetching transport details:', e);
+      console.error('Error fetching booking:', e);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (!id) {
-      setLoading(false);
-      return;
-    }
-    fetchData();
-
-    // Set up polling for real-time updates
-    const interval = setInterval(() => {
-      fetchData();
-    }, 10000);
-
-    // Set up socket listeners
-    const socket = getSocket();
-    let acceptedHandler;
-    let updateHandler;
-    if (socket) {
-      acceptedHandler = (payload) => {
-        if (payload?.ride?._id === id) fetchData();
-      };
-      updateHandler = (payload) => {
-        if (payload?.ride?._id === id) fetchData();
-      };
-      socket.emit('user:subscribe-ride', { rideId: id });
-      socket.on('ride-accepted', acceptedHandler);
-      socket.on('ride-updated', updateHandler);
-    }
-
-    return () => {
-      clearInterval(interval);
-      if (socket) {
-        socket.off('ride-accepted', acceptedHandler);
-        socket.off('ride-updated', updateHandler);
-      }
-    };
-  }, [id, user?.id]);
+    if (id) fetchData();
+  }, [id]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -153,12 +93,16 @@ export default function TransportTrackingScreen() {
     });
   };
 
+  const getTotalItems = () => {
+    return Object.values(booking?.selectedItems || {}).reduce((sum, qty) => sum + Number(qty || 0), 0);
+  };
+
   if (!id) {
     return (
       <View style={styles.errorContainer}>
         <View style={styles.errorCard}>
           <Ionicons name="alert-circle" size={48} color="#FF3B30" />
-          <Text style={styles.errorTitle}>Missing Trip ID</Text>
+          <Text style={styles.errorTitle}>Missing Booking ID</Text>
           <Text style={styles.errorText}>Unable to load tracking information</Text>
           <TouchableOpacity style={styles.primaryBtn} onPress={() => router.back()}>
             <Text style={styles.primaryBtnTxt}>Go Back</Text>
@@ -168,7 +112,7 @@ export default function TransportTrackingScreen() {
     );
   }
 
-  if (loading && !trip) {
+  if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <View style={styles.loadingCard}>
@@ -179,13 +123,13 @@ export default function TransportTrackingScreen() {
     );
   }
 
-  if (!trip) {
+  if (!booking) {
     return (
       <View style={styles.errorContainer}>
         <View style={styles.errorCard}>
           <Ionicons name="search" size={48} color="#FF3B30" />
-          <Text style={styles.errorTitle}>Trip Not Found</Text>
-          <Text style={styles.errorText}>The requested trip could not be found</Text>
+          <Text style={styles.errorTitle}>Booking Not Found</Text>
+          <Text style={styles.errorText}>The requested booking could not be found</Text>
           <TouchableOpacity style={styles.primaryBtn} onPress={() => router.back()}>
             <Text style={styles.primaryBtnTxt}>Go Back</Text>
           </TouchableOpacity>
@@ -194,21 +138,22 @@ export default function TransportTrackingScreen() {
     );
   }
 
-  const statusConfig = getStatusConfig(trip.status);
+  const statusConfig = getStatusConfig(booking.status);
+  const totalItems = getTotalItems();
 
-    return (
-        <View style={styles.container}>
+  return (
+    <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={Colors.text} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Transport Ride</Text>
-          <Text style={styles.headerSubtitle}>Trip #{trip._id?.slice(-6)}</Text>
+          <Text style={styles.headerTitle}>Packers & Movers</Text>
+          <Text style={styles.headerSubtitle}>Booking #{booking._id?.slice(-6)}</Text>
         </View>
         <View style={styles.headerIcon}>
-          <Ionicons name="car" size={24} color={Colors.primary} />
+          <Ionicons name="home" size={24} color={Colors.primary} />
         </View>
       </View>
 
@@ -232,7 +177,7 @@ export default function TransportTrackingScreen() {
               </View>
             </View>
             <View style={styles.statusFooter}>
-              <Text style={styles.statusDate}>Created: {formatDate(trip.createdAt)}</Text>
+              <Text style={styles.statusDate}>Created: {formatDate(booking.createdAt)}</Text>
             </View>
           </View>
 
@@ -247,81 +192,96 @@ export default function TransportTrackingScreen() {
                 <View style={[styles.routeDot, { backgroundColor: '#34C759' }]} />
                 <View style={styles.routeInfo}>
                   <Text style={styles.routeLabel}>Pickup</Text>
-                  <Text style={styles.routeAddress}>{trip.pickup?.address}</Text>
+                  <Text style={styles.routeAddress}>{booking.pickup?.address}</Text>
                 </View>
               </View>
               <View style={styles.routeLine} />
               <View style={styles.routePoint}>
                 <View style={[styles.routeDot, { backgroundColor: '#FF3B30' }]} />
                 <View style={styles.routeInfo}>
-                  <Text style={styles.routeLabel}>Destination</Text>
-                  <Text style={styles.routeAddress}>{trip.destination?.address}</Text>
+                  <Text style={styles.routeLabel}>Delivery</Text>
+                  <Text style={styles.routeAddress}>{booking.delivery?.address}</Text>
                 </View>
               </View>
             </View>
           </View>
 
-          {/* Ride Details Card */}
+          {/* Receiver Card */}
           <View style={styles.card}>
             <View style={styles.cardHeader}>
-              <Ionicons name="car" size={20} color={Colors.primary} />
-              <Text style={styles.cardTitle}>Ride Details</Text>
+              <Ionicons name="person" size={20} color={Colors.primary} />
+              <Text style={styles.cardTitle}>Receiver Information</Text>
             </View>
             <View style={styles.infoGrid}>
               <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>Fare</Text>
-                <Text style={styles.infoValue}>₹{trip.fareEstimate}</Text>
+                <Text style={styles.infoLabel}>Name</Text>
+                <Text style={styles.infoValue}>{booking.receiverName}</Text>
               </View>
               <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>Vehicle</Text>
-                <Text style={styles.infoValue}>{trip.vehicleType}</Text>
+                <Text style={styles.infoLabel}>Phone</Text>
+                <Text style={styles.infoValue}>{booking.receiverContact}</Text>
               </View>
-              <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>Distance</Text>
-                <Text style={styles.infoValue}>{trip.distanceKm} km</Text>
+              {booking.receiverAddress && (
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Address</Text>
+                  <Text style={styles.infoValue}>{booking.receiverAddress}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* Items Card */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="cube" size={20} color={Colors.primary} />
+              <Text style={styles.cardTitle}>Items to Move ({totalItems})</Text>
+            </View>
+            <View style={styles.itemsContainer}>
+              {Object.entries(booking.selectedItems || {}).map(([itemId, qty]) => (
+                <View key={itemId} style={styles.itemRow}>
+                  <View style={styles.itemInfo}>
+                    <Text style={styles.itemName}>{itemId}</Text>
+                    <Text style={styles.itemQuantity}>×{qty}</Text>
+                  </View>
+                  <View style={styles.itemBadge}>
+                    <Text style={styles.itemBadgeText}>{qty}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* Fare Card */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="cash" size={20} color={Colors.primary} />
+              <Text style={styles.cardTitle}>Fare Details</Text>
+            </View>
+            <View style={styles.fareContainer}>
+              <View style={styles.fareRow}>
+                <Text style={styles.fareLabel}>Total Items</Text>
+                <Text style={styles.fareValue}>{totalItems}</Text>
+              </View>
+              <View style={styles.fareRow}>
+                <Text style={styles.fareLabel}>Distance</Text>
+                <Text style={styles.fareValue}>{booking.distanceKm?.toFixed(1) || 'N/A'} km</Text>
+              </View>
+              <View style={styles.fareDivider} />
+              <View style={styles.fareRow}>
+                <Text style={styles.fareTotalLabel}>Total Fare</Text>
+                <Text style={styles.fareTotalValue}>₹{booking.fareEstimate?.toFixed(2) || booking.fareEstimate}</Text>
               </View>
             </View>
           </View>
 
-          {/* Captain Details (if accepted) */}
-          {(trip.status === 'accepted' || trip.status === 'in_progress' || trip.status === 'completed') && trip.captainRef && (
+          {/* Additional Notes */}
+          {booking.additionalNotes && (
             <View style={styles.card}>
               <View style={styles.cardHeader}>
-                <Ionicons name="person-circle" size={20} color={Colors.primary} />
-                <Text style={styles.cardTitle}>Captain Details</Text>
+                <Ionicons name="document-text" size={20} color={Colors.primary} />
+                <Text style={styles.cardTitle}>Additional Notes</Text>
               </View>
-              <View style={styles.captainContainer}>
-                <View style={styles.captainRow}>
-                  <View style={styles.captainAvatar}>
-                    <Ionicons name="person" size={22} color="#fff" />
-                  </View>
-                  <View style={styles.captainInfo}>
-                    <Text style={styles.captainName}>
-                      {trip.captainRef.fullName || trip.captainRef.name || 'Assigned Captain'}
-                    </Text>
-                    <Text style={styles.captainMeta}>
-                      {trip.captainRef.phone || 'Phone pending'}
-                    </Text>
-                    {(trip.captainRef.vehicleType || trip.captainRef.vehicleSubType) && (
-                      <Text style={styles.captainMeta}>
-                        {trip.captainRef.vehicleType}
-                        {trip.captainRef.vehicleSubType ? ` • ${trip.captainRef.vehicleSubType}` : ''}
-                      </Text>
-                    )}
-                  </View>
-                  {trip.captainRef.phone && (
-                    <TouchableOpacity
-                      style={styles.callBtn}
-                      onPress={() => Linking.openURL(`tel:${trip.captainRef.phone}`)}
-                    >
-                      <Ionicons name="call" size={18} color="#fff" />
-                    </TouchableOpacity>
-                  )}
-                </View>
-                <Text style={styles.captainSubtext}>
-                  Your captain will contact you soon
-                </Text>
-              </View>
+              <Text style={styles.notesText}>{booking.additionalNotes}</Text>
             </View>
           )}
 
@@ -331,15 +291,15 @@ export default function TransportTrackingScreen() {
               <Ionicons name="arrow-back" size={16} color={Colors.text} />
               <Text style={styles.secondaryBtnTxt}>Back to History</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.refreshBtn} onPress={() => fetchData()} disabled={refreshing}>
-              <Ionicons name="refresh" size={16} color={Colors.text} />
-              <Text style={styles.refreshBtnTxt}>{refreshing ? "Refreshing..." : "Refresh"}</Text>
+            <TouchableOpacity style={styles.primaryBtn}>
+              <Ionicons name="call" size={16} color="#fff" />
+              <Text style={styles.primaryBtnTxt}>Contact Support</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
       </ScrollView>
-		</View>
-	);
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -539,62 +499,117 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     lineHeight: 20
   },
-  // Captain
-  captainContainer: {
+  // Items
+  itemsContainer: {
     gap: Spacing.sm
   },
-  captainRow: {
+  itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md
-  },
-  captainAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2
-  },
-  captainInfo: {
-    flex: 1
-  },
-  captainName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.text,
-    marginBottom: 2
-  },
-  captainMeta: {
-    fontSize: 12,
-    color: Colors.mutedText,
-    marginBottom: 1
-  },
-  captainSubtext: {
-    fontSize: 12,
-    color: Colors.mutedText,
-    fontStyle: 'italic',
-    marginTop: Spacing.sm
-  },
-  callBtn: {
-    backgroundColor: '#34C759',
-    paddingHorizontal: Spacing.md,
+    justifyContent: 'space-between',
     paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    backgroundColor: '#f8f9fa',
+    borderRadius: Radius.md
+  },
+  itemInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  itemName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text,
+    textTransform: 'capitalize'
+  },
+  itemQuantity: {
+    fontSize: 12,
+    color: Colors.mutedText,
+    marginLeft: Spacing.sm
+  },
+  itemBadge: {
+    backgroundColor: Colors.primary,
     borderRadius: Radius.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4
+  },
+  itemBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700'
+  },
+  // Fare
+  fareContainer: {
+    gap: Spacing.sm
+  },
+  fareRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm
+  },
+  fareLabel: {
+    fontSize: 14,
+    color: Colors.mutedText,
+    fontWeight: '600'
+  },
+  fareValue: {
+    fontSize: 14,
+    color: Colors.text,
+    fontWeight: '600'
+  },
+  fareDivider: {
+    height: 1,
+    backgroundColor: Colors.border,
+    marginVertical: Spacing.sm
+  },
+  fareTotalLabel: {
+    fontSize: 16,
+    color: Colors.text,
+    fontWeight: '700'
+  },
+  fareTotalValue: {
+    fontSize: 18,
+    color: Colors.primary,
+    fontWeight: '800'
+  },
+  // Notes
+  notesText: {
+    fontSize: 14,
+    color: Colors.text,
+    lineHeight: 20,
+    backgroundColor: '#f8f9fa',
+    padding: Spacing.md,
+    borderRadius: Radius.md
+  },
+  // Actions
+  actionContainer: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginTop: Spacing.lg
+  },
+  primaryBtn: {
+    flex: 1,
+    backgroundColor: Colors.primary,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radius.lg,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#34C759',
-    shadowOffset: { width: 0, height: 2 },
+    gap: Spacing.sm,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 2
+    shadowRadius: 8,
+    elevation: 4
   },
-  // Buttons
+  primaryBtnTxt: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 16
+  },
   secondaryBtn: {
     flex: 1,
     backgroundColor: '#fff',
@@ -612,29 +627,6 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontWeight: '700',
     fontSize: 16
-  },
-  refreshBtn: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: Colors.border,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: Radius.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm
-  },
-  refreshBtnTxt: {
-    color: Colors.text,
-    fontWeight: '700',
-    fontSize: 16
-  },
-  actionContainer: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    marginTop: Spacing.lg
   },
   // Loading & Error States
   loadingContainer: {
@@ -691,26 +683,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: Spacing.lg,
     lineHeight: 20
-  },
-  primaryBtn: {
-    backgroundColor: Colors.primary,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: Radius.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4
-  },
-  primaryBtnTxt: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 16
   }
 });
 
