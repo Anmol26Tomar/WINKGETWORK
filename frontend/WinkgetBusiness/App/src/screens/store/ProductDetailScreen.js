@@ -452,12 +452,7 @@ const ProductDetailScreen = ({ route, navigation }) => {
 
       {/* Fixed Action Buttons */}
       <View style={styles.fixedActions}>
-        <LinearGradient
-          colors={["rgba(255, 255, 255, 0.95)", "rgba(255, 255, 255, 1)"]}
-          style={styles.actionGradient}
-        >
-          {renderActionButtons()}
-        </LinearGradient>
+        <View style={styles.actionContainer}>{renderActionButtons()}</View>
       </View>
     </SafeAreaView>
   );
@@ -542,7 +537,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 100,
+    paddingBottom: 120,
   },
   // Modern Image Gallery
   modernImageGalleryContainer: {
@@ -735,13 +730,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 20,
+    gap: 4,
   },
   modernStockItem: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#F8FAFC",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#E5E7EB",
@@ -753,7 +749,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#EAF3FF",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 10,
+    marginRight: 4,
   },
   modernStockText: {
     fontSize: 14,
@@ -994,6 +990,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   descriptionCard: {
+    marginTop: 12,
     marginHorizontal: 20,
     marginBottom: 12,
     elevation: 2,
@@ -1090,13 +1087,19 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    paddingBottom: 20,
-  },
-  actionGradient: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
+    backgroundColor: "white",
     borderTopWidth: 1,
     borderTopColor: "#E5E7EB",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  actionContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingBottom: 20,
   },
   actionButtonsContainer: {
     flexDirection: "row",
@@ -1152,25 +1155,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#007BFF",
-    paddingVertical: 18,
-    borderRadius: 16,
+    backgroundColor: "#3B82F6",
+    paddingVertical: 16,
+    borderRadius: 12,
     position: "relative",
-    shadowColor: "#007BFF",
+    shadowColor: "#3B82F6",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
   },
   modernAddToCartButtonActive: {
-    backgroundColor: "#0056B3",
+    backgroundColor: "#1D4ED8",
   },
   modernAddToCartText: {
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: "700",
     color: "white",
     marginLeft: 8,
-    fontFamily: "Inter",
   },
   modernCartBadge: {
     position: "absolute",
@@ -1196,8 +1198,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#1F2937",
-    paddingVertical: 18,
-    borderRadius: 16,
+    paddingVertical: 16,
+    borderRadius: 12,
     shadowColor: "#1F2937",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -1209,7 +1211,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "white",
     marginLeft: 8,
-    fontFamily: "Inter",
   },
 });
 
