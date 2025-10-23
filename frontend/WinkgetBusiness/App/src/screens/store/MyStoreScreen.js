@@ -703,36 +703,43 @@ const MyStoreScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="white" />
-      {/* Header */}
-      <LinearGradient
-        colors={["#3B82F6", "#1D4ED8"]}
-        style={styles.headerGradient}
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
-        <View style={styles.header}>
-          <View style={styles.welcomeContainer}>
-            <Ionicons name="storefront" size={64} color="white" />
-            <Text style={styles.welcomeTitle}>
-              {businessName ||
-                (products.length > 0
-                  ? products[0]?.vendorRef?.shopName
-                  : "My Store")}
-            </Text>
-            <Text style={styles.welcomeSubtitle}>
-              {storeCategory
-                ? `${storeCategory.category} Store`
-                : "Browse Products"}
-            </Text>
+        {/* Header */}
+        <LinearGradient
+          colors={["#3B82F6", "#1D4ED8"]}
+          style={styles.headerGradient}
+        >
+          <View style={styles.header}>
+            <View style={styles.welcomeContainer}>
+              <Ionicons name="storefront" size={64} color="white" />
+              <Text style={styles.welcomeTitle}>
+                {businessName ||
+                  (products.length > 0
+                    ? products[0]?.vendorRef?.shopName
+                    : "My Store")}
+              </Text>
+              <Text style={styles.welcomeSubtitle}>
+                {storeCategory
+                  ? `${storeCategory.category} Store`
+                  : "Browse Products"}
+              </Text>
+            </View>
           </View>
-        </View>
-      </LinearGradient>
+        </LinearGradient>
 
-      {/* Sticky Search Bar */}
-      <View style={styles.stickySearchContainer}>
-        <View style={styles.searchBarWrapper}>
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
           <View style={styles.searchInputContainer}>
             <Ionicons
-              name="mic-outline"
-              size={18}
+              name="search"
+              size={20}
               color="#6B7280"
               style={styles.searchIcon}
             />
@@ -740,287 +747,150 @@ const MyStoreScreen = () => {
               placeholder="Search products..."
               onChangeText={setSearchQuery}
               value={searchQuery}
-              style={styles.modernSearchBar}
-              inputStyle={styles.modernSearchInput}
+              style={styles.searchBar}
+              inputStyle={styles.searchInput}
               placeholderTextColor="#9CA3AF"
             />
-            {searchQuery.length > 0 ? (
+            {searchQuery.length > 0 && (
               <TouchableOpacity
                 onPress={() => setSearchQuery("")}
                 style={styles.clearButton}
               >
-                <Ionicons name="close-circle" size={18} color="#6B7280" />
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity style={styles.searchButton}>
-                <Ionicons name="search" size={18} color="#007BFF" />
+                <Ionicons name="close-circle" size={20} color="#6B7280" />
               </TouchableOpacity>
             )}
           </View>
         </View>
-      </View>
 
-      {/* Sticky Category Filter */}
-      {storeCategory && (
-        <View style={styles.stickyCategoryContainer}>
-          <Text style={styles.filterSectionLabel}>Categories</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoryScroll}
-          >
-            <TouchableOpacity
-              style={[
-                styles.categoryChip,
-                !selectedCategory && styles.categoryChipActive,
-              ]}
-              onPress={() => {
-                setSelectedCategory(null);
-                setSelectedSubcategory(null);
-              }}
-            >
-              <Ionicons
-                name="grid"
-                size={16}
-                color={!selectedCategory ? "white" : "#6B7280"}
-                style={styles.categoryChipIcon}
-              />
-              <Text
-                style={[
-                  styles.categoryChipText,
-                  !selectedCategory && styles.categoryChipTextActive,
-                ]}
-              >
-                All
-              </Text>
-            </TouchableOpacity>
-
-            {storeCategory.subcategories.map((subcategory, index) => (
+        {/* Categories Section */}
+        {storeCategory && (
+          <View style={styles.categoriesSection}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Categories</Text>
               <TouchableOpacity
-                key={index}
-                style={[
-                  styles.categoryChip,
-                  selectedCategory === subcategory.name &&
-                    styles.categoryChipActive,
-                ]}
-                onPress={() => {
-                  setSelectedCategory(subcategory.name);
-                  setSelectedSubcategory(null);
-                }}
+                style={styles.filterToggleButton}
+                onPress={() => setShowCategoryModal(true)}
               >
-                <Ionicons
-                  name={getSubcategoryIcon(subcategory.name)}
-                  size={16}
-                  color={
-                    selectedCategory === subcategory.name ? "white" : "#6B7280"
-                  }
-                  style={styles.categoryChipIcon}
-                />
-                <Text
-                  style={[
-                    styles.categoryChipText,
-                    selectedCategory === subcategory.name &&
-                      styles.categoryChipTextActive,
-                  ]}
-                >
-                  {subcategory.name}
-                </Text>
+                <Ionicons name="options" size={18} color="#3B82F6" />
+                <Text style={styles.filterToggleText}>Filter</Text>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      )}
-
-      {/* Sticky Subcategory Filter - Shows when category is selected */}
-      {selectedCategory && storeCategory && (
-        <View style={styles.stickySubcategoryContainer}>
-          <Text style={styles.filterSectionLabel}>
-            {selectedCategory} Subcategories
-          </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.subcategoryScroll}
-          >
-            <TouchableOpacity
-              style={[
-                styles.subcategoryChip,
-                !selectedSubcategory && styles.subcategoryChipActive,
-              ]}
-              onPress={() => setSelectedSubcategory(null)}
-            >
-              <Ionicons
-                name="list"
-                size={14}
-                color={!selectedSubcategory ? "white" : "#6B7280"}
-                style={styles.subcategoryChipIcon}
-              />
-              <Text
-                style={[
-                  styles.subcategoryChipText,
-                  !selectedSubcategory && styles.subcategoryChipTextActive,
-                ]}
-              >
-                All {selectedCategory}
-              </Text>
-            </TouchableOpacity>
-
-            {storeCategory.subcategories
-              .find((sub) => sub.name === selectedCategory)
-              ?.secondarySubcategories.map((secondary, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.subcategoryChip,
-                    selectedSubcategory === secondary &&
-                      styles.subcategoryChipActive,
-                  ]}
-                  onPress={() => setSelectedSubcategory(secondary)}
-                >
-                  <Ionicons
-                    name="ellipse"
-                    size={12}
-                    color={
-                      selectedSubcategory === secondary ? "white" : "#6B7280"
-                    }
-                    style={styles.subcategoryChipIcon}
-                  />
-                  <Text
-                    style={[
-                      styles.subcategoryChipText,
-                      selectedSubcategory === secondary &&
-                        styles.subcategoryChipTextActive,
-                    ]}
-                  >
-                    {secondary}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-          </ScrollView>
-        </View>
-      )}
-
-      {/* Sticky Sort and Filter Bar */}
-      <View style={styles.stickySortFilterContainer}>
-        <TouchableOpacity
-          style={styles.modernSortButton}
-          onPress={() => setShowAdvancedFilters(true)}
-        >
-          <View style={styles.sortButtonContent}>
-            <Ionicons name="options" size={18} color="#007BFF" />
-            <Text style={styles.modernSortButtonText}>Sort & Filter</Text>
-            <Ionicons name="chevron-down" size={16} color="#007BFF" />
+            </View>
           </View>
-        </TouchableOpacity>
+        )}
 
-        <View style={styles.resultsContainer}>
-          <Text style={styles.resultsCount}>
-            {filteredProducts.length} of {products.length} products
-          </Text>
+        {/* Sort and Filter Bar */}
+        <View style={styles.sortFilterContainer}>
+          <TouchableOpacity
+            style={styles.sortButton}
+            onPress={() => setShowAdvancedFilters(true)}
+          >
+            <View style={styles.sortButtonContent}>
+              <Ionicons name="options" size={18} color="#3B82F6" />
+              <Text style={styles.sortButtonText}>Sort & Filter</Text>
+              <Ionicons name="chevron-down" size={16} color="#3B82F6" />
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.resultsContainer}>
+            <Text style={styles.resultsCount}>
+              {filteredProducts.length} of {products.length} products
+            </Text>
+          </View>
         </View>
-      </View>
 
-      {/* Active Filters */}
-      {(searchQuery ||
-        selectedCategory ||
-        selectedSubcategory ||
-        selectedBrands.length > 0 ||
-        selectedColors.length > 0 ||
-        priceRange.min > 0 ||
-        priceRange.max < 100000 ||
-        rating > 0) && (
-        <View style={styles.activeFiltersContainer}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {searchQuery && (
-              <Chip
-                icon="search"
-                onClose={() => setSearchQuery("")}
-                style={styles.filterChip}
+        {/* Active Filters */}
+        {(searchQuery ||
+          selectedCategory ||
+          selectedSubcategory ||
+          selectedBrands.length > 0 ||
+          selectedColors.length > 0 ||
+          priceRange.min > 0 ||
+          priceRange.max < 100000 ||
+          rating > 0) && (
+          <View style={styles.activeFiltersContainer}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {searchQuery && (
+                <Chip
+                  icon="search"
+                  onClose={() => setSearchQuery("")}
+                  style={styles.filterChip}
+                >
+                  "{searchQuery}"
+                </Chip>
+              )}
+              {selectedCategory && (
+                <Chip
+                  icon="folder"
+                  onClose={() => {
+                    setSelectedCategory(null);
+                    setSelectedSubcategory(null);
+                  }}
+                  style={styles.filterChip}
+                >
+                  {selectedCategory}
+                </Chip>
+              )}
+              {selectedSubcategory && (
+                <Chip
+                  icon="list"
+                  onClose={() => setSelectedSubcategory(null)}
+                  style={styles.filterChip}
+                >
+                  {selectedSubcategory}
+                </Chip>
+              )}
+              {selectedBrands.map((brand, index) => (
+                <Chip
+                  key={index}
+                  icon="business"
+                  onClose={() =>
+                    setSelectedBrands((prev) => prev.filter((b) => b !== brand))
+                  }
+                  style={styles.filterChip}
+                >
+                  {brand}
+                </Chip>
+              ))}
+              {selectedColors.map((color, index) => (
+                <Chip
+                  key={index}
+                  icon="color-palette"
+                  onClose={() =>
+                    setSelectedColors((prev) => prev.filter((c) => c !== color))
+                  }
+                  style={styles.filterChip}
+                >
+                  {color}
+                </Chip>
+              ))}
+              {(priceRange.min > 0 || priceRange.max < 100000) && (
+                <Chip
+                  icon="cash"
+                  onClose={() => setPriceRange({ min: 0, max: 100000 })}
+                  style={styles.filterChip}
+                >
+                  ₹{priceRange.min} - ₹{priceRange.max}
+                </Chip>
+              )}
+              {rating > 0 && (
+                <Chip
+                  icon="star"
+                  onClose={() => setRating(0)}
+                  style={styles.filterChip}
+                >
+                  {rating}+ Stars
+                </Chip>
+              )}
+              <TouchableOpacity
+                onPress={clearFilters}
+                style={styles.clearAllButton}
               >
-                "{searchQuery}"
-              </Chip>
-            )}
-            {selectedCategory && (
-              <Chip
-                icon="folder"
-                onClose={() => {
-                  setSelectedCategory(null);
-                  setSelectedSubcategory(null);
-                }}
-                style={styles.filterChip}
-              >
-                {selectedCategory}
-              </Chip>
-            )}
-            {selectedSubcategory && (
-              <Chip
-                icon="list"
-                onClose={() => setSelectedSubcategory(null)}
-                style={styles.filterChip}
-              >
-                {selectedSubcategory}
-              </Chip>
-            )}
-            {selectedBrands.map((brand, index) => (
-              <Chip
-                key={index}
-                icon="business"
-                onClose={() =>
-                  setSelectedBrands((prev) => prev.filter((b) => b !== brand))
-                }
-                style={styles.filterChip}
-              >
-                {brand}
-              </Chip>
-            ))}
-            {selectedColors.map((color, index) => (
-              <Chip
-                key={index}
-                icon="color-palette"
-                onClose={() =>
-                  setSelectedColors((prev) => prev.filter((c) => c !== color))
-                }
-                style={styles.filterChip}
-              >
-                {color}
-              </Chip>
-            ))}
-            {(priceRange.min > 0 || priceRange.max < 100000) && (
-              <Chip
-                icon="cash"
-                onClose={() => setPriceRange({ min: 0, max: 100000 })}
-                style={styles.filterChip}
-              >
-                ₹{priceRange.min} - ₹{priceRange.max}
-              </Chip>
-            )}
-            {rating > 0 && (
-              <Chip
-                icon="star"
-                onClose={() => setRating(0)}
-                style={styles.filterChip}
-              >
-                {rating}+ Stars
-              </Chip>
-            )}
-            <TouchableOpacity
-              onPress={clearFilters}
-              style={styles.clearAllButton}
-            >
-              <Text style={styles.clearAllText}>Clear All</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-      )}
+                <Text style={styles.clearAllText}>Clear All</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        )}
 
-      <ScrollView
-        ref={scrollViewRef}
-        style={styles.content}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-      >
         {filteredProducts.length > 0 ? (
           <View style={styles.productsSection}>
             <View style={styles.sectionHeader}>
@@ -1557,6 +1427,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F8FAFC",
   },
+  scrollContainer: {
+    flex: 1,
+  },
   // Header Styles (matching HomeScreen)
   headerGradient: {
     paddingTop: 60,
@@ -1581,53 +1454,29 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.9)",
     textAlign: "center",
   },
-  // Modern Search Bar
-  modernSearchContainer: {
+  // Search Bar Styles
+  searchContainer: {
     backgroundColor: "white",
+    paddingHorizontal: 24,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
-    marginTop: 100,
-  },
-  modernSearchContainerScrolled: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 1000,
-    marginTop: 0,
-  },
-  searchBarWrapper: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: "white",
   },
   searchInputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    borderWidth: 0,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    height: 46,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 6,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    height: 48,
   },
   searchIcon: {
     marginRight: 12,
   },
-  modernSearchBar: {
+  searchBar: {
     flex: 1,
     elevation: 0,
     backgroundColor: "transparent",
@@ -1635,7 +1484,7 @@ const styles = StyleSheet.create({
     padding: 0,
     margin: 0,
   },
-  modernSearchInput: {
+  searchInput: {
     fontSize: 16,
     color: "#374151",
     padding: 0,
@@ -1646,60 +1495,135 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 8,
     backgroundColor: "#F3F4F6",
-    minWidth: 36,
-    minHeight: 36,
+    minWidth: 32,
+    minHeight: 32,
     justifyContent: "center",
     alignItems: "center",
   },
-  searchButton: {
-    marginLeft: 8,
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: "#EAF3FF",
-    minWidth: 36,
-    minHeight: 36,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  // Sticky Search Container
-  stickySearchContainer: {
-    position: "sticky",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 999,
+  // Categories Section Styles
+  categoriesSection: {
     backgroundColor: "white",
+    paddingVertical: 16,
+    paddingHorizontal: 24,
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
   },
-  // Sticky Category Container
-  stickyCategoryContainer: {
-    position: "sticky",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 998,
-    backgroundColor: "#FAFBFC",
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#1F2937",
+  },
+  filterToggleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  filterToggleText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#3B82F6",
+    marginLeft: 6,
+  },
+  categoriesScroll: {
+    paddingRight: 24,
+  },
+  categoryCard: {
+    alignItems: "center",
+    marginRight: 16,
     paddingVertical: 16,
     paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E1E5E9",
+    borderRadius: 16,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 2,
+    borderColor: "#E5E7EB",
+    minWidth: 100,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  categoryCardActive: {
+    backgroundColor: "#3B82F6",
+    borderColor: "#3B82F6",
+    shadowColor: "#3B82F6",
+    shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 4,
+    transform: [{ scale: 1.05 }],
+  },
+  categoryIconContainer: {
+    marginBottom: 8,
+  },
+  categoryCardText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#6B7280",
+    textAlign: "center",
+  },
+  categoryCardTextActive: {
+    color: "white",
+    fontWeight: "700",
+  },
+  // Subcategories Section Styles
+  subcategoriesSection: {
+    backgroundColor: "white",
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  subsectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: 12,
+  },
+  subcategoriesScroll: {
+    paddingRight: 24,
+  },
+  subcategoryCard: {
+    marginRight: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  subcategoryCardActive: {
+    backgroundColor: "#3B82F6",
+    borderColor: "#3B82F6",
+    shadowColor: "#3B82F6",
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  subcategoryCardText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#6B7280",
+    textAlign: "center",
+  },
+  subcategoryCardTextActive: {
+    color: "white",
+    fontWeight: "600",
   },
   // Sticky Subcategory Container
   stickySubcategoryContainer: {
@@ -1722,29 +1646,16 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  // Sticky Sort Filter Container
-  stickySortFilterContainer: {
-    position: "sticky",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 996,
+  // Sort Filter Container
+  sortFilterContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingVertical: 16,
     backgroundColor: "white",
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
   },
   // Modern Sort and Filter
   modernSortFilterContainer: {
@@ -1757,7 +1668,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
   },
-  modernSortButton: {
+  sortButton: {
     backgroundColor: "#F8FAFC",
     borderRadius: 8,
     borderWidth: 1,
@@ -1777,10 +1688,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  modernSortButtonText: {
+  sortButtonText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#007BFF",
+    color: "#3B82F6",
     marginLeft: 8,
     marginRight: 6,
   },
@@ -2380,11 +2291,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 24,
     paddingBottom: 40,
   },
   productsSection: {
     flex: 1,
+    padding: 24,
   },
   sectionHeader: {
     flexDirection: "row",
