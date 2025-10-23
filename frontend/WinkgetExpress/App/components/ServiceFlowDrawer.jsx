@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Modal, Animated, Easing, Scro
 import { Colors, Spacing, Radius } from '../constants/colors';
 import LoadingOverlay from './LoadingOverlay';
 import { estimateFare as estimateParcelFare, createParcel } from '../services/parcelService';
+import { estimatePackers, createPackersBooking } from '../services/packersService';
 import { estimateFareKm, haversineKm } from '../utils/fareCalculator';
 import { estimateTransport, createTransport } from '../services/transportService';
 import { requestPackersMovers } from '../services/api';
@@ -15,6 +16,25 @@ const SERVICES = [
     { key: 'cab', label: 'Cab Booking', icon: 'car-outline' },
     { key: 'truck', label: 'Truck Booking', icon: 'bus-outline' },
     { key: 'packers', label: 'Packers & Movers', icon: 'home-outline' },
+];
+
+const HOUSEHOLD_ITEMS = [
+    { id: 'bed', name: 'Bed', icon: 'bed-outline', category: 'furniture' },
+    { id: 'sofa', name: 'Sofa', icon: 'couch-outline', category: 'furniture' },
+    { id: 'chair', name: 'Chair', icon: 'chair-outline', category: 'furniture' },
+    { id: 'table', name: 'Table', icon: 'table-outline', category: 'furniture' },
+    { id: 'dining_set', name: 'Dining Set', icon: 'restaurant-outline', category: 'furniture' },
+    { id: 'wardrobe', name: 'Wardrobe', icon: 'shirt-outline', category: 'furniture' },
+    { id: 'fridge', name: 'Refrigerator', icon: 'snow-outline', category: 'appliances' },
+    { id: 'tv', name: 'TV', icon: 'tv-outline', category: 'appliances' },
+    { id: 'washing_machine', name: 'Washing Machine', icon: 'water-outline', category: 'appliances' },
+    { id: 'ac', name: 'Air Conditioner', icon: 'thermometer-outline', category: 'appliances' },
+    { id: 'microwave', name: 'Microwave', icon: 'radio-outline', category: 'appliances' },
+    { id: 'cartons', name: 'Cartons', icon: 'cube-outline', category: 'packaging' },
+    { id: 'packets', name: 'Packets', icon: 'bag-outline', category: 'packaging' },
+    { id: 'pouches', name: 'Pouches', icon: 'wallet-outline', category: 'packaging' },
+    { id: 'bags', name: 'Bags', icon: 'bag-handle-outline', category: 'packaging' },
+    { id: 'boxes', name: 'Boxes', icon: 'archive-outline', category: 'packaging' },
 ];
 
 const TRUCK_VEHICLES = [
@@ -95,6 +115,11 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
     const [service, setService] = useState(null);
     const [estimatedFare, setEstimatedFare] = useState(null);
     const [fareLoading, setFareLoading] = useState(false);
+    
+    // Packers & Movers specific state
+    const [packersStep, setPackersStep] = useState(0); // 0: receiver info, 1: item selection, 2: review
+    const [selectedItems, setSelectedItems] = useState({});
+    const [itemSearchQuery, setItemSearchQuery] = useState('');
 
     const [parcelForm, setParcelForm] = useState({
         name: '',
@@ -120,7 +145,12 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
     });
 
     const [transportForm, setTransportForm] = useState({ vehicleSubType: 'mini_truck' });
-    const [packersForm, setPackersForm] = useState({ house: '1BHK', extras: '' });
+    const [packersForm, setPackersForm] = useState({ 
+        receiverName: '',
+        receiverPhone: '',
+        receiverAddress: '',
+        additionalNotes: ''
+    });
     const [selectedTruckVehicle, setSelectedTruckVehicle] = useState(null);
     const [truckForm, setTruckForm] = useState({
         senderName: '',
@@ -146,6 +176,9 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
         setStep(0);
         setService(null);
         setSelectedTruckVehicle(null);
+        setPackersStep(0);
+        setSelectedItems({});
+        setItemSearchQuery('');
         setVisible(true);
         requestAnimationFrame(() => {
             Animated.timing(translateY, { toValue: 0, duration: 250, easing: Easing.out(Easing.ease), useNativeDriver: true }).start();
@@ -160,6 +193,30 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
     };
 
     useImperativeHandle(ref, () => ({ open, close }));
+
+    // Packers & Movers helper functions
+    const updateItemQuantity = (itemId, change) => {
+        setSelectedItems(prev => {
+            const currentQty = prev[itemId] || 0;
+            const newQty = Math.max(0, currentQty + change);
+            if (newQty === 0) {
+                const { [itemId]: removed, ...rest } = prev;
+                return rest;
+            }
+            return { ...prev, [itemId]: newQty };
+        });
+    };
+
+    const getFilteredItems = () => {
+        if (!itemSearchQuery) return HOUSEHOLD_ITEMS;
+        return HOUSEHOLD_ITEMS.filter(item => 
+            item.name.toLowerCase().includes(itemSearchQuery.toLowerCase())
+        );
+    };
+
+    const getTotalSelectedItems = () => {
+        return Object.values(selectedItems).reduce((sum, qty) => sum + qty, 0);
+    };
 
     const estimateFare = async () => {
         try {
@@ -196,10 +253,9 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
                 const res = await estimateTransport({ pickup, destination: delivery, vehicleType });
                 fare = res.fare;
             } else if (service === 'packers') {
-                const { house, extras } = packersForm;
-                const base = house === '1BHK' ? 3000 : house === '2BHK' ? 5000 : 7500;
-                const extraCost = Math.min(2000, (extras || '').length * 10);
-                fare = base + extraCost;
+                // Use dedicated Packers estimate API
+                const res = await estimatePackers({ pickup, delivery, selectedItems });
+                fare = res.fare;
             }
 
             setEstimatedFare({
@@ -486,16 +542,63 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
                 Alert.alert('Success', `Your ${selectedTruckVehicle.name} booking has been created.`);
                 close();
             } else if (service === 'packers') {
-                // Use requestPackersMovers with centralized addresses
-                const { house, extras } = packersForm;
-                if (!house) { Alert.alert('Missing', 'Select house size'); setLoading(false); return; }
-                const base = house === '1BHK' ? 3000 : house === '2BHK' ? 5000 : 7500;
-                const extraCost = Math.min(2000, (extras || '').length * 10);
-                const price = base + extraCost;
-                await requestPackersMovers({ fromAddr: pickup.address, toAddr: delivery.address, house, extras, price });
-                Alert.alert('Request sent', `Packers & Movers request submitted. Est. price ₹${price}`);
-                onSuccess && onSuccess({ type: 'packers' });
+                const { receiverName, receiverPhone, receiverAddress, additionalNotes } = packersForm;
+                if (!receiverName || !receiverPhone) {
+                    Alert.alert('Missing fields', 'Please enter receiver name and phone number'); 
+                    setLoading(false); 
+                    return;
+                }
+                
+                const totalItems = getTotalSelectedItems();
+                if (totalItems === 0) {
+                    Alert.alert('No items selected', 'Please select at least one item to move'); 
+                    setLoading(false); 
+                    return;
+                }
+                
+                // Get server-side estimate to keep parity with backend
+                let fare = 0;
+                try {
+                    const res = await estimatePackers({ pickup, delivery, selectedItems });
+                    fare = res.fare;
+                } catch (e) {
+                    const km = haversineKm(pickup, delivery);
+                    const baseFare = 2000;
+                    const itemFare = totalItems * 150;
+                    const distanceFare = km * 25;
+                    fare = baseFare + itemFare + distanceFare;
+                }
+                
+                // Create items description
+                const itemsDescription = Object.entries(selectedItems)
+                    .map(([itemId, qty]) => {
+                        const item = HOUSEHOLD_ITEMS.find(i => i.id === itemId);
+                        return `${qty} ${item?.name}`;
+                    })
+                    .join(', ');
+                
+                const payload = {
+                    pickup: { lat: pickup.lat, lng: pickup.lng, address: pickup.address },
+                    delivery: { lat: delivery.lat, lng: delivery.lng, address: delivery.address },
+                    receiverName,
+                    receiverContact: receiverPhone,
+                    receiverAddress: receiverAddress || delivery.address,
+                    additionalNotes,
+                    selectedItems,
+                    fareEstimate: fare,
+                };
+
+                const created = await createPackersBooking(payload);
+                onSuccess && onSuccess({ type: 'packers', id: created?._id });
+                Alert.alert('Success', 'Your Packers & Movers booking has been created successfully.');
+                try {
+                    const { router } = require('expo-router');
+                    // navigate to packers tracking
+                    router.push({ pathname: '/packers-tracking', params: { id: created?._id } });
+                } catch (e) {
+                    // fallback to closing drawer if router not available
                 close();
+                }
             }
         } catch (e) {
             Alert.alert('Failed', e.message || 'Please try again');
@@ -667,19 +770,111 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
             );
         }
         if (service === 'packers') {
+            if (packersStep === 0) {
             return (
                 <View>
-                    <View style={styles.segmentRow}>
-                        {['1BHK', '2BHK', '3BHK'].map((h) => (
-                            <TouchableOpacity key={h} style={[styles.tag, packersForm.house === h ? styles.tagActive : null]} onPress={() => setPackersForm((s) => ({ ...s, house: h }))}>
-                                <Text style={[styles.tagTxt, packersForm.house === h ? styles.tagTxtActive : null]}>{h}</Text>
+                        <Text style={styles.sectionTitle}>Receiver Information</Text>
+                        <Text style={styles.fieldLabel}>Receiver Name *</Text>
+                        <TextInput 
+                            style={styles.input} 
+                            placeholder="Enter receiver name" 
+                            value={packersForm.receiverName} 
+                            onChangeText={(t) => setPackersForm((s) => ({ ...s, receiverName: t }))} 
+                        />
+
+                        <Text style={styles.fieldLabel}>Receiver Phone *</Text>
+                        <TextInput 
+                            style={styles.input} 
+                            placeholder="Enter phone number" 
+                            keyboardType="phone-pad"
+                            value={packersForm.receiverPhone} 
+                            onChangeText={(t) => setPackersForm((s) => ({ ...s, receiverPhone: t }))} 
+                        />
+
+                        <Text style={styles.fieldLabel}>Receiver Address</Text>
+                        <TextInput 
+                            style={[styles.input, styles.multiline]} 
+                            placeholder="Enter receiver address (optional)" 
+                            multiline
+                            value={packersForm.receiverAddress} 
+                            onChangeText={(t) => setPackersForm((s) => ({ ...s, receiverAddress: t }))} 
+                        />
+
+                        <Text style={styles.fieldLabel}>Additional Notes</Text>
+                        <TextInput 
+                            style={[styles.input, styles.multiline]} 
+                            placeholder="Any special instructions (optional)" 
+                            multiline
+                            value={packersForm.additionalNotes} 
+                            onChangeText={(t) => setPackersForm((s) => ({ ...s, additionalNotes: t }))} 
+                        />
+                        
+                        
+                    </View>
+                );
+            } else if (packersStep === 1) {
+                return (
+                    <View>
+                        <Text style={styles.sectionTitle}>Select Items to Move</Text>
+                        
+                        {/* Search Bar */}
+                        <View style={styles.searchContainer}>
+                            <Ionicons name="search-outline" size={20} color={Colors.mutedText} style={styles.searchIcon} />
+                            <TextInput
+                                style={styles.searchInput}
+                                placeholder="Search items..."
+                                value={itemSearchQuery}
+                                onChangeText={setItemSearchQuery}
+                            />
+                        </View>
+
+                        {/* Items Grid */}
+                        <View style={styles.itemsGrid}>
+                            {getFilteredItems().map((item) => (
+                                <View key={item.id} style={styles.itemCard}>
+                                    <View style={styles.itemCardContent}>
+                                        <View style={styles.itemIconContainer}>
+                                            <Ionicons name={item.icon} size={24} color={Colors.primary} />
+                                        </View>
+                                        <Text style={styles.itemName}>{item.name}</Text>
+                                        <Text style={styles.itemCategory}>{item.category}</Text>
+                                    </View>
+                                    
+                                    <View style={styles.quantitySelector}>
+                                        <TouchableOpacity 
+                                            style={styles.quantityBtn}
+                                            onPress={() => updateItemQuantity(item.id, -1)}
+                                            disabled={!selectedItems[item.id]}
+                                        >
+                                            <Ionicons name="remove" size={16} color={selectedItems[item.id] ? Colors.primary : Colors.mutedText} />
                             </TouchableOpacity>
+                                        
+                                        <Text style={styles.quantityText}>
+                                            {selectedItems[item.id] || 0}
+                                        </Text>
+                                        
+                                        <TouchableOpacity 
+                                            style={styles.quantityBtn}
+                                            onPress={() => updateItemQuantity(item.id, 1)}
+                                        >
+                                            <Ionicons name="add" size={16} color={Colors.primary} />
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
                         ))}
                     </View>
-                    <Text style={styles.fieldLabel}>Extra Items</Text>
-                    <TextInput style={[styles.input, styles.multiline]} placeholder="Extra Items (optional)" value={packersForm.extras} onChangeText={(t) => setPackersForm((s) => ({ ...s, extras: t }))} multiline />
+
+                        {/* Selected Items Summary */}
+                        {getTotalSelectedItems() > 0 && (
+                            <View style={styles.selectedItemsSummary}>
+                                <Text style={styles.summaryTitle}>Selected Items: {getTotalSelectedItems()}</Text>
+                            </View>
+                        )}
+                        
+                        {renderEstimateFare()}
                 </View>
             );
+            }
         }
         return null;
     };
@@ -822,10 +1017,41 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
 
                 {service === 'packers' && (
                     <View style={styles.reviewBox}>
-                        <Text style={styles.sectionTitle}>Packers & Movers</Text>
-                        {renderRow('House', packersForm.house)}
+                        <Text style={styles.sectionTitle}>Receiver Information</Text>
+                        {renderRow('Name', packersForm.receiverName)}
                         <View style={styles.divider} />
-                        {renderRow('Extras', packersForm.extras)}
+                        {renderRow('Phone', packersForm.receiverPhone)}
+                        {packersForm.receiverAddress && (
+                            <>
+                                <View style={styles.divider} />
+                                {renderRow('Address', packersForm.receiverAddress)}
+                            </>
+                        )}
+                        {packersForm.additionalNotes && (
+                            <>
+                                <View style={styles.divider} />
+                                {renderRow('Notes', packersForm.additionalNotes)}
+                            </>
+                        )}
+                    </View>
+                )}
+
+                {service === 'packers' && (
+                    <View style={styles.reviewBox}>
+                        <Text style={styles.sectionTitle}>Items to Move</Text>
+                        {Object.entries(selectedItems).map(([itemId, qty]) => {
+                            const item = HOUSEHOLD_ITEMS.find(i => i.id === itemId);
+                            return (
+                                <View key={itemId}>
+                                    {renderRow(item?.name || itemId, `*${qty}`)}
+                                    {Object.keys(selectedItems).indexOf(itemId) < Object.keys(selectedItems).length - 1 && (
+                                        <View style={styles.divider} />
+                                    )}
+                                </View>
+                            );
+                        })}
+                        <View style={styles.divider} />
+                        {renderRow('Total Items', getTotalSelectedItems().toString())}
                     </View>
                 )}
 
@@ -886,9 +1112,34 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
                                 <TouchableOpacity style={styles.secondaryBtn} onPress={() => setStep(0)}>
                                     <Text style={styles.secondaryBtnTxt}>Back</Text>
                                 </TouchableOpacity>
+                                {service === 'packers' ? (
+                                    <TouchableOpacity 
+                                        style={[
+                                            styles.primaryBtn, 
+                                            packersStep === 0 && (!packersForm.receiverName || !packersForm.receiverPhone) ? styles.primaryBtnDisabled : null,
+                                            packersStep === 1 && getTotalSelectedItems() === 0 ? styles.primaryBtnDisabled : null
+                                        ]} 
+                                        disabled={
+                                            (packersStep === 0 && (!packersForm.receiverName || !packersForm.receiverPhone)) ||
+                                            (packersStep === 1 && getTotalSelectedItems() === 0)
+                                        }
+                                        onPress={() => {
+                                            if (packersStep === 0) {
+                                                setPackersStep(1);
+                                            } else if (packersStep === 1) {
+                                                setStep(2);
+                                            }
+                                        }}
+                                    >
+                                        <Text style={styles.primaryBtnTxt}>
+                                            {packersStep === 0 ? 'Select Items' : 'Review'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ) : (
                                 <TouchableOpacity style={styles.primaryBtn} onPress={() => setStep(2)}>
                                     <Text style={styles.primaryBtnTxt}>Review</Text>
                                 </TouchableOpacity>
+                                )}
                             </View>
                         </View>
                     ) : (
@@ -896,7 +1147,16 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
                             <Text style={styles.title}>Review</Text>
                             {renderReview()}
                             <View style={styles.rowBetween}>
-                                <TouchableOpacity style={styles.secondaryBtn} onPress={() => setStep(1)}>
+                                <TouchableOpacity 
+                                    style={styles.secondaryBtn} 
+                                    onPress={() => {
+                                        if (service === 'packers' && packersStep === 1) {
+                                            setPackersStep(0);
+                                        } else {
+                                            setStep(1);
+                                        }
+                                    }}
+                                >
                                     <Text style={styles.secondaryBtnTxt}>Back</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity style={styles.primaryBtn} onPress={submit}>
@@ -1295,6 +1555,121 @@ const styles = StyleSheet.create({
         color: Colors.mutedText, 
         textAlign: 'center',
         lineHeight: 14 
+    },
+    // Packers & Movers Styles
+    searchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        borderRadius: Radius.md,
+        borderWidth: 1,
+        borderColor: Colors.border,
+        paddingHorizontal: Spacing.md,
+        marginBottom: Spacing.lg,
+        shadowColor: Colors.shadow,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.06,
+        shadowRadius: 4,
+        elevation: 2
+    },
+    searchIcon: {
+        marginRight: Spacing.sm
+    },
+    searchInput: {
+        flex: 1,
+        paddingVertical: Spacing.md,
+        fontSize: 16,
+        color: Colors.text
+    },
+    itemsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: Spacing.sm,
+        marginBottom: Spacing.lg
+    },
+    itemCard: {
+        width: '48%',
+        backgroundColor: '#fff',
+        borderRadius: Radius.lg,
+        padding: Spacing.md,
+        borderWidth: 1,
+        borderColor: Colors.border,
+        shadowColor: Colors.shadow,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3,
+        marginBottom: Spacing.sm
+    },
+    itemCardContent: {
+        alignItems: 'center',
+        marginBottom: Spacing.sm
+    },
+    itemIconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: '#f8f9ff',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: Spacing.sm
+    },
+    itemName: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: Colors.text,
+        textAlign: 'center',
+        marginBottom: 2
+    },
+    itemCategory: {
+        fontSize: 11,
+        color: Colors.mutedText,
+        textAlign: 'center',
+        textTransform: 'capitalize'
+    },
+    quantitySelector: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#f8f9fa',
+        borderRadius: Radius.md,
+        paddingVertical: Spacing.sm
+    },
+    quantityBtn: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#fff',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: Colors.border,
+        shadowColor: Colors.shadow,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2
+    },
+    quantityText: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: Colors.text,
+        marginHorizontal: Spacing.md,
+        minWidth: 24,
+        textAlign: 'center'
+    },
+    selectedItemsSummary: {
+        backgroundColor: '#f8f9ff',
+        borderRadius: Radius.md,
+        padding: Spacing.md,
+        borderWidth: 1,
+        borderColor: Colors.primary,
+        alignItems: 'center'
+    },
+    summaryTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: Colors.primary
     },
 });
 

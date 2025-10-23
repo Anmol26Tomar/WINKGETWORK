@@ -3,16 +3,15 @@ export const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.e
 export const endpoints = {
   business: {
     auth: {
-      login: '/api/business/auth/login',
-      logout: '/api/business/auth/logout',
-      me: '/api/business/auth/me',
-      signup: '/api/business/auth/signup',
+      login: "/api/business/auth/login",
+      logout: "/api/business/auth/logout",
+      me: "/api/business/auth/me",
+      signup: "/api/business/auth/signup",
     },
-    vendors: '/api/business/vendors',
-    products: '/api/business/products',
-    contact: '/api/business/contact',
-    bills: '/api/business/bills',
+    vendors: "/api/business/vendors",
+    products: "/api/business/products",
+    categories: "/api/business/categories",
+    contact: "/api/business/contact",
+    bills: "/api/business/bills",
   },
 };
-
-
