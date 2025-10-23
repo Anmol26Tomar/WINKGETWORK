@@ -16,16 +16,30 @@ export default function Products() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [showPendingModal, setShowPendingModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const products = useMemo(() => state.products, [state.products]);
 
   useEffect(() => {
     (async () => {
       try {
-        const list = await fetchProducts();
+        
+        // Handle different response formats
+        let list = [];
+        if (Array.isArray(response)) {
+          list = response;
+        } else if (response && Array.isArray(response.products)) {
+          list = response.products;
+        } else if (response && Array.isArray(response.data)) {
+          list = response.data;
+        } else {
+          console.warn('Unexpected response format from fetchProducts:', response);
+          list = [];
+        }
+        
         // normalize to id field for UI
         const normalized = list.map((p) => ({ ...p, id: p._id }));
-        // replace current state with fetched
         // simple approach: clear and add
         normalized.forEach(() => {});
         // dispatching a replace is not present; emulate by resetting via logout+login would be overkill.
@@ -35,7 +49,12 @@ export default function Products() {
           if (!existingIds.has(p.id))
             dispatch({ type: "ADD_PRODUCT", payload: p });
         });
-      } catch {}
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        setError(err.message || 'Failed to fetch products');
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
 
@@ -144,11 +163,6 @@ export default function Products() {
               onCancel={() => setShowForm(false)}
             />
           </div>
-          <ProductForm 
-            initialValues={editing || undefined} 
-            onSubmit={handleSubmit} 
-            onCancel={() => setShowForm(false)} 
-          />
         </div>
       )}
 
