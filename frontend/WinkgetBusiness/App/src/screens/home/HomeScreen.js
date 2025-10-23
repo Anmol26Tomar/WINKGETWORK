@@ -12,6 +12,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import JustdialBanner from '../dashboard/components/JustdialBanner';
+import ServiceIcons from '../dashboard/components/ServiceIcons';
+import FestivalBanner from '../dashboard/components/FestivalBanner';
+import FeaturedBusinesses from '../dashboard/components/FeaturedBusinesses';
 
 const HomeScreen = () => {
   const { user } = useAuth();
@@ -123,6 +127,50 @@ const HomeScreen = () => {
             </View>
           </Card.Content>
         </Card>
+
+        {/* Featured Businesses Section */}
+        <Animated.View style={[styles.featuredContainer, { opacity: fadeAnim }]}>
+          <FeaturedBusinesses
+            onPressViewAll={() => {
+              console.log('View all featured businesses');
+              // Navigate to categories page to view all vendors by category
+            }}
+            onPressItem={(vendor) => {
+              console.log('🌟 Featured vendor pressed:', vendor);
+              // Navigate directly to vendor profile/store screen
+            }}
+          />
+        </Animated.View>
+
+        {/* Justdial-style Banner - Below Featured Vendors */}
+        <Animated.View style={[styles.bannerContainer, { opacity: fadeAnim }]}>
+          <JustdialBanner 
+            onPress={() => {
+              console.log('Justdial banner pressed');
+              // Navigate to business listing page
+            }}
+          />
+        </Animated.View>
+
+        {/* Service Icons Section */}
+        <Animated.View style={[styles.serviceContainer, { opacity: fadeAnim }]}>
+          <ServiceIcons 
+            onServicePress={(service) => {
+              console.log('Service pressed:', service);
+              // Handle service navigation
+            }}
+          />
+        </Animated.View>
+
+        {/* Festival Decorators Banner - Below AJIO section */}
+        <Animated.View style={[styles.bannerContainer, { opacity: fadeAnim }]}>
+          <FestivalBanner 
+            onPress={() => {
+              console.log('Festival banner pressed');
+              // Navigate to event organizers or decorators
+            }}
+          />
+        </Animated.View>
       </Animated.View>
     </ScrollView>
   );
@@ -250,6 +298,15 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 14,
     fontWeight: '600',
+  },
+  featuredContainer: {
+    marginTop: 16,
+  },
+  bannerContainer: {
+    marginTop: 16,
+  },
+  serviceContainer: {
+    marginTop: 8,
   },
 });
 
