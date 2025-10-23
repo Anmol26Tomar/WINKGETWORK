@@ -9,7 +9,7 @@ const app = express();
 const http = require("http").createServer(app);
 const { Server } = require("socket.io");
 const { setIO } = require("./WinkgetExpress/utils/socket");
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 const SERVER_IP = process.env.SERVER_IP || 'localhost';
 
 // Configure CORS to allow credentials
@@ -34,8 +34,10 @@ app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 
 // Test endpoint to create a transport request
 app.post("/test/transport", (req, res) => {
-  const { notifyCaptainsNewTransport } = require("./WinkgetExpress/utils/notificationService");
-  
+  const {
+    notifyCaptainsNewTransport,
+  } = require("./WinkgetExpress/utils/notificationService");
+
   const testTrip = {
     id: "test_" + Date.now(),
     vehicleType: req.body.vehicleType || "truck",
@@ -45,27 +47,32 @@ app.post("/test/transport", (req, res) => {
     destination: { lat: 12.9352, lng: 77.6245, address: "Test Destination" },
     distanceKm: 5.2,
     status: "pending",
-    type: "transport"
+    type: "transport",
   };
-  
+
   notifyCaptainsNewTransport(testTrip.id, testTrip);
-  
-  res.json({ 
-    message: "Test transport request created", 
-    trip: testTrip 
+
+  res.json({
+    message: "Test transport request created",
+    trip: testTrip,
   });
 });
 
 app.use("/api/auth", require("./WinkgetExpress/routes/auth"));
 app.use("/api/parcels", require("./WinkgetExpress/routes/parcelRoutes"));
 app.use("/api/transport", require("./WinkgetExpress/routes/transportRoutes"));
+app.use("/api/packers", require("./WinkgetExpress/routes/packersMoveRoutes"));
 
 // Winkget Business APIs
-app.use('/api/business/auth', require('./WinkgetBusiness/routes/auth'));
-app.use('/api/business/vendors', require('./WinkgetBusiness/routes/vendors'));
-app.use('/api/business/products', require('./WinkgetBusiness/routes/products'));
-app.use('/api/business/contact', require('./WinkgetBusiness/routes/contact'));
-app.use('/api/business/bills', require('./WinkgetBusiness/routes/bills'));
+app.use("/api/business/auth", require("./WinkgetBusiness/routes/auth"));
+app.use("/api/business/vendors", require("./WinkgetBusiness/routes/vendors"));
+app.use("/api/business/products", require("./WinkgetBusiness/routes/products"));
+app.use("/api/business/contact", require("./WinkgetBusiness/routes/contact"));
+app.use("/api/business/bills", require("./WinkgetBusiness/routes/bills"));
+app.use(
+  "/api/business/categories",
+  require("./WinkgetBusiness/routes/categories")
+);
 
 //captain routing
 
@@ -80,31 +87,34 @@ const io = new Server(http, { cors: { origin: process.env.SOCKET_CORS_ORIGIN || 
 setIO(io);
 
 io.on("connection", (socket) => {
-  console.log('Client connected:', socket.id);
-  
+  console.log("Client connected:", socket.id);
+
   socket.on("user:subscribe-ride", ({ rideId }) => {
     socket.join(`ride:${rideId}`);
   });
   socket.on("join-ride", ({ rideId }) => socket.join(`ride:${rideId}`));
   socket.on("subscribe-ride", ({ rideId }) => socket.join(`ride:${rideId}`));
-  
+
   // Handle captain joining
   socket.on("captain:join", ({ captainId, vehicleType, isAvailable }) => {
-    console.log('Captain joined:', { captainId, vehicleType, isAvailable });
+    console.log("Captain joined:", { captainId, vehicleType, isAvailable });
     socket.join(`captain:${captainId}`);
     socket.join(`vehicle:${vehicleType}`);
     if (isAvailable) {
-      socket.join('available-captains');
+      socket.join("available-captains");
     }
   });
-  
+
   socket.on("test", (data) => {
-    console.log('Test message received from captain:', data);
-    socket.emit('test-response', { message: 'Hello from server!', timestamp: new Date() });
+    console.log("Test message received from captain:", data);
+    socket.emit("test-response", {
+      message: "Hello from server!",
+      timestamp: new Date(),
+    });
   });
-  
+
   socket.on("disconnect", () => {
-    console.log('Client disconnected:', socket.id);
+    console.log("Client disconnected:", socket.id);
   });
 });
 

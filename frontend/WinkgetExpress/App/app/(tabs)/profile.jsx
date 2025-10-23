@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useRouter } from 'expo-router';
 import ParcelHistory from '../../components/ParcelHistory';
+import PackersHistory from '../../components/PackersHistory';
 
 export default function ProfileScreen() {
 	const { user, logout } = useAuth();
@@ -34,24 +35,37 @@ export default function ProfileScreen() {
 
 
 const renderHistoryTab = () => {
+		const renderContent = () => {
+			switch(historySubTab) {
+				case 'parcel':
+					return <ParcelHistory serviceType="parcel" />;
+				case 'transport':
+					return <ParcelHistory serviceType="transport" />;
+				case 'packers':
+					return <PackersHistory />;
+				default:
+					return <ParcelHistory serviceType="parcel" />;
+			}
+		};
+
 		return (
 			<View style={styles.historyContainer}>
 				<Text style={styles.heading}>Order History</Text>
 				<View style={styles.subTabs}>
 					<TouchableOpacity style={[styles.subTabBtn, historySubTab === 'parcel' && styles.subTabActive]} onPress={() => setHistorySubTab('parcel')}>
-						<Ionicons name={historySubTab === 'parcel' ? 'cube' : 'cube-outline'} size={16} color={historySubTab === 'parcel' ? '#fff' : Colors.text} />
+						<Ionicons name={historySubTab === 'parcel' ? 'cube' : 'cube-outline'} size={14} color={historySubTab === 'parcel' ? '#fff' : Colors.text} />
 						<Text style={[styles.subTabTxt, historySubTab === 'parcel' && styles.subTabTxtActive]}>Parcels</Text>
 					</TouchableOpacity>
 					<TouchableOpacity style={[styles.subTabBtn, historySubTab === 'transport' && styles.subTabActive]} onPress={() => setHistorySubTab('transport')}>
-						<Ionicons name={historySubTab === 'transport' ? 'car' : 'car-outline'} size={16} color={historySubTab === 'transport' ? '#fff' : Colors.text} />
+						<Ionicons name={historySubTab === 'transport' ? 'car' : 'car-outline'} size={14} color={historySubTab === 'transport' ? '#fff' : Colors.text} />
 						<Text style={[styles.subTabTxt, historySubTab === 'transport' && styles.subTabTxtActive]}>Trips</Text>
 					</TouchableOpacity>
+					<TouchableOpacity style={[styles.subTabBtn, historySubTab === 'packers' && styles.subTabActive]} onPress={() => setHistorySubTab('packers')}>
+						<Ionicons name={historySubTab === 'packers' ? 'home' : 'home-outline'} size={14} color={historySubTab === 'packers' ? '#fff' : Colors.text} />
+						<Text style={[styles.subTabTxt, historySubTab === 'packers' && styles.subTabTxtActive]}>Move</Text>
+					</TouchableOpacity>
 				</View>
-				{historySubTab === 'parcel' ? (
-					<ParcelHistory serviceType="parcel" />
-				) : (
-					<ParcelHistory serviceType="transport" />
-				)}
+				{renderContent()}
 			</View>
 		);
 	};
@@ -156,10 +170,12 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		justifyContent: 'center',
 		paddingVertical: 10,
-		gap: 6,
+		paddingHorizontal: 4,
+		gap: 4,
+		minWidth: 0,
 	},
 	subTabActive: { backgroundColor: Colors.primary },
-	subTabTxt: { color: Colors.text, fontWeight: '700' },
+	subTabTxt: { color: Colors.text, fontWeight: '700', fontSize: 11 },
     subTabTxtActive: { color: '#fff' },
 });
 
