@@ -552,7 +552,7 @@ const MyStoreScreen = () => {
             <View style={styles.productContent}>
               <View style={styles.productHeader}>
                 <Text style={styles.productTitle} numberOfLines={2}>
-                  Product Name: {product.title || product.name}
+                  {product.title || product.name}
                 </Text>
                 <View style={styles.ratingContainer}>
                   <Ionicons name="star" size={12} color="#F59E0B" />
@@ -702,286 +702,325 @@ const MyStoreScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#007BFF" />
+      <StatusBar barStyle="dark-content" backgroundColor="white" />
+      {/* Header */}
+      <LinearGradient
+        colors={["#3B82F6", "#1D4ED8"]}
+        style={styles.headerGradient}
+      >
+        <View style={styles.header}>
+          <View style={styles.welcomeContainer}>
+            <Ionicons name="storefront" size={64} color="white" />
+            <Text style={styles.welcomeTitle}>
+              {businessName ||
+                (products.length > 0
+                  ? products[0]?.vendorRef?.shopName
+                  : "My Store")}
+            </Text>
+            <Text style={styles.welcomeSubtitle}>
+              {storeCategory
+                ? `${storeCategory.category} Store`
+                : "Browse Products"}
+            </Text>
+          </View>
+        </View>
+      </LinearGradient>
+
+      {/* Sticky Search Bar */}
+      <View style={styles.stickySearchContainer}>
+        <View style={styles.searchBarWrapper}>
+          <View style={styles.searchInputContainer}>
+            <Ionicons
+              name="mic-outline"
+              size={18}
+              color="#6B7280"
+              style={styles.searchIcon}
+            />
+            <Searchbar
+              placeholder="Search products..."
+              onChangeText={setSearchQuery}
+              value={searchQuery}
+              style={styles.modernSearchBar}
+              inputStyle={styles.modernSearchInput}
+              placeholderTextColor="#9CA3AF"
+            />
+            {searchQuery.length > 0 ? (
+              <TouchableOpacity
+                onPress={() => setSearchQuery("")}
+                style={styles.clearButton}
+              >
+                <Ionicons name="close-circle" size={18} color="#6B7280" />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.searchButton}>
+                <Ionicons name="search" size={18} color="#007BFF" />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </View>
+
+      {/* Sticky Category Filter */}
+      {storeCategory && (
+        <View style={styles.stickyCategoryContainer}>
+          <Text style={styles.filterSectionLabel}>Categories</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoryScroll}
+          >
+            <TouchableOpacity
+              style={[
+                styles.categoryChip,
+                !selectedCategory && styles.categoryChipActive,
+              ]}
+              onPress={() => {
+                setSelectedCategory(null);
+                setSelectedSubcategory(null);
+              }}
+            >
+              <Ionicons
+                name="grid"
+                size={16}
+                color={!selectedCategory ? "white" : "#6B7280"}
+                style={styles.categoryChipIcon}
+              />
+              <Text
+                style={[
+                  styles.categoryChipText,
+                  !selectedCategory && styles.categoryChipTextActive,
+                ]}
+              >
+                All
+              </Text>
+            </TouchableOpacity>
+
+            {storeCategory.subcategories.map((subcategory, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.categoryChip,
+                  selectedCategory === subcategory.name &&
+                    styles.categoryChipActive,
+                ]}
+                onPress={() => {
+                  setSelectedCategory(subcategory.name);
+                  setSelectedSubcategory(null);
+                }}
+              >
+                <Ionicons
+                  name={getSubcategoryIcon(subcategory.name)}
+                  size={16}
+                  color={
+                    selectedCategory === subcategory.name ? "white" : "#6B7280"
+                  }
+                  style={styles.categoryChipIcon}
+                />
+                <Text
+                  style={[
+                    styles.categoryChipText,
+                    selectedCategory === subcategory.name &&
+                      styles.categoryChipTextActive,
+                  ]}
+                >
+                  {subcategory.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
+      {/* Sticky Subcategory Filter - Shows when category is selected */}
+      {selectedCategory && storeCategory && (
+        <View style={styles.stickySubcategoryContainer}>
+          <Text style={styles.filterSectionLabel}>
+            {selectedCategory} Subcategories
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.subcategoryScroll}
+          >
+            <TouchableOpacity
+              style={[
+                styles.subcategoryChip,
+                !selectedSubcategory && styles.subcategoryChipActive,
+              ]}
+              onPress={() => setSelectedSubcategory(null)}
+            >
+              <Ionicons
+                name="list"
+                size={14}
+                color={!selectedSubcategory ? "white" : "#6B7280"}
+                style={styles.subcategoryChipIcon}
+              />
+              <Text
+                style={[
+                  styles.subcategoryChipText,
+                  !selectedSubcategory && styles.subcategoryChipTextActive,
+                ]}
+              >
+                All {selectedCategory}
+              </Text>
+            </TouchableOpacity>
+
+            {storeCategory.subcategories
+              .find((sub) => sub.name === selectedCategory)
+              ?.secondarySubcategories.map((secondary, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.subcategoryChip,
+                    selectedSubcategory === secondary &&
+                      styles.subcategoryChipActive,
+                  ]}
+                  onPress={() => setSelectedSubcategory(secondary)}
+                >
+                  <Ionicons
+                    name="ellipse"
+                    size={12}
+                    color={
+                      selectedSubcategory === secondary ? "white" : "#6B7280"
+                    }
+                    style={styles.subcategoryChipIcon}
+                  />
+                  <Text
+                    style={[
+                      styles.subcategoryChipText,
+                      selectedSubcategory === secondary &&
+                        styles.subcategoryChipTextActive,
+                    ]}
+                  >
+                    {secondary}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+          </ScrollView>
+        </View>
+      )}
+
+      {/* Sticky Sort and Filter Bar */}
+      <View style={styles.stickySortFilterContainer}>
+        <TouchableOpacity
+          style={styles.modernSortButton}
+          onPress={() => setShowAdvancedFilters(true)}
+        >
+          <View style={styles.sortButtonContent}>
+            <Ionicons name="options" size={18} color="#007BFF" />
+            <Text style={styles.modernSortButtonText}>Sort & Filter</Text>
+            <Ionicons name="chevron-down" size={16} color="#007BFF" />
+          </View>
+        </TouchableOpacity>
+
+        <View style={styles.resultsContainer}>
+          <Text style={styles.resultsCount}>
+            {filteredProducts.length} of {products.length} products
+          </Text>
+        </View>
+      </View>
+
+      {/* Active Filters */}
+      {(searchQuery ||
+        selectedCategory ||
+        selectedSubcategory ||
+        selectedBrands.length > 0 ||
+        selectedColors.length > 0 ||
+        priceRange.min > 0 ||
+        priceRange.max < 100000 ||
+        rating > 0) && (
+        <View style={styles.activeFiltersContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {searchQuery && (
+              <Chip
+                icon="search"
+                onClose={() => setSearchQuery("")}
+                style={styles.filterChip}
+              >
+                "{searchQuery}"
+              </Chip>
+            )}
+            {selectedCategory && (
+              <Chip
+                icon="folder"
+                onClose={() => {
+                  setSelectedCategory(null);
+                  setSelectedSubcategory(null);
+                }}
+                style={styles.filterChip}
+              >
+                {selectedCategory}
+              </Chip>
+            )}
+            {selectedSubcategory && (
+              <Chip
+                icon="list"
+                onClose={() => setSelectedSubcategory(null)}
+                style={styles.filterChip}
+              >
+                {selectedSubcategory}
+              </Chip>
+            )}
+            {selectedBrands.map((brand, index) => (
+              <Chip
+                key={index}
+                icon="business"
+                onClose={() =>
+                  setSelectedBrands((prev) => prev.filter((b) => b !== brand))
+                }
+                style={styles.filterChip}
+              >
+                {brand}
+              </Chip>
+            ))}
+            {selectedColors.map((color, index) => (
+              <Chip
+                key={index}
+                icon="color-palette"
+                onClose={() =>
+                  setSelectedColors((prev) => prev.filter((c) => c !== color))
+                }
+                style={styles.filterChip}
+              >
+                {color}
+              </Chip>
+            ))}
+            {(priceRange.min > 0 || priceRange.max < 100000) && (
+              <Chip
+                icon="cash"
+                onClose={() => setPriceRange({ min: 0, max: 100000 })}
+                style={styles.filterChip}
+              >
+                ₹{priceRange.min} - ₹{priceRange.max}
+              </Chip>
+            )}
+            {rating > 0 && (
+              <Chip
+                icon="star"
+                onClose={() => setRating(0)}
+                style={styles.filterChip}
+              >
+                {rating}+ Stars
+              </Chip>
+            )}
+            <TouchableOpacity
+              onPress={clearFilters}
+              style={styles.clearAllButton}
+            >
+              <Text style={styles.clearAllText}>Clear All</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      )}
 
       <ScrollView
         ref={scrollViewRef}
-        style={styles.scrollContainer}
+        style={styles.content}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         onScroll={handleScroll}
         scrollEventThrottle={16}
-        bounces={true}
-        alwaysBounceVertical={false}
-        keyboardShouldPersistTaps="handled"
-        removeClippedSubviews={false}
-        scrollEnabled={true}
-        nestedScrollEnabled={true}
       >
-        {/* Modern Header */}
-        <View style={styles.modernHeader}>
-          <LinearGradient
-            colors={["#007BFF", "#4FC3F7", "#EAF3FF"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.headerGradient}
-          >
-            <View style={styles.headerContent}>
-              <View style={styles.storeIconContainer}>
-                <Ionicons name="storefront" size={32} color="white" />
-              </View>
-              <Text style={styles.headerTitle}>
-                {businessName ||
-                  (products.length > 0
-                    ? products[0]?.vendorRef?.shopName
-                    : "Find Businesses")}
-              </Text>
-              <Text style={styles.headerSubtitle}>
-                {storeCategory
-                  ? `Discover ${storeCategory.category.toLowerCase()} businesses near you`
-                  : "Discover local businesses near you"}
-              </Text>
-            </View>
-          </LinearGradient>
-        </View>
-
-        {/* Modern Search Bar */}
-        <View style={styles.modernSearchContainer}>
-          <View style={styles.searchBarWrapper}>
-            <View style={styles.searchInputContainer}>
-              <Ionicons
-                name="mic-outline"
-                size={20}
-                color="#6B7280"
-                style={styles.searchIcon}
-              />
-              <Searchbar
-                placeholder="Search for businesses or categories..."
-                onChangeText={setSearchQuery}
-                value={searchQuery}
-                style={styles.modernSearchBar}
-                inputStyle={styles.modernSearchInput}
-                placeholderTextColor="#9CA3AF"
-              />
-              <TouchableOpacity style={styles.searchButton}>
-                <Ionicons name="search" size={20} color="#007BFF" />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.filterButton}>
-                <Ionicons name="options-outline" size={20} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
-        {/* Browse Categories Section */}
-        <View style={styles.browseCategoriesContainer}>
-          <Text style={styles.browseCategoriesTitle}>Browse Categories</Text>
-          <View style={styles.categoriesGrid}>
-            {rawCategories.slice(0, 5).map((category, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.categoryCard}
-                onPress={() => {
-                  setSelectedCategory(category.category);
-                  setSelectedSubcategory(null);
-                }}
-              >
-                <View style={styles.categoryIconContainer}>
-                  <Ionicons
-                    name={getCategoryIcon(category.category)}
-                    size={24}
-                    color="#007BFF"
-                  />
-                </View>
-                <Text style={styles.categoryCardTitle}>
-                  {category.category}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Subcategory Filter - Shows when category is selected */}
-        {selectedCategory && storeCategory && (
-          <View style={styles.subcategoryFilterContainer}>
-            <Text style={styles.filterSectionLabel}>
-              {selectedCategory} Subcategories
-            </Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.subcategoryScroll}
-            >
-              <TouchableOpacity
-                style={[
-                  styles.subcategoryChip,
-                  !selectedSubcategory && styles.subcategoryChipActive,
-                ]}
-                onPress={() => setSelectedSubcategory(null)}
-              >
-                <Ionicons
-                  name="list"
-                  size={14}
-                  color={!selectedSubcategory ? "white" : "#6B7280"}
-                  style={styles.subcategoryChipIcon}
-                />
-                <Text
-                  style={[
-                    styles.subcategoryChipText,
-                    !selectedSubcategory && styles.subcategoryChipTextActive,
-                  ]}
-                >
-                  All {selectedCategory}
-                </Text>
-              </TouchableOpacity>
-
-              {storeCategory.subcategories
-                .find((sub) => sub.name === selectedCategory)
-                ?.secondarySubcategories.map((secondary, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={[
-                      styles.subcategoryChip,
-                      selectedSubcategory === secondary &&
-                        styles.subcategoryChipActive,
-                    ]}
-                    onPress={() => setSelectedSubcategory(secondary)}
-                  >
-                    <Ionicons
-                      name="ellipse"
-                      size={12}
-                      color={
-                        selectedSubcategory === secondary ? "white" : "#6B7280"
-                      }
-                      style={styles.subcategoryChipIcon}
-                    />
-                    <Text
-                      style={[
-                        styles.subcategoryChipText,
-                        selectedSubcategory === secondary &&
-                          styles.subcategoryChipTextActive,
-                      ]}
-                    >
-                      {secondary}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* Sort and Filter Bar */}
-        <View style={styles.sortFilterContainer}>
-          <TouchableOpacity
-            style={styles.modernSortButton}
-            onPress={() => setShowAdvancedFilters(true)}
-          >
-            <View style={styles.sortButtonContent}>
-              <Ionicons name="options" size={18} color="#007BFF" />
-              <Text style={styles.modernSortButtonText}>Sort & Filter</Text>
-              <Ionicons name="chevron-down" size={16} color="#007BFF" />
-            </View>
-          </TouchableOpacity>
-
-          <View style={styles.resultsContainer}>
-            <Text style={styles.resultsCount}>
-              {filteredProducts.length} of {products.length} products
-            </Text>
-          </View>
-        </View>
-
-        {/* Active Filters */}
-        {(searchQuery ||
-          selectedCategory ||
-          selectedSubcategory ||
-          selectedBrands.length > 0 ||
-          selectedColors.length > 0 ||
-          priceRange.min > 0 ||
-          priceRange.max < 100000 ||
-          rating > 0) && (
-          <View style={styles.activeFiltersContainer}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {searchQuery && (
-                <Chip
-                  icon="search"
-                  onClose={() => setSearchQuery("")}
-                  style={styles.filterChip}
-                >
-                  "{searchQuery}"
-                </Chip>
-              )}
-              {selectedCategory && (
-                <Chip
-                  icon="folder"
-                  onClose={() => {
-                    setSelectedCategory(null);
-                    setSelectedSubcategory(null);
-                  }}
-                  style={styles.filterChip}
-                >
-                  {selectedCategory}
-                </Chip>
-              )}
-              {selectedSubcategory && (
-                <Chip
-                  icon="list"
-                  onClose={() => setSelectedSubcategory(null)}
-                  style={styles.filterChip}
-                >
-                  {selectedSubcategory}
-                </Chip>
-              )}
-              {selectedBrands.map((brand, index) => (
-                <Chip
-                  key={index}
-                  icon="business"
-                  onClose={() =>
-                    setSelectedBrands((prev) => prev.filter((b) => b !== brand))
-                  }
-                  style={styles.filterChip}
-                >
-                  {brand}
-                </Chip>
-              ))}
-              {selectedColors.map((color, index) => (
-                <Chip
-                  key={index}
-                  icon="color-palette"
-                  onClose={() =>
-                    setSelectedColors((prev) => prev.filter((c) => c !== color))
-                  }
-                  style={styles.filterChip}
-                >
-                  {color}
-                </Chip>
-              ))}
-              {(priceRange.min > 0 || priceRange.max < 100000) && (
-                <Chip
-                  icon="cash"
-                  onClose={() => setPriceRange({ min: 0, max: 100000 })}
-                  style={styles.filterChip}
-                >
-                  ₹{priceRange.min} - ₹{priceRange.max}
-                </Chip>
-              )}
-              {rating > 0 && (
-                <Chip
-                  icon="star"
-                  onClose={() => setRating(0)}
-                  style={styles.filterChip}
-                >
-                  {rating}+ Stars
-                </Chip>
-              )}
-              <TouchableOpacity
-                onPress={clearFilters}
-                style={styles.clearAllButton}
-              >
-                <Text style={styles.clearAllText}>Clear All</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        )}
         {filteredProducts.length > 0 ? (
           <View style={styles.productsSection}>
             <View style={styles.sectionHeader}>
@@ -1516,70 +1555,37 @@ const MyStoreScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F8FAFC",
   },
-  // ScrollView Container
-  scrollContainer: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-  // Modern Header
-  modernHeader: {
-    position: "relative",
-  },
+  // Header Styles (matching HomeScreen)
   headerGradient: {
     paddingTop: 60,
-    paddingBottom: 32,
-    paddingHorizontal: 20,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    elevation: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    paddingBottom: 40,
   },
-  headerContent: {
+  header: {
+    paddingHorizontal: 24,
+  },
+  welcomeContainer: {
     alignItems: "center",
   },
-  storeIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: "#FFFFFF",
+  welcomeTitle: {
+    fontSize: 32,
+    fontWeight: "bold",
+    color: "white",
+    marginTop: 20,
+    marginBottom: 12,
     textAlign: "center",
-    marginBottom: 8,
-    fontFamily: "Inter",
-    textShadowColor: "rgba(0, 0, 0, 0.2)",
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 4,
   },
-  headerSubtitle: {
-    fontSize: 16,
-    color: "#F0F9FF",
-    opacity: 0.9,
+  welcomeSubtitle: {
+    fontSize: 18,
+    color: "rgba(255, 255, 255, 0.9)",
     textAlign: "center",
-    fontFamily: "Inter",
-    lineHeight: 22,
   },
   // Modern Search Bar
   modernSearchContainer: {
     backgroundColor: "white",
-    paddingHorizontal: 20,
-    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -1588,25 +1594,35 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 4,
+    marginTop: 100,
+  },
+  modernSearchContainerScrolled: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    marginTop: 0,
   },
   searchBarWrapper: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     backgroundColor: "white",
   },
   searchInputContainer: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#FFFFFF",
-    borderRadius: 25,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    height: 50,
+    borderRadius: 20,
+    borderWidth: 0,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    height: 46,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 6,
   },
   searchIcon: {
     marginRight: 12,
@@ -1625,77 +1641,25 @@ const styles = StyleSheet.create({
     padding: 0,
     margin: 0,
   },
+  clearButton: {
+    marginLeft: 8,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: "#F3F4F6",
+    minWidth: 36,
+    minHeight: 36,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   searchButton: {
     marginLeft: 8,
     padding: 8,
-    borderRadius: 20,
-    backgroundColor: "#007BFF",
-    minWidth: 40,
-    minHeight: 40,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  filterButton: {
-    marginLeft: 8,
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: "#F3F4F6",
-    minWidth: 40,
-    minHeight: 40,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  // Browse Categories
-  browseCategoriesContainer: {
-    backgroundColor: "white",
-    paddingHorizontal: 20,
-    paddingVertical: 24,
-  },
-  browseCategoriesTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#1F2937",
-    marginBottom: 20,
-    letterSpacing: 0.2,
-  },
-  categoriesGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  categoryCard: {
-    width: (width - 60) / 2,
-    backgroundColor: "white",
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: "#F3F4F6",
-  },
-  categoryIconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    borderRadius: 8,
     backgroundColor: "#EAF3FF",
+    minWidth: 36,
+    minHeight: 36,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 12,
-  },
-  categoryCardTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1F2937",
-    textAlign: "center",
-    lineHeight: 20,
   },
   // Sticky Search Container
   stickySearchContainer: {
@@ -2414,11 +2378,10 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
   },
   scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 100,
+    padding: 24,
+    paddingBottom: 40,
   },
   productsSection: {
     flex: 1,
@@ -2523,7 +2486,7 @@ const styles = StyleSheet.create({
   featuredProductPrice: {
     fontSize: isTablet ? 20 : 18,
     fontWeight: "bold",
-    color: "#007BFF",
+    color: "#3B82F6",
   },
   allProductsSection: {
     marginBottom: 24,
@@ -2534,28 +2497,23 @@ const styles = StyleSheet.create({
     color: "#1F2937",
     marginBottom: 16,
   },
-  // Product Card Styles
+  // Product Card Styles (matching HomeScreen card theme)
   productCard: {
     backgroundColor: "white",
     borderRadius: 16,
     marginBottom: 16,
+    elevation: 4,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: "#F3F4F6",
     // ensure consistent width via inline style using cardWidth
   },
   productCardWrapper: {
     marginBottom: 24,
   },
   productTouchable: {
-    borderRadius: 16,
+    borderRadius: 12,
     overflow: "hidden",
   },
   productImageContainer: {
@@ -2659,7 +2617,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   productContent: {
-    padding: 16,
+    padding: 12,
   },
   productHeader: {
     flexDirection: "row",
@@ -2689,7 +2647,7 @@ const styles = StyleSheet.create({
   currentPrice: {
     fontSize: isTablet ? 18 : 16,
     fontWeight: "bold",
-    color: "#007BFF",
+    color: "#3B82F6",
   },
   originalPrice: {
     fontSize: isTablet ? 14 : 12,
@@ -2874,7 +2832,7 @@ const styles = StyleSheet.create({
   relatedProductPrice: {
     fontSize: 14,
     fontWeight: "bold",
-    color: "#007BFF",
+    color: "#3B82F6",
   },
   // Quick Add to Cart Button
   quickAddButton: {
@@ -2883,21 +2841,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "transparent",
     borderWidth: 1,
-    borderColor: "#007BFF",
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    marginTop: 12,
+    borderColor: "#3B82F6",
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginTop: 8,
   },
   quickAddButtonActive: {
-    backgroundColor: "#007BFF",
-    borderColor: "#007BFF",
+    backgroundColor: "#3B82F6",
+    borderColor: "#3B82F6",
   },
   quickAddText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "600",
-    color: "#007BFF",
-    marginLeft: 6,
+    color: "#3B82F6",
+    marginLeft: 4,
   },
   quickAddTextActive: {
     color: "white",
