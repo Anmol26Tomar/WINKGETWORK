@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,16 +9,44 @@ import {
   Alert,
   RefreshControl,
   Dimensions,
+  ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { captainTripApi, setCaptainApiToken } from '../lib/api';
-import { connectSocket, setupSocketListeners, emitLocationUpdate, getSocket } from '../lib/socket';
 import { useAuth } from '@/context/AuthContext';
 import TripCard from '../components/TripCard';
+import TripModal from '../components/TripModal';
 
 const { width, height } = Dimensions.get('window');
+
+// BULLETPROOF COORDINATE VALIDATION
+const validateCoordinate = (lat: any, lng: any): { isValid: boolean; latitude: number; longitude: number } => {
+  const defaultCoords = { latitude: 19.0760, longitude: 72.8777 }; // Mumbai coordinates
+  
+  try {
+    const latitude = parseFloat(String(lat));
+    const longitude = parseFloat(String(lng));
+    
+    if (isNaN(latitude) || isNaN(longitude)) {
+      return { isValid: false, ...defaultCoords };
+    }
+    
+    if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+      return { isValid: false, ...defaultCoords };
+    }
+    
+    if (latitude === 0 && longitude === 0) {
+      return { isValid: false, ...defaultCoords };
+    }
+    
+    return { isValid: true, latitude, longitude };
+  } catch (error) {
+    return { isValid: false, ...defaultCoords };
+  }
+};
 
 interface Trip {
   id: string;
@@ -39,71 +67,13 @@ interface Trip {
   vehicleSubType: string;
   distanceKm: number;
   createdAt: string;
-  package?: any;
-  receiverName?: string;
-  receiverContact?: string;
-  selectedItems?: any;
-  receiverAddress?: string;
 }
-
-interface CaptainProfile {
-  _id: string;
-  name: string;
-  phone: string;
-  vehicleType: string;
-  servicesOffered: string[];
-  isActive: boolean;
-}
-
-// Helper function to validate coordinates
-const isValidCoordinate = (lat: any, lng: any): boolean => {
-  if (!lat || !lng) return false;
-  if (typeof lat !== 'number' || typeof lng !== 'number') return false;
-  if (isNaN(lat) || isNaN(lng)) return false;
-  if (lat === 0 && lng === 0) return false; // Invalid coordinates
-  if (lat < -90 || lat > 90) return false; // Invalid latitude
-  if (lng < -180 || lng > 180) return false; // Invalid longitude
-  return true;
-};
-
-// Safe marker component that never renders invalid coordinates
-const SafeMarker = ({ trip, onPress }: { trip: Trip; onPress: (trip: Trip) => void }) => {
-  // Triple validation before rendering
-  if (!trip || !trip.pickup || !isValidCoordinate(trip.pickup.lat, trip.pickup.lng)) {
-    console.warn('SafeMarker: Skipping invalid trip', trip);
-    return null;
-  }
-
-  // Final coordinate extraction with safety
-  const lat = Number(trip.pickup.lat);
-  const lng = Number(trip.pickup.lng);
-  
-  // Ultimate safety check
-  if (!lat || !lng || isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
-    console.error('SafeMarker: Invalid coordinates after conversion', { lat, lng, trip });
-    return null;
-  }
-
-  return (
-    <Marker
-      key={trip.id}
-      coordinate={{
-        latitude: lat,
-        longitude: lng,
-      }}
-      title={`${trip?.type?.toUpperCase() || 'TRIP'} Trip to ${
-        trip?.delivery?.address || 'destination'
-      }`}
-      description={`₹${trip?.fareEstimate || 0} - ${trip?.vehicleType || 'vehicle'}`}
-      pinColor="#4CAF50"
-      onPress={() => onPress(trip)}
-    />
-  );
-};
 
 export default function CaptainHome() {
   const router = useRouter();
   const { captain, token } = useAuth();
+  
+  // STATE
   const [isOnline, setIsOnline] = useState(false);
   const [availableTrips, setAvailableTrips] = useState<Trip[]>([]);
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -112,35 +82,16 @@ export default function CaptainHome() {
   const [earnings, setEarnings] = useState(0);
   const [todayTrips, setTodayTrips] = useState(0);
   const [rating, setRating] = useState(0);
-  const [locationUpdates, setLocationUpdates] = useState(false);
+  const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
+  const [tripModalVisible, setTripModalVisible] = useState(false);
+  const [currentTrip, setCurrentTrip] = useState<Trip | null>(null);
 
-  useEffect(() => {
-    if (captain) {
-      setIsOnline(captain.isActive || false);
-      setLoading(false);
-
-      if (token) {
-        setCaptainApiToken(token);
-        console.log('API token set for captain requests');
-      }
-    } else {
-      router.replace('/captain/(auth)');
-    }
-    requestLocationPermission();
-  }, [captain, token]);
-
-  useEffect(() => {
-    if (isOnline && currentLocation) {
-      fetchNearbyTrips();
-      connectSocketAndListen();
-    }
-  }, [isOnline, currentLocation]);
-
-  const requestLocationPermission = async () => {
+  // BULLETPROOF LOCATION HANDLER
+  const requestLocationPermission = useCallback(async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission denied', 'Location permission is required');
+        setCurrentLocation({ lat: 19.0760, lng: 72.8777 }); // Mumbai coordinates
         return;
       }
 
@@ -148,42 +99,84 @@ export default function CaptainHome() {
         accuracy: Location.Accuracy.Balanced,
       });
 
-      const coords = {
-        lat: location.coords.latitude,
-        lng: location.coords.longitude,
-      };
-
-      if (isValidCoordinate(coords.lat, coords.lng)) {
-        setCurrentLocation(coords);
-        console.log('Location set:', coords);
-      } else {
-        console.error('Invalid coordinates received:', coords);
-        Alert.alert('Error', 'Unable to get valid location coordinates');
-      }
+      const validation = validateCoordinate(location.coords.latitude, location.coords.longitude);
+      setCurrentLocation({
+        lat: validation.latitude,
+        lng: validation.longitude,
+      });
     } catch (error) {
-      console.error('Error getting location:', error);
-      Alert.alert('Error', 'Unable to access location. Please check permissions.');
+      console.error('Location error:', error);
+      setCurrentLocation({ lat: 19.0760, lng: 72.8777 }); // Mumbai coordinates
     }
-  };
+  }, []);
 
-  const fetchNearbyTrips = async () => {
+  // BULLETPROOF TRIP FETCHER
+  const fetchNearbyTrips = useCallback(async () => {
     if (!currentLocation) return;
 
     try {
-      console.log('Fetching nearby trips for location:', currentLocation);
+      console.log('Fetching trips for location:', currentLocation);
       const response = await captainTripApi.getNearbyTrips({
         lat: currentLocation.lat,
         lng: currentLocation.lng,
         radius: 10,
       });
-      setAvailableTrips(response.data.trips || []);
-    } catch (error) {
-      console.error('Error fetching nearby trips:', error);
-      Alert.alert('Error', 'Unable to fetch nearby trips. Please check your connection.');
-    }
-  };
 
-  const onRefresh = async () => {
+      console.log('API Response:', response.data);
+
+      // BULLETPROOF TRIP FILTERING
+      const safeTrips: Trip[] = (response.data?.trips || [])
+        .filter((trip: any) => {
+          if (!trip || !trip.id || !trip.pickup) return false;
+          
+          const pickupValidation = validateCoordinate(trip.pickup.lat, trip.pickup.lng);
+          return pickupValidation.isValid;
+        })
+        .map((trip: any) => {
+          const pickupValidation = validateCoordinate(trip.pickup.lat, trip.pickup.lng);
+          const deliveryValidation = validateCoordinate(trip.delivery?.lat, trip.delivery?.lng);
+          
+          return {
+            ...trip,
+            pickup: {
+              ...trip.pickup,
+              lat: pickupValidation.latitude,
+              lng: pickupValidation.longitude,
+            },
+            delivery: {
+              ...trip.delivery,
+              lat: deliveryValidation.latitude,
+              lng: deliveryValidation.longitude,
+            }
+          };
+        });
+
+      console.log('Safe trips:', safeTrips);
+      setAvailableTrips(safeTrips);
+      
+      // Auto-select first trip if available
+      if (safeTrips.length > 0 && !selectedTrip) {
+        setSelectedTrip(safeTrips[0]);
+      }
+    } catch (error: any) {
+      console.error('Error fetching trips:', error);
+      console.error('Error details:', error?.message || 'Unknown error');
+      
+      // Show user-friendly error message
+      if (error?.message?.includes('Network Error')) {
+        Alert.alert(
+          'Connection Error', 
+          'Unable to connect to server. Please check your internet connection and try again.',
+          [{ text: 'OK' }]
+        );
+      }
+      
+      setAvailableTrips([]);
+    }
+  }, [currentLocation, selectedTrip]);
+
+  // REFRESH
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
       await fetchNearbyTrips();
@@ -191,79 +184,209 @@ export default function CaptainHome() {
       setTodayTrips(Math.floor(Math.random() * 10) + 1);
       setRating(4.2 + Math.random() * 0.8);
     } catch (error) {
-      console.error('Error refreshing data:', error);
+      console.error('Refresh error:', error);
     } finally {
       setRefreshing(false);
     }
-  };
+  }, [fetchNearbyTrips]);
 
-  const connectSocketAndListen = async () => {
+  // GOOGLE MAPS REDIRECT
+  const openInGoogleMaps = useCallback((trip: Trip) => {
+    const pickup = trip.pickup;
+    const delivery = trip.delivery;
+    
+    // Create Google Maps URL for navigation
+    const googleMapsUrl = `https://www.google.com/maps/dir/${pickup.lat},${pickup.lng}/${delivery.lat},${delivery.lng}`;
+    
+    Alert.alert(
+      'Navigate to Trip',
+      `Navigate to pickup location: ${pickup.address}`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Open in Google Maps',
+          onPress: () => {
+            Linking.openURL(googleMapsUrl).catch(err => {
+              console.error('Error opening Google Maps:', err);
+              Alert.alert('Error', 'Could not open Google Maps');
+            });
+          },
+        },
+      ]
+    );
+  }, []);
+
+  // TRIP PRESS - Open Trip Modal
+  const handleTripPress = useCallback((trip: Trip) => {
+    setCurrentTrip(trip);
+    setTripModalVisible(true);
+  }, []);
+
+  // AUTO-REDIRECT TO GOOGLE MAPS ON TRIP ACCEPTANCE
+  const handleTripAcceptance = useCallback((trip: Trip) => {
+    // Automatically redirect to Google Maps for navigation to pickup
+    openInGoogleMaps(trip);
+  }, [openInGoogleMaps]);
+
+  // TRIP MODAL HANDLERS
+  const handleAcceptTrip = useCallback(async (tripId: string) => {
     try {
-      if (!token) return;
-      const socket = await connectSocket(token);
-      setupSocketListeners(socket, {
-        onTripAssigned: (trip) => {
-          console.log('New trip assigned:', trip);
-          setAvailableTrips((prev) => [...prev, trip]);
-          Alert.alert('New Trip!', `Trip to ${trip.delivery?.address || 'destination'} for ₹${trip.fareEstimate || 0}`);
-        },
-        onTripCancelled: (data) => {
-          console.log('Trip cancelled:', data);
-          setAvailableTrips((prev) => prev.filter((trip) => trip.id !== data.tripId));
-        },
-        onLocationUpdated: (data) => {
-          console.log('Location updated:', data);
-        },
-      });
-
-      if (isOnline && currentLocation) {
-        startLocationTracking();
+      // Determine trip type based on trip data
+      const tripType = currentTrip?.type || 'transport';
+      await captainTripApi.acceptTrip(tripId, tripType);
+      console.log('Trip accepted:', tripId, 'type:', tripType);
+      
+      // Automatically redirect to Google Maps for navigation to pickup
+      if (currentTrip) {
+        handleTripAcceptance(currentTrip);
       }
     } catch (error) {
-      console.error('Error connecting socket:', error);
+      console.error('Error accepting trip:', error);
+      throw error;
     }
-  };
+  }, [currentTrip, handleTripAcceptance]);
 
-  const startLocationTracking = () => {
-    if (locationUpdates) return;
-
-    setLocationUpdates(true);
-    const socket = getSocket();
-
-    if (socket && currentLocation) {
-      emitLocationUpdate(socket, currentLocation);
-
-      const locationInterval = setInterval(() => {
-        if (isOnline && currentLocation) {
-          emitLocationUpdate(socket, currentLocation);
-        }
-      }, 10000);
-
-      return () => clearInterval(locationInterval);
+  const handleStartTrip = useCallback(async (tripId: string) => {
+    try {
+      // API call to start trip
+      console.log('Trip started:', tripId);
+    } catch (error) {
+      console.error('Error starting trip:', error);
+      throw error;
     }
-  };
+  }, []);
 
-  const handleOnlineToggle = async (value: boolean) => {
+  const handleReachedPickup = useCallback(async (tripId: string) => {
+    try {
+      const tripType = currentTrip?.type || 'transport';
+      await captainTripApi.reachedPickup(tripId, tripType);
+      console.log('Reached pickup:', tripId, 'type:', tripType);
+    } catch (error) {
+      console.error('Error updating pickup status:', error);
+      throw error;
+    }
+  }, [currentTrip]);
+
+  const handleNavigateToDestination = useCallback((trip: Trip) => {
+    openInGoogleMaps(trip);
+  }, [openInGoogleMaps]);
+
+  const handleCompleteTrip = useCallback(async (tripId: string) => {
+    try {
+      const tripType = currentTrip?.type || 'transport';
+      await captainTripApi.reachedDestination(tripId, tripType);
+      console.log('Trip completed:', tripId, 'type:', tripType);
+      
+      // Update earnings and trip count
+      if (currentTrip) {
+        const tripEarnings = Math.round(currentTrip.fareEstimate * 0.7); // 70% of trip value
+        setEarnings(prev => prev + tripEarnings);
+        setTodayTrips(prev => prev + 1);
+        console.log(`Earnings updated: +₹${tripEarnings}, Total: ₹${earnings + tripEarnings}`);
+      }
+    } catch (error) {
+      console.error('Error completing trip:', error);
+      throw error;
+    }
+  }, [currentTrip, earnings]);
+
+  const handleCloseTripModal = useCallback(() => {
+    setTripModalVisible(false);
+    setCurrentTrip(null);
+  }, []);
+
+  // ONLINE TOGGLE
+  const handleOnlineToggle = useCallback(async (value: boolean) => {
     setIsOnline(value);
-
-    if (value && currentLocation) {
-      startLocationTracking();
-      await fetchNearbyTrips();
+    
+    if (value) {
       Alert.alert('🚀 You\'re Online!', 'You can now receive trip requests.');
+      await fetchNearbyTrips();
     } else {
-      setLocationUpdates(false);
       setAvailableTrips([]);
-      Alert.alert('📴 You\'re Offline', 'You won’t receive new trip requests.');
+      setSelectedTrip(null);
+      Alert.alert('📴 You\'re Offline', 'You won\'t receive new trip requests.');
     }
-  };
+  }, [fetchNearbyTrips]);
 
-  const handleTripPress = (trip: Trip) => {
-    router.push(`/captain/trip/${trip.id}?type=${trip.type}`);
-  };
+  // INITIALIZATION
+  useEffect(() => {
+    const initializeCaptain = async () => {
+      if (captain) {
+        setIsOnline(captain.isActive || false);
+        if (token) {
+          setCaptainApiToken(token);
+        }
+        await requestLocationPermission();
+      } else {
+        router.replace('/captain/(auth)');
+      }
+      setLoading(false);
+    };
+
+    initializeCaptain();
+  }, [captain, token, router, requestLocationPermission]);
+
+  // ONLINE/OFFLINE EFFECT
+  useEffect(() => {
+    if (isOnline && currentLocation) {
+      fetchNearbyTrips();
+    } else if (!isOnline) {
+      setAvailableTrips([]);
+      setSelectedTrip(null);
+    }
+  }, [isOnline, currentLocation, fetchNearbyTrips]);
+
+  // BULLETPROOF MAP REGION
+  const mapRegion = useMemo(() => {
+    const defaultCoords = { latitude: 19.0760, longitude: 72.8777 }; // Mumbai coordinates
+    
+    if (!currentLocation) {
+      return {
+        ...defaultCoords,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+      };
+    }
+
+    const validation = validateCoordinate(currentLocation.lat, currentLocation.lng);
+    return {
+      latitude: validation.latitude,
+      longitude: validation.longitude,
+      latitudeDelta: 0.05,
+      longitudeDelta: 0.05,
+    };
+  }, [currentLocation]);
+
+  // TRIP MARKER COMPONENT
+  const TripMarker = React.memo(({ trip, onPress }: { trip: Trip; onPress: () => void }) => {
+    const pickupValidation = validateCoordinate(trip.pickup.lat, trip.pickup.lng);
+    
+    if (!pickupValidation.isValid) {
+      return null;
+    }
+
+    return (
+      <Marker
+        coordinate={{
+          latitude: pickupValidation.latitude,
+          longitude: pickupValidation.longitude,
+        }}
+        title={`${trip.type?.toUpperCase() || 'TRIP'} Trip`}
+        description={`₹${trip.fareEstimate || 0} - ${trip.vehicleType || 'vehicle'}`}
+        pinColor="#4CAF50"
+        onPress={onPress}
+      />
+    );
+  });
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FDB813" />
         <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
@@ -274,32 +397,36 @@ export default function CaptainHome() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.welcomeText}>Hello, {captain?.name} 👋</Text>
+          <Text style={styles.welcomeText}>Hello, {captain?.name || 'Captain'} 👋</Text>
           <Text style={styles.vehicleText}>
-            {captain?.vehicleType?.toUpperCase()} • {captain?.servicesOffered?.join(', ')}
+            {captain?.vehicleType?.toUpperCase() || 'VEHICLE'} • {captain?.servicesOffered?.join(', ') || 'All Services'}
           </Text>
         </View>
       </View>
 
-      {/* Stats */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statsContainer} contentContainerStyle={styles.statsContent}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>₹{earnings}</Text>
-          <Text style={styles.statLabel}>Today's Earnings</Text>
+      {/* Stats Grid */}
+      <View style={styles.statsGrid}>
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>₹{earnings}</Text>
+            <Text style={styles.statLabel}>Today's Earnings</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>{todayTrips}</Text>
+            <Text style={styles.statLabel}>Trips Completed</Text>
+          </View>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{todayTrips}</Text>
-          <Text style={styles.statLabel}>Trips Completed</Text>
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>{rating.toFixed(1)}★</Text>
+            <Text style={styles.statLabel}>Rating</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>{availableTrips.length}</Text>
+            <Text style={styles.statLabel}>Available Trips</Text>
+          </View>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{rating.toFixed(1)}★</Text>
-          <Text style={styles.statLabel}>Rating</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{availableTrips.length}</Text>
-          <Text style={styles.statLabel}>Available Trips</Text>
-        </View>
-      </ScrollView>
+      </View>
 
       {/* Online Toggle */}
       <View style={[styles.onlineContainer, isOnline && styles.onlineContainerActive]}>
@@ -308,74 +435,85 @@ export default function CaptainHome() {
             {isOnline ? '🟢 Online' : '⚪ Go Online'}
           </Text>
           <Text style={styles.onlineSubtext}>
-            {isOnline ? 'You’re receiving trips' : 'Tap to start receiving trips'}
+            {isOnline ? 'You\'re receiving trips' : 'Tap to start receiving trips'}
           </Text>
         </View>
         <Switch
           value={isOnline}
           onValueChange={handleOnlineToggle}
-          trackColor={{ false: '#ddd', true: '#FDB813' }}
-          thumbColor={isOnline ? '#000' : '#fff'}
+          trackColor={{ false: '#E8E8E8', true: '#FF6B35' }}
+          thumbColor={isOnline ? '#FFFFFF' : '#FFFFFF'}
         />
       </View>
 
-      {/* Map */}
+      {/* NATIVE MAPVIEW WITH CURRENT LOCATION */}
       <View style={styles.mapContainer}>
-        {currentLocation && isValidCoordinate(currentLocation.lat, currentLocation.lng) ? (
-          <MapView
-            key={`map-${currentLocation.lat}-${currentLocation.lng}`}
-            style={styles.map}
-            initialRegion={{
-              latitude: Number(currentLocation.lat),
-              longitude: Number(currentLocation.lng),
-              latitudeDelta: 0.01,
-              longitudeDelta: 0.01,
-            }}
-            showsUserLocation
-            showsMyLocationButton
-            showsCompass={false}
-            showsScale={false}
-          >
-            {/* Current Location Marker - Triple validated */}
-            {isValidCoordinate(currentLocation.lat, currentLocation.lng) && (
-              <Marker
-                coordinate={{
-                  latitude: Number(currentLocation.lat),
-                  longitude: Number(currentLocation.lng),
-                }}
-                title="Your Location"
-                pinColor="#FDB813"
-              />
-            )}
-
-            {/* Trip Markers - Bulletproof Safe Rendering */}
-            {availableTrips
-              .filter(trip => trip && trip.id) // Basic trip validation
-              .map((trip) => (
-                <SafeMarker 
-                  key={trip.id} 
-                  trip={trip} 
-                  onPress={handleTripPress} 
-                />
-              ))}
-          </MapView>
-        ) : (
-          <View style={styles.mapPlaceholder}>
-            <Text style={styles.mapPlaceholderText}>
-              {loading ? 'Loading location...' : 'Location not available'}
-            </Text>
-            <Text style={styles.mapPlaceholderSubtext}>
-              Please enable location permissions
-            </Text>
-          </View>
-        )}
+        <MapView
+          provider={PROVIDER_GOOGLE}
+          style={styles.map}
+          region={mapRegion}
+          showsUserLocation={true}
+          showsMyLocationButton={true}
+          showsCompass={false}
+          showsScale={false}
+          onMapReady={() => console.log('Map ready')}
+        >
+          {/* Captain's current location marker */}
+          {currentLocation && (
+            <Marker
+              coordinate={{
+                latitude: currentLocation.lat,
+                longitude: currentLocation.lng,
+              }}
+              title="Your Location"
+              description="Captain's current location"
+              pinColor="#4285F4"
+            />
+          )}
+          
+          {/* Trip markers */}
+          {availableTrips.map((trip) => (
+            <TripMarker
+              key={trip.id}
+              trip={trip}
+              onPress={() => openInGoogleMaps(trip)}
+            />
+          ))}
+        </MapView>
+        
+        {/* TRIP SELECTOR OVERLAY */}
+        <View style={styles.tripSelectorOverlay}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tripSelector}>
+            {availableTrips.map((trip) => (
+              <Pressable
+                key={trip.id}
+                style={[
+                  styles.tripSelectorItem,
+                  selectedTrip?.id === trip.id && styles.tripSelectorItemActive
+                ]}
+                onPress={() => setSelectedTrip(trip)}
+              >
+                <Text style={styles.tripSelectorText}>
+                  {trip.type?.toUpperCase() || 'TRIP'}
+                </Text>
+                <Text style={styles.tripSelectorFare}>₹{trip.fareEstimate || 0}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
       </View>
 
       {/* Trips List */}
       <ScrollView
         style={styles.mainContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#FF6B35"
+          />
+        }
       >
         <View style={styles.tripsContainer}>
           <View style={styles.tripsHeader}>
@@ -401,6 +539,18 @@ export default function CaptainHome() {
           )}
         </View>
       </ScrollView>
+
+      {/* Trip Modal */}
+      <TripModal
+        visible={tripModalVisible}
+        trip={currentTrip}
+        onClose={handleCloseTripModal}
+        onAcceptTrip={handleAcceptTrip}
+        onStartTrip={handleStartTrip}
+        onReachedPickup={handleReachedPickup}
+        onNavigateToDestination={handleNavigateToDestination}
+        onCompleteTrip={handleCompleteTrip}
+      />
     </View>
   );
 }
@@ -408,17 +558,18 @@ export default function CaptainHome() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FAFAFA',
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FAFAFA',
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
-    color: '#000',
+    color: '#2C3E50',
     fontSize: 16,
+    marginTop: 10,
   },
   header: {
     flexDirection: 'row',
@@ -426,44 +577,59 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     paddingTop: 60,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8E8E8',
   },
   headerLeft: {
     flex: 1,
   },
   welcomeText: {
-    color: '#000',
-    fontSize: 20,
+    color: '#2C3E50',
+    fontSize: 22,
     fontWeight: 'bold',
   },
   vehicleText: {
-    color: '#666',
+    color: '#7F8C8D',
     fontSize: 14,
     marginTop: 4,
   },
-  statsContainer: {
-    marginVertical: 10,
-  },
-  statsContent: {
+  statsGrid: {
     paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
   statCard: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#FFFFFF',
     padding: 16,
-    borderRadius: 12,
-    marginRight: 12,
-    minWidth: 100,
+    borderRadius: 16,
+    flex: 1,
+    marginHorizontal: 4,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   statValue: {
-    color: '#FDB813',
+    color: '#FF6B35',
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 4,
   },
   statLabel: {
-    color: '#666',
+    color: '#7F8C8D',
     fontSize: 12,
     textAlign: 'center',
+    fontWeight: '500',
   },
   onlineContainer: {
     flexDirection: 'row',
@@ -471,29 +637,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#FFFFFF',
     marginHorizontal: 20,
-    borderRadius: 12,
-    marginBottom: 10,
+    borderRadius: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   onlineContainerActive: {
-    backgroundColor: '#F0F8FF',
-    borderColor: '#FDB813',
+    backgroundColor: '#FFF5F0',
+    borderColor: '#FF6B35',
     borderWidth: 2,
   },
   onlineLeft: {
     flex: 1,
   },
   onlineText: {
-    color: '#000',
+    color: '#2C3E50',
     fontSize: 18,
     fontWeight: 'bold',
   },
   onlineTextActive: {
-    color: '#FDB813',
+    color: '#FF6B35',
   },
   onlineSubtext: {
-    color: '#666',
+    color: '#7F8C8D',
     fontSize: 12,
     marginTop: 2,
   },
@@ -501,30 +675,66 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   mapContainer: {
-    height: 200,
+    height: 280,
     marginHorizontal: 20,
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
     marginBottom: 20,
+    position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 8,
   },
   map: {
     flex: 1,
   },
-  mapPlaceholder: {
-    flex: 1,
-    justifyContent: 'center',
+  tripSelectorOverlay: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    right: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 12,
+    paddingVertical: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  tripSelector: {
+    paddingHorizontal: 8,
+  },
+  tripSelectorItem: {
+    backgroundColor: '#F8F9FA',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginRight: 8,
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    minWidth: 80,
   },
-  mapPlaceholderText: {
-    color: '#000',
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
+  tripSelectorItemActive: {
+    backgroundColor: '#FF6B35',
   },
-  mapPlaceholderSubtext: {
-    color: '#666',
-    fontSize: 14,
+  tripSelectorText: {
+    color: '#2C3E50',
+    fontSize: 10,
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  tripSelectorFare: {
+    color: '#FF6B35',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   tripsContainer: {
     paddingHorizontal: 20,
@@ -537,18 +747,18 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   tripsTitle: {
-    color: '#000',
+    color: '#2C3E50',
     fontSize: 18,
     fontWeight: 'bold',
   },
   refreshButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: '#FDB813',
-    borderRadius: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#FF6B35',
+    borderRadius: 8,
   },
   refreshText: {
-    color: '#000',
+    color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '600',
   },
@@ -558,15 +768,26 @@ const styles = StyleSheet.create({
   noTripsContainer: {
     alignItems: 'center',
     paddingVertical: 40,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    marginHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   noTripsText: {
-    color: '#666',
+    color: '#7F8C8D',
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
   },
   noTripsSubtext: {
-    color: '#999',
+    color: '#95A5A6',
     fontSize: 14,
     textAlign: 'center',
     paddingHorizontal: 20,

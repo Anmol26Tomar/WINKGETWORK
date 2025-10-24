@@ -15,7 +15,7 @@ import {
   logoutUser as apiLogout,
 } from "../services/authService";
 
-const DEFAULT_BASE = 'http://10.85.123.137:3001';
+const DEFAULT_BASE = 'http://localhost:3001';
 const BASE_URL = process.env.EXPO_PUBLIC_API_BASE || DEFAULT_BASE;
 
 type Role = "user" | "captain" | null;

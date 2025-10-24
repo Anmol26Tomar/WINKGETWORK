@@ -17,7 +17,7 @@ interface TripCardProps {
     vehicleSubType: string;
     distanceKm: number;
   };
-  onPress: () => void;
+  onPress: (trip: TripCardProps['trip']) => void; // <-- pass the trip object
 }
 
 export default function TripCard({ trip, onPress }: TripCardProps) {
@@ -31,7 +31,7 @@ export default function TripCard({ trip, onPress }: TripCardProps) {
   };
 
   return (
-    <Pressable style={styles.container} onPress={onPress}>
+    <Pressable style={styles.container} onPress={() => onPress(trip)}>
       <View style={styles.header}>
         <Text style={styles.serviceType}>
           {trip.type.replace(/_/g, ' ').toUpperCase()}

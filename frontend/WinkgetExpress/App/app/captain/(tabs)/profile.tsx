@@ -39,8 +39,8 @@ export default function ProfileScreen() {
               <Switch
                 value={isOnline}
                 onValueChange={setIsOnline}
-                trackColor={{ false: '#333', true: '#FDB813' }}
-                thumbColor={isOnline ? '#000' : '#fff'}
+                trackColor={{ false: '#E8E8E8', true: '#FF6B35' }}
+                thumbColor={isOnline ? '#FFFFFF' : '#FFFFFF'}
               />
             </View>
           </View>
@@ -150,21 +150,24 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#FAFAFA',
   },
   header: {
     padding: 20,
     paddingTop: 60,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8E8E8',
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#2C3E50',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#999',
+    color: '#7F8C8D',
   },
   content: {
     flex: 1,
@@ -175,15 +178,23 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#2C3E50',
     marginBottom: 12,
     paddingHorizontal: 20,
   },
   card: {
-    backgroundColor: '#333',
+    backgroundColor: '#FFFFFF',
     marginHorizontal: 20,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   cardContent: {
     flexDirection: 'row',
@@ -192,7 +203,7 @@ const styles = StyleSheet.create({
   },
   cardText: {
     fontSize: 16,
-    color: '#fff',
+    color: '#2C3E50',
   },
   infoRow: {
     flexDirection: 'row',
@@ -208,12 +219,12 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 14,
-    color: '#999',
+    color: '#7F8C8D',
     marginBottom: 4,
   },
   infoValue: {
     fontSize: 16,
-    color: '#fff',
+    color: '#2C3E50',
   },
   verificationHeader: {
     flexDirection: 'row',
@@ -224,10 +235,10 @@ const styles = StyleSheet.create({
   verificationLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: '#2C3E50',
   },
   pendingBadge: {
-    backgroundColor: '#FDB813',
+    backgroundColor: '#FF6B35',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
@@ -235,11 +246,11 @@ const styles = StyleSheet.create({
   pendingText: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#000',
+    color: '#FFFFFF',
   },
   verificationMessage: {
     fontSize: 14,
-    color: '#999',
+    color: '#7F8C8D',
     marginBottom: 16,
   },
   documentList: {
@@ -248,9 +259,9 @@ const styles = StyleSheet.create({
   documentItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2a2a2a',
+    backgroundColor: '#F8F9FA',
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 12,
   },
   documentIcon: {
     fontSize: 24,
@@ -262,40 +273,48 @@ const styles = StyleSheet.create({
   documentName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: '#2C3E50',
     marginBottom: 4,
   },
   documentDesc: {
     fontSize: 12,
-    color: '#999',
+    color: '#7F8C8D',
   },
   uploadButton: {
-    backgroundColor: '#FDB813',
+    backgroundColor: '#FF6B35',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   uploadText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#000',
+    color: '#FFFFFF',
   },
   logoutButton: {
-    backgroundColor: '#FDB813',
+    backgroundColor: '#FF6B35',
     marginHorizontal: 20,
     marginTop: 20,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   logoutText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#000',
+    color: '#FFFFFF',
   },
   version: {
     textAlign: 'center',
-    color: '#666',
+    color: '#95A5A6',
     fontSize: 12,
     marginTop: 20,
     marginBottom: 20,

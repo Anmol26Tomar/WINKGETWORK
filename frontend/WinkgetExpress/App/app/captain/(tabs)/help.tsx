@@ -104,7 +104,7 @@ export default function HelpScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#FAFAFA',
   },
   header: {
     flexDirection: 'row',
@@ -112,16 +112,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     paddingTop: 60,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8E8E8',
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#2C3E50',
   },
   ticketButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FDB813',
+    backgroundColor: '#FF6B35',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -133,20 +136,28 @@ const styles = StyleSheet.create({
   ticketText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#000',
+    color: '#FFFFFF',
   },
   profileCard: {
     flexDirection: 'row',
-    backgroundColor: '#333',
+    backgroundColor: '#FFFFFF',
     margin: 20,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   profileAvatar: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#FDB813',
+    backgroundColor: '#FF6B35',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -154,7 +165,7 @@ const styles = StyleSheet.create({
   profileInitial: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#000',
+    color: '#FFFFFF',
   },
   profileInfo: {
     flex: 1,
@@ -162,12 +173,12 @@ const styles = StyleSheet.create({
   profileName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#2C3E50',
     marginBottom: 4,
   },
   profileDetails: {
     fontSize: 14,
-    color: '#999',
+    color: '#7F8C8D',
     marginBottom: 8,
   },
   profileContact: {
@@ -180,16 +191,24 @@ const styles = StyleSheet.create({
   },
   contactNumber: {
     fontSize: 14,
-    color: '#fff',
+    color: '#2C3E50',
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#333',
+    backgroundColor: '#FFFFFF',
     marginHorizontal: 20,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   searchIcon: {
     fontSize: 20,
@@ -197,7 +216,7 @@ const styles = StyleSheet.create({
   },
   searchPlaceholder: {
     fontSize: 16,
-    color: '#999',
+    color: '#7F8C8D',
   },
   faqsSection: {
     flex: 1,
@@ -206,12 +225,12 @@ const styles = StyleSheet.create({
   faqsTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#2C3E50',
     marginBottom: 4,
   },
   faqsSubtitle: {
     fontSize: 14,
-    color: '#999',
+    color: '#7F8C8D',
     marginBottom: 16,
   },
   faqsList: {
@@ -220,10 +239,18 @@ const styles = StyleSheet.create({
   faqCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#333',
+    backgroundColor: '#FFFFFF',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   faqIconContainer: {
     width: 48,
@@ -242,15 +269,15 @@ const styles = StyleSheet.create({
   faqTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: '#2C3E50',
     marginBottom: 4,
   },
   faqDescription: {
     fontSize: 14,
-    color: '#999',
+    color: '#7F8C8D',
   },
   faqArrow: {
     fontSize: 24,
-    color: '#999',
+    color: '#7F8C8D',
   },
 });

@@ -8,8 +8,8 @@ export default function CaptainTabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#FDB813',
-        tabBarInactiveTintColor: '#999',
+        tabBarActiveTintColor: '#FF6B35',
+        tabBarInactiveTintColor: '#7F8C8D',
         tabBarStyle: styles.tabBar,
         tabBarLabelStyle: styles.tabBarLabel,
       }}
@@ -29,15 +29,6 @@ export default function CaptainTabsLayout() {
           title: 'Earnings',
           tabBarIcon: ({ color }) => (
             <FontAwesome5 name="coins" size={24} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }) => (
-            <FontAwesome5 name="user" size={24} color={color} />
           ),
         }}
       />
@@ -68,18 +59,35 @@ export default function CaptainTabsLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color }) => (
+            <FontAwesome5 name="user" size={24} color={color} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: '#E8E8E8',
     height: 60,
     paddingBottom: 8,
     paddingTop: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   tabBarLabel: {
     fontSize: 12,
