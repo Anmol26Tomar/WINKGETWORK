@@ -99,7 +99,32 @@ export default function ParcelTrackingScreen() {
       fetchData();
     }, 10000);
 
-    return () => clearInterval(interval);
+    // Set up socket listeners for captain matching
+    const socket = getSocket();
+    let captainAssignedHandler;
+    let captainAcceptedHandler;
+    
+    if (socket) {
+      captainAssignedHandler = (payload) => {
+        console.log('Captain assigned:', payload);
+        fetchData(); // Refresh data to show captain info
+      };
+      captainAcceptedHandler = (payload) => {
+        console.log('Captain accepted:', payload);
+        fetchData(); // Refresh data to show captain info
+      };
+      
+      socket.on('captain:assigned', captainAssignedHandler);
+      socket.on('captain:accepted', captainAcceptedHandler);
+    }
+
+    return () => {
+      clearInterval(interval);
+      if (socket) {
+        socket.off('captain:assigned', captainAssignedHandler);
+        socket.off('captain:accepted', captainAcceptedHandler);
+      }
+    };
   }, [id]);
 
   const onRefresh = async () => {

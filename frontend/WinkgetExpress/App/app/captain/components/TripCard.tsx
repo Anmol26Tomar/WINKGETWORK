@@ -3,16 +3,19 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 
 interface TripCardProps {
   trip: {
-    _id: string;
-    serviceType: string;
+    id: string;
+    type: string;
     pickup: {
       address: string;
     };
-    drop: {
+    delivery: {
       address: string;
     };
-    fare: number;
+    fareEstimate: number;
     status: string;
+    vehicleType: string;
+    vehicleSubType: string;
+    distanceKm: number;
   };
   onPress: () => void;
 }
@@ -31,7 +34,7 @@ export default function TripCard({ trip, onPress }: TripCardProps) {
     <Pressable style={styles.container} onPress={onPress}>
       <View style={styles.header}>
         <Text style={styles.serviceType}>
-          {trip.serviceType.replace(/_/g, ' ').toUpperCase()}
+          {trip.type.replace(/_/g, ' ').toUpperCase()}
         </Text>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(trip.status) }]}>
           <Text style={styles.statusText}>{trip.status.toUpperCase()}</Text>
@@ -45,12 +48,12 @@ export default function TripCard({ trip, onPress }: TripCardProps) {
         </View>
         <View style={styles.locationRow}>
           <View style={[styles.dot, { backgroundColor: '#F44336' }]} />
-          <Text style={styles.address}>{trip.drop.address}</Text>
+          <Text style={styles.address}>{trip.delivery.address}</Text>
         </View>
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.fare}>₹{trip.fare}</Text>
+        <Text style={styles.fare}>₹{trip.fareEstimate}</Text>
         <Text style={styles.tapText}>Tap to view details</Text>
       </View>
     </Pressable>
@@ -59,12 +62,12 @@ export default function TripCard({ trip, onPress }: TripCardProps) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#333',
+    backgroundColor: '#f5f5f5',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#555',
+    borderColor: '#ddd',
   },
   header: {
     flexDirection: 'row',
@@ -102,7 +105,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   address: {
-    color: '#fff',
+    color: '#000',
     fontSize: 14,
     flex: 1,
   },
@@ -117,7 +120,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   tapText: {
-    color: '#999',
+    color: '#666',
     fontSize: 12,
   },
 });

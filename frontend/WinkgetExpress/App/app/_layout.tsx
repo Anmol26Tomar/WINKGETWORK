@@ -80,7 +80,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
         <NavigationHandler />
-        <StatusBar style="light" />
+        <StatusBar style="dark" />
       </AuthProvider>
     </GestureHandlerRootView>
   );
@@ -89,7 +89,7 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center',
   },

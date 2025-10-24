@@ -7,10 +7,10 @@ const { getValidServicesForVehicle, validateServicesForVehicle } = require('../u
 const signupCaptain = async (req, res) => {
   try {
     console.log('Signup request received:', req.body);
-    const { name, phone, password, vehicleType, vehicleSubType, servicesOffered, city } = req.body;
+    const { fullName, phone, password, vehicleType, vehicleSubType, servicesOffered, city } = req.body;
 
     // Validate required fields
-    if (!name || !phone || !password || !vehicleType || !servicesOffered || !city) {
+    if (!fullName || !phone || !password || !vehicleType || !servicesOffered || !city) {
       return res.status(400).json({ message: 'All required fields must be provided' });
     }
 
@@ -38,7 +38,7 @@ const signupCaptain = async (req, res) => {
 
     // Create captain
     const captain = new Captain({
-      name,
+      name:fullName,
       email,
       licenseNumber,
       vehicleNumber,

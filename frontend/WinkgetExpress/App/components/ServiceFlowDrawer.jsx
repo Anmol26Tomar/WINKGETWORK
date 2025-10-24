@@ -7,8 +7,20 @@ import { estimatePackers, createPackersBooking } from '../services/packersServic
 import { estimateFareKm, haversineKm } from '../utils/fareCalculator';
 import { estimateTransport, createTransport } from '../services/transportService';
 import { requestPackersMovers } from '../services/api';
+import captainMatchingService from '../services/captainMatchingService';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
+
+// Helper function to map truck vehicle names to proper subtypes
+const mapTruckVehicleToSubType = (vehicleName) => {
+    const mapping = {
+        '3 Wheeler': 'truck_3wheeler',
+        'Mini Van': 'truck_mini_van',
+        'Pickup': 'truck_pickup',
+        'Full Size Truck': 'truck_full_size'
+    };
+    return mapping[vehicleName] || 'truck_standard';
+};
 
 const SERVICES = [
     { key: 'local_parcel', label: 'Local Parcel', icon: 'cube-outline' },
@@ -784,8 +796,28 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
                     fareEstimate: fare || 0,
                 };
                 const created = await createParcel(payload);
+                
+                // Request captain matching for instant assignment
+                try {
+                    await captainMatchingService.requestCaptain({
+                        serviceType: 'local_parcel',
+                        pickup,
+                        delivery,
+                        vehicleType: 'bike',
+                        vehicleSubType: 'bike_standard',
+                        fareEstimate: fare,
+                        package: payload.package,
+                        receiver: {
+                            name: parcelForm.receiverName,
+                            contact: parcelForm.receiverContact
+                        }
+                    });
+                } catch (error) {
+                    console.log('Captain matching failed, parcel created without instant assignment:', error);
+                }
+                
                 onSuccess && onSuccess({ type: 'parcel', id: created?._id });
-                Alert.alert('Parcel created', 'Your parcel has been created successfully.');
+                Alert.alert('Parcel created', 'Your parcel has been created successfully. Searching for nearby captains...');
                 close();
             } else if (service === 'all_india_parcel') {
                 const weightNum = Number(allIndiaForm.weight) || 0;
@@ -840,8 +872,26 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
                     fareEstimate: fare || 0,
                     distanceKm: distanceKm || 0,
                 });
+                
+                // Request captain matching for instant assignment
+                try {
+                    const serviceType = vehicleType === 'bike' ? 'bike_ride' : 'cab_booking';
+                    await captainMatchingService.requestCaptain({
+                        serviceType,
+                        pickup,
+                        delivery,
+                        vehicleType,
+                        vehicleSubType: vehicleType === 'bike' ? 'bike_standard' : 
+                                       vehicleType === 'cab' ? 'cab_sedan' : 'truck_standard',
+                        fareEstimate: fare,
+                        distanceKm: distanceKm
+                    });
+                } catch (error) {
+                    console.log('Captain matching failed, transport created without instant assignment:', error);
+                }
+                
                 onSuccess && onSuccess({ type: 'transport', id: created?._id });
-                Alert.alert('Request created', 'Your request has been placed.');
+                Alert.alert('Request created', 'Your request has been placed. Searching for nearby captains...');
                 close();
             } else if (service === 'truck') {
                 if (!selectedTruckVehicle) {
@@ -884,8 +934,28 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
                     fareEstimate: fare,
                 };
                 const created = await createParcel(payload);
+                
+                // Request captain matching for instant assignment
+                try {
+                    await captainMatchingService.requestCaptain({
+                        serviceType: 'intra_truck',
+                        pickup,
+                        delivery,
+                        vehicleType: 'truck',
+                        vehicleSubType: mapTruckVehicleToSubType(selectedTruckVehicle.name),
+                        fareEstimate: fare,
+                        package: payload.package,
+                        receiver: {
+                            name: receiverName,
+                            contact: receiverPhone
+                        }
+                    });
+                } catch (error) {
+                    console.log('Captain matching failed, truck booking created without instant assignment:', error);
+                }
+                
                 onSuccess && onSuccess({ type: 'parcel', id: created?._id });
-                Alert.alert('Success', `Your ${selectedTruckVehicle.name} booking has been created.`);
+                Alert.alert('Success', `Your ${selectedTruckVehicle.name} booking has been created. Searching for nearby captains...`);
                 close();
             } else if (service === 'packers') {
                 const { receiverName, receiverPhone, receiverAddress, additionalNotes } = packersForm;
@@ -935,12 +1005,33 @@ const ServiceFlowDrawer = forwardRef(({ onClose, onSuccess }, ref) => {
                 };
 
                 const created = await createPackersBooking(payload);
+                
+                // Request captain matching for instant assignment
+                try {
+                    await captainMatchingService.requestCaptain({
+                        serviceType: 'packers_movers',
+                        pickup,
+                        delivery,
+                        vehicleType: 'truck',
+                        vehicleSubType: 'truck_full_size',
+                        fareEstimate: fare,
+                        selectedItems,
+                        receiver: {
+                            name: receiverName,
+                            contact: receiverPhone,
+                            address: receiverAddress
+                        }
+                    });
+                } catch (error) {
+                    console.log('Captain matching failed, packers booking created without instant assignment:', error);
+                }
+                
                 onSuccess && onSuccess({ type: 'packers', id: created?._id });
-                Alert.alert('Success', 'Your Packers & Movers booking has been created successfully.');
+                Alert.alert('Success', 'Your Packers & Movers booking has been created successfully. Searching for nearby captains...');
                 try {
                     const { router } = require('expo-router');
                     // navigate to packers tracking
-                    router.push({ pathname: '/packers-tracking', params: { id: created?._id } });
+                    router.push({ pathname: '/packers-tracking', params: { id: created?._id } }); 
                 } catch (e) {
                     // fallback to closing drawer if router not available
                 close();

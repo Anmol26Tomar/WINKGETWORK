@@ -167,6 +167,7 @@ export default function ExploreScreen() {
                     <View style={styles.chip}><Ionicons name="car-outline" size={16} color={Colors.primary} /><Text style={styles.chipText}>Cab</Text></View>
                     <View style={styles.chip}><Ionicons name="bus-outline" size={16} color={Colors.primary} /><Text style={styles.chipText}>Truck</Text></View>
                     <View style={styles.chip}><Ionicons name="cube-outline" size={16} color={Colors.primary} /><Text style={styles.chipText}>Parcel</Text></View>
+                    <View style={styles.chip}><Ionicons name="home-outline" size={16} color={Colors.primary} /><Text style={styles.chipText}>Move</Text></View>
                 </View>
 
                 <Text style={styles.label}>Pickup</Text>
@@ -276,8 +277,8 @@ const styles = StyleSheet.create({
     bannerSubtitle: { color: 'rgba(255,255,255,0.85)', fontSize: 12 },
     bannerCta: { backgroundColor: '#fff', paddingVertical: 8, paddingHorizontal: 14, borderRadius: Radius.md },
     bannerCtaTxt: { color: '#0E4D92', fontWeight: '800' },
-    featureRow: { flexDirection: 'row', gap: 8, marginBottom: Spacing.md },
-    chip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#fff', borderWidth: 1, borderColor: Colors.border, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 20 },
+    featureRow: { flexDirection: 'row', gap: 8, marginBottom: Spacing.lg, flexWrap: 'wrap', justifyContent: 'center' },
+    chip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#fff', borderWidth: 1, borderColor: Colors.border, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 24, shadowColor: Colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
     chipText: { color: Colors.text, fontWeight: '700', fontSize: 12 },
     footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, paddingTop: Spacing.md },
     footerItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },

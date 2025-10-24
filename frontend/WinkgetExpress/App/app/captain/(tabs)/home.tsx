@@ -11,7 +11,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import MapView, { Marker, Polyline } from 'react-native-maps';
+import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { captainTripApi, setCaptainApiToken } from '../lib/api';
 import { connectSocket, setupSocketListeners, emitLocationUpdate, getSocket } from '../lib/socket';
@@ -21,18 +21,29 @@ import TripCard from '../components/TripCard';
 const { width, height } = Dimensions.get('window');
 
 interface Trip {
-  _id: string;
-  serviceType: string;
+  id: string;
+  type: string;
   pickup: {
-    coords: { lat: number; lng: number };
+    lat: number;
+    lng: number;
     address: string;
   };
-  drop: {
-    coords: { lat: number; lng: number };
+  delivery: {
+    lat: number;
+    lng: number;
     address: string;
   };
-  fare: number;
+  fareEstimate: number;
   status: string;
+  vehicleType: string;
+  vehicleSubType: string;
+  distanceKm: number;
+  createdAt: string;
+  package?: any;
+  receiverName?: string;
+  receiverContact?: string;
+  selectedItems?: any;
+  receiverAddress?: string;
 }
 
 interface CaptainProfile {
@@ -43,6 +54,52 @@ interface CaptainProfile {
   servicesOffered: string[];
   isActive: boolean;
 }
+
+// Helper function to validate coordinates
+const isValidCoordinate = (lat: any, lng: any): boolean => {
+  if (!lat || !lng) return false;
+  if (typeof lat !== 'number' || typeof lng !== 'number') return false;
+  if (isNaN(lat) || isNaN(lng)) return false;
+  if (lat === 0 && lng === 0) return false; // Invalid coordinates
+  if (lat < -90 || lat > 90) return false; // Invalid latitude
+  if (lng < -180 || lng > 180) return false; // Invalid longitude
+  return true;
+};
+
+// Safe marker component that never renders invalid coordinates
+const SafeMarker = ({ trip, onPress }: { trip: Trip; onPress: (trip: Trip) => void }) => {
+  // Triple validation before rendering
+  if (!trip || !trip.pickup || !isValidCoordinate(trip.pickup.lat, trip.pickup.lng)) {
+    console.warn('SafeMarker: Skipping invalid trip', trip);
+    return null;
+  }
+
+  // Final coordinate extraction with safety
+  const lat = Number(trip.pickup.lat);
+  const lng = Number(trip.pickup.lng);
+  
+  // Ultimate safety check
+  if (!lat || !lng || isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
+    console.error('SafeMarker: Invalid coordinates after conversion', { lat, lng, trip });
+    return null;
+  }
+
+  return (
+    <Marker
+      key={trip.id}
+      coordinate={{
+        latitude: lat,
+        longitude: lng,
+      }}
+      title={`${trip?.type?.toUpperCase() || 'TRIP'} Trip to ${
+        trip?.delivery?.address || 'destination'
+      }`}
+      description={`₹${trip?.fareEstimate || 0} - ${trip?.vehicleType || 'vehicle'}`}
+      pinColor="#4CAF50"
+      onPress={() => onPress(trip)}
+    />
+  );
+};
 
 export default function CaptainHome() {
   const router = useRouter();
@@ -55,21 +112,18 @@ export default function CaptainHome() {
   const [earnings, setEarnings] = useState(0);
   const [todayTrips, setTodayTrips] = useState(0);
   const [rating, setRating] = useState(0);
-  const [activeTrip, setActiveTrip] = useState<Trip | null>(null);
   const [locationUpdates, setLocationUpdates] = useState(false);
 
   useEffect(() => {
     if (captain) {
       setIsOnline(captain.isActive || false);
       setLoading(false);
-      
-      // Set API token for authenticated requests
+
       if (token) {
         setCaptainApiToken(token);
         console.log('API token set for captain requests');
       }
     } else {
-      // No captain data, redirect to auth
       router.replace('/captain/(auth)');
     }
     requestLocationPermission();
@@ -82,11 +136,6 @@ export default function CaptainHome() {
     }
   }, [isOnline, currentLocation]);
 
-  const initializeCaptain = async () => {
-    // This function is no longer needed as we get captain from AuthContext
-    setLoading(false);
-  };
-
   const requestLocationPermission = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -98,14 +147,13 @@ export default function CaptainHome() {
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
-      
+
       const coords = {
         lat: location.coords.latitude,
         lng: location.coords.longitude,
       };
-      
-      // Validate coordinates
-      if (coords.lat && coords.lng && !isNaN(coords.lat) && !isNaN(coords.lng)) {
+
+      if (isValidCoordinate(coords.lat, coords.lng)) {
         setCurrentLocation(coords);
         console.log('Location set:', coords);
       } else {
@@ -128,11 +176,9 @@ export default function CaptainHome() {
         lng: currentLocation.lng,
         radius: 10,
       });
-      console.log('Nearby trips response:', response.data);
       setAvailableTrips(response.data.trips || []);
     } catch (error) {
       console.error('Error fetching nearby trips:', error);
-      // Show user-friendly error message
       Alert.alert('Error', 'Unable to fetch nearby trips. Please check your connection.');
     }
   };
@@ -141,7 +187,6 @@ export default function CaptainHome() {
     setRefreshing(true);
     try {
       await fetchNearbyTrips();
-      // Simulate fetching captain stats
       setEarnings(Math.floor(Math.random() * 1000) + 200);
       setTodayTrips(Math.floor(Math.random() * 10) + 1);
       setRating(4.2 + Math.random() * 0.8);
@@ -154,24 +199,23 @@ export default function CaptainHome() {
 
   const connectSocketAndListen = async () => {
     try {
+      if (!token) return;
       const socket = await connectSocket(token);
       setupSocketListeners(socket, {
         onTripAssigned: (trip) => {
           console.log('New trip assigned:', trip);
-          setAvailableTrips(prev => [...prev, trip]);
-          // Show notification
-          Alert.alert('New Trip!', `Trip to ${trip.drop.address} for ₹${trip.fare}`);
+          setAvailableTrips((prev) => [...prev, trip]);
+          Alert.alert('New Trip!', `Trip to ${trip.delivery?.address || 'destination'} for ₹${trip.fareEstimate || 0}`);
         },
         onTripCancelled: (data) => {
           console.log('Trip cancelled:', data);
-          setAvailableTrips(prev => prev.filter(trip => trip._id !== data.tripId));
+          setAvailableTrips((prev) => prev.filter((trip) => trip.id !== data.tripId));
         },
         onLocationUpdated: (data) => {
           console.log('Location updated:', data);
         },
       });
-      
-      // Start location tracking when online
+
       if (isOnline && currentLocation) {
         startLocationTracking();
       }
@@ -182,50 +226,40 @@ export default function CaptainHome() {
 
   const startLocationTracking = () => {
     if (locationUpdates) return;
-    
+
     setLocationUpdates(true);
     const socket = getSocket();
-    
+
     if (socket && currentLocation) {
-      // Send initial location
       emitLocationUpdate(socket, currentLocation);
-      
-      // Set up periodic location updates
+
       const locationInterval = setInterval(() => {
         if (isOnline && currentLocation) {
           emitLocationUpdate(socket, currentLocation);
         }
-      }, 10000); // Update every 10 seconds
-      
-      // Store interval for cleanup
+      }, 10000);
+
       return () => clearInterval(locationInterval);
     }
   };
 
   const handleOnlineToggle = async (value: boolean) => {
     setIsOnline(value);
-    
+
     if (value && currentLocation) {
-      // Start location updates and fetch trips
       startLocationTracking();
       await fetchNearbyTrips();
-      
-      // Show success message
-      Alert.alert('You\'re Online!', 'You can now receive trip requests');
+      Alert.alert('🚀 You\'re Online!', 'You can now receive trip requests.');
     } else {
-      // Stop location updates
       setLocationUpdates(false);
       setAvailableTrips([]);
-      
-      // Show offline message
-      Alert.alert('You\'re Offline', 'You won\'t receive new trip requests');
+      Alert.alert('📴 You\'re Offline', 'You won’t receive new trip requests.');
     }
   };
 
   const handleTripPress = (trip: Trip) => {
-    router.push(`/captain/trip/${trip._id}`);
+    router.push(`/captain/trip/${trip.id}?type=${trip.type}`);
   };
-
 
   if (loading) {
     return (
@@ -247,13 +281,8 @@ export default function CaptainHome() {
         </View>
       </View>
 
-      {/* Stats Cards */}
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.statsContainer}
-        contentContainerStyle={styles.statsContent}
-      >
+      {/* Stats */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statsContainer} contentContainerStyle={styles.statsContent}>
         <View style={styles.statCard}>
           <Text style={styles.statValue}>₹{earnings}</Text>
           <Text style={styles.statLabel}>Today's Earnings</Text>
@@ -273,29 +302,32 @@ export default function CaptainHome() {
       </ScrollView>
 
       {/* Online Toggle */}
-      <View style={styles.onlineContainer}>
+      <View style={[styles.onlineContainer, isOnline && styles.onlineContainerActive]}>
         <View style={styles.onlineLeft}>
-          <Text style={styles.onlineText}>Go Online</Text>
+          <Text style={[styles.onlineText, isOnline && styles.onlineTextActive]}>
+            {isOnline ? '🟢 Online' : '⚪ Go Online'}
+          </Text>
           <Text style={styles.onlineSubtext}>
-            {isOnline ? 'You\'re receiving trips' : 'Tap to start receiving trips'}
+            {isOnline ? 'You’re receiving trips' : 'Tap to start receiving trips'}
           </Text>
         </View>
         <Switch
           value={isOnline}
           onValueChange={handleOnlineToggle}
-          trackColor={{ false: '#333', true: '#FDB813' }}
+          trackColor={{ false: '#ddd', true: '#FDB813' }}
           thumbColor={isOnline ? '#000' : '#fff'}
         />
       </View>
 
       {/* Map */}
       <View style={styles.mapContainer}>
-        {currentLocation && currentLocation.lat && currentLocation.lng ? (
+        {currentLocation && isValidCoordinate(currentLocation.lat, currentLocation.lng) ? (
           <MapView
+            key={`map-${currentLocation.lat}-${currentLocation.lng}`}
             style={styles.map}
             initialRegion={{
-              latitude: currentLocation.lat,
-              longitude: currentLocation.lng,
+              latitude: Number(currentLocation.lat),
+              longitude: Number(currentLocation.lng),
               latitudeDelta: 0.01,
               longitudeDelta: 0.01,
             }}
@@ -304,27 +336,28 @@ export default function CaptainHome() {
             showsCompass={false}
             showsScale={false}
           >
-            <Marker
-              coordinate={{
-                latitude: currentLocation.lat,
-                longitude: currentLocation.lng,
-              }}
-              title="Your Location"
-              pinColor="#FDB813"
-            />
-            {/* Show trip markers */}
-            {availableTrips.map((trip) => (
+            {/* Current Location Marker - Triple validated */}
+            {isValidCoordinate(currentLocation.lat, currentLocation.lng) && (
               <Marker
-                key={trip._id}
                 coordinate={{
-                  latitude: trip.pickup.coords.lat,
-                  longitude: trip.pickup.coords.lng,
+                  latitude: Number(currentLocation.lat),
+                  longitude: Number(currentLocation.lng),
                 }}
-                title={`Trip to ${trip.drop.address}`}
-                description={`₹${trip.fare}`}
-                pinColor="#4CAF50"
+                title="Your Location"
+                pinColor="#FDB813"
               />
-            ))}
+            )}
+
+            {/* Trip Markers - Bulletproof Safe Rendering */}
+            {availableTrips
+              .filter(trip => trip && trip.id) // Basic trip validation
+              .map((trip) => (
+                <SafeMarker 
+                  key={trip.id} 
+                  trip={trip} 
+                  onPress={handleTripPress} 
+                />
+              ))}
           </MapView>
         ) : (
           <View style={styles.mapPlaceholder}>
@@ -339,28 +372,23 @@ export default function CaptainHome() {
       </View>
 
       {/* Trips List */}
-      <View style={styles.tripsContainer}>
-        <View style={styles.tripsHeader}>
-          <Text style={styles.tripsTitle}>
-            Available Trips ({availableTrips.length})
-          </Text>
-          <Pressable onPress={onRefresh} style={styles.refreshButton}>
-            <Text style={styles.refreshText}>Refresh</Text>
-          </Pressable>
-        </View>
-        <ScrollView 
-          style={styles.tripsList}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        >
+      <ScrollView
+        style={styles.mainContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
+        <View style={styles.tripsContainer}>
+          <View style={styles.tripsHeader}>
+            <Text style={styles.tripsTitle}>Available Trips ({availableTrips.length})</Text>
+            <Pressable onPress={onRefresh} style={styles.refreshButton}>
+              <Text style={styles.refreshText}>Refresh</Text>
+            </Pressable>
+          </View>
+
           {availableTrips.map((trip) => (
-            <TripCard
-              key={trip._id}
-              trip={trip}
-              onPress={() => handleTripPress(trip)}
-            />
+            <TripCard key={trip.id} trip={trip} onPress={() => handleTripPress(trip)} />
           ))}
+
           {availableTrips.length === 0 && (
             <View style={styles.noTripsContainer}>
               <Text style={styles.noTripsText}>
@@ -371,8 +399,8 @@ export default function CaptainHome() {
               </Text>
             </View>
           )}
-        </ScrollView>
-      </View>
+        </View>
+      </ScrollView>
     </View>
   );
 }
@@ -380,16 +408,16 @@ export default function CaptainHome() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#ffffff',
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
-    color: '#fff',
+    color: '#000',
     fontSize: 16,
   },
   header: {
@@ -403,12 +431,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   welcomeText: {
-    color: '#fff',
+    color: '#000',
     fontSize: 20,
     fontWeight: 'bold',
   },
   vehicleText: {
-    color: '#999',
+    color: '#666',
     fontSize: 14,
     marginTop: 4,
   },
@@ -419,7 +447,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   statCard: {
-    backgroundColor: '#333',
+    backgroundColor: '#f5f5f5',
     padding: 16,
     borderRadius: 12,
     marginRight: 12,
@@ -433,7 +461,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   statLabel: {
-    color: '#999',
+    color: '#666',
     fontSize: 12,
     textAlign: 'center',
   },
@@ -443,30 +471,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#333',
+    backgroundColor: '#f5f5f5',
     marginHorizontal: 20,
     borderRadius: 12,
     marginBottom: 10,
+  },
+  onlineContainerActive: {
+    backgroundColor: '#F0F8FF',
+    borderColor: '#FDB813',
+    borderWidth: 2,
   },
   onlineLeft: {
     flex: 1,
   },
   onlineText: {
-    color: '#fff',
+    color: '#000',
     fontSize: 18,
     fontWeight: 'bold',
   },
+  onlineTextActive: {
+    color: '#FDB813',
+  },
   onlineSubtext: {
-    color: '#999',
+    color: '#666',
     fontSize: 12,
     marginTop: 2,
   },
+  mainContent: {
+    flex: 1,
+  },
   mapContainer: {
-    height: 250,
+    height: 200,
     marginHorizontal: 20,
     borderRadius: 12,
     overflow: 'hidden',
-    marginBottom: 10,
+    marginBottom: 20,
   },
   map: {
     flex: 1,
@@ -475,21 +514,21 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#333',
+    backgroundColor: '#f5f5f5',
   },
   mapPlaceholderText: {
-    color: '#fff',
+    color: '#000',
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
   },
   mapPlaceholderSubtext: {
-    color: '#999',
+    color: '#666',
     fontSize: 14,
   },
   tripsContainer: {
-    flex: 1,
     paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   tripsHeader: {
     flexDirection: 'row',
@@ -498,7 +537,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   tripsTitle: {
-    color: '#fff',
+    color: '#000',
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -514,20 +553,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   tripsList: {
-    flex: 1,
+    flex: 0,
   },
   noTripsContainer: {
     alignItems: 'center',
     paddingVertical: 40,
   },
   noTripsText: {
-    color: '#999',
+    color: '#666',
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
   },
   noTripsSubtext: {
-    color: '#666',
+    color: '#999',
     fontSize: 14,
     textAlign: 'center',
     paddingHorizontal: 20,

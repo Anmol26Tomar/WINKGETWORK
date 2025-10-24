@@ -1,51 +1,103 @@
-import { saveToken, getToken, deleteToken } from "../utils/secureStore";
-import { Platform } from "react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const DEFAULT_BASE = "http://192.168.1.15:5000";
-const API_BASE = process.env.EXPO_PUBLIC_API_BASE || DEFAULT_BASE;
+/**
+ * Authentication Service
+ * Handles user authentication and token management
+ */
 
-async function request(path, { method = "GET", body, auth = false } = {}) {
-  console.log("API_BASE", API_BASE);
-  const headers = { "Content-Type": "application/json" };
-  if (auth) {
-    const token = await getToken();
-    if (token) headers["Authorization"] = `Bearer ${token}`;
+const AUTH_TOKEN_KEY = 'auth_token';
+const USER_DATA_KEY = 'user_data';
+
+class AuthService {
+  /**
+   * Get stored authentication token
+   */
+  async getAuthToken() {
+    try {
+      const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
+      return token;
+    } catch (error) {
+      console.error('[AuthService] Error getting auth token:', error);
+      return null;
+    }
   }
-  const res = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  console.log("request to", `${API_BASE}${path}`, { method, headers, body });
-  const data = await res.json().catch(() => ({}));
-  console.log("data from auth service", data);
-  if (!res.ok) {
-    throw new Error(data.message || "Request failed");
+
+  /**
+   * Store authentication token
+   * @param {string} token - JWT token
+   */
+  async setAuthToken(token) {
+    try {
+      await AsyncStorage.setItem(AUTH_TOKEN_KEY, token);
+      return true;
+    } catch (error) {
+      console.error('[AuthService] Error setting auth token:', error);
+      return false;
+    }
   }
-  return data;
+
+  /**
+   * Get stored user data
+   */
+  async getUserData() {
+    try {
+      const userData = await AsyncStorage.getItem(USER_DATA_KEY);
+      return userData ? JSON.parse(userData) : null;
+    } catch (error) {
+      console.error('[AuthService] Error getting user data:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Store user data
+   * @param {Object} userData - User information
+   */
+  async setUserData(userData) {
+    try {
+      await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(userData));
+      return true;
+    } catch (error) {
+      console.error('[AuthService] Error setting user data:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Clear all authentication data
+   */
+  async clearAuth() {
+    try {
+      await AsyncStorage.multiRemove([AUTH_TOKEN_KEY, USER_DATA_KEY]);
+      return true;
+    } catch (error) {
+      console.error('[AuthService] Error clearing auth:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if user is authenticated
+   */
+  async isAuthenticated() {
+    try {
+      const token = await this.getAuthToken();
+      return !!token;
+    } catch (error) {
+      console.error('[AuthService] Error checking authentication:', error);
+      return false;
+    }
+  }
 }
 
-export async function registerUser(name, email, password) {
-  return await request("/api/auth/register", {
-    method: "POST",
-    body: { name, email, password },
-  });
-}
+// Create singleton instance
+const authService = new AuthService();
 
-export async function loginUser(email, password) {
-  const res = await request("/api/auth/login", {
-    method: "POST",
-    body: { email, password },
-  });
-  console.log("real res", res);
-  if (res?.token) await saveToken(res.token);
-  return res.user;
-}
+export const getAuthToken = () => authService.getAuthToken();
+export const setAuthToken = (token) => authService.setAuthToken(token);
+export const getUserData = () => authService.getUserData();
+export const setUserData = (userData) => authService.setUserData(userData);
+export const clearAuth = () => authService.clearAuth();
+export const isAuthenticated = () => authService.isAuthenticated();
 
-export async function getProfile() {
-  return await request("/api/auth/profile", { method: "GET", auth: true });
-}
-
-export async function logoutUser() {
-  await deleteToken();
-}
+export default authService;

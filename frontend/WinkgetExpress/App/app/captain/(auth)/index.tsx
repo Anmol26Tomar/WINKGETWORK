@@ -24,6 +24,19 @@ const VALID_SERVICES: Record<VehicleType, ServiceType[]> = {
   cab: ['cab_booking'],
 };
 
+const getVehicleSubTypes = (vehicleType: VehicleType): string[] => {
+  switch (vehicleType) {
+    case 'bike':
+      return ['bike_standard'];
+    case 'cab':
+      return ['cab_sedan', 'cab_suv', 'cab_hatchback'];
+    case 'truck':
+      return ['truck_3wheeler', 'truck_mini_van', 'truck_pickup', 'truck_full_size'];
+    default:
+      return [];
+  }
+};
+
 export default function CaptainAuthScreen() {
   const router = useRouter();
   const { loginCaptain, signupCaptain, token } = useAuth();
@@ -38,7 +51,7 @@ export default function CaptainAuthScreen() {
   const [name, setName] = useState('');
   const [city, setCity] = useState('');
   const [vehicleType, setVehicleType] = useState<VehicleType>('bike');
-  const [vehicleSubType, setVehicleSubType] = useState('');
+  const [vehicleSubType, setVehicleSubType] = useState<string>('');
   const [servicesOffered, setServicesOffered] = useState<ServiceType[]>([]);
 
   const handleServiceToggle = (service: ServiceType) => {
@@ -69,11 +82,11 @@ export default function CaptainAuthScreen() {
 
       // Use AuthContext signupCaptain
       const captain = await signupCaptain({
-        name,
+        fullName: name,
         phone,
         password,
         vehicleType,
-        vehicleSubType,
+        vehicleSubType: vehicleSubType as any,
         servicesOffered,
         city,
       });
@@ -88,7 +101,9 @@ export default function CaptainAuthScreen() {
       }
 
       // Connect socket after successful signup
-      await connectSocket(token);
+      if (token) {
+        await connectSocket(token);
+      }
 
       // Navigate immediately without alert for faster UX
       console.log('Signup successful, redirecting to dashboard...');
@@ -127,7 +142,9 @@ export default function CaptainAuthScreen() {
       }
 
       // Connect socket after successful login
-      await connectSocket(token);
+      if (token) {
+        await connectSocket(token);
+      }
 
       // Navigate immediately without alert for faster UX
       console.log('Login successful, redirecting to dashboard...');
@@ -235,13 +252,26 @@ export default function CaptainAuthScreen() {
               ))}
             </View>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Vehicle Registration Number"
-              placeholderTextColor="#999"
-              value={vehicleSubType}
-              onChangeText={setVehicleSubType}
-            />
+            <Text style={styles.label}>Vehicle Sub-Type</Text>
+            <View style={styles.vehicleSubTypeContainer}>
+              {getVehicleSubTypes(vehicleType).map((subType) => (
+                <Pressable
+                  key={subType}
+                  style={[
+                    styles.vehicleSubTypeButton,
+                    vehicleSubType === subType && styles.vehicleSubTypeButtonActive
+                  ]}
+                  onPress={() => setVehicleSubType(subType)}
+                >
+                  <Text style={[
+                    styles.vehicleSubTypeText,
+                    vehicleSubType === subType && styles.vehicleSubTypeTextActive
+                  ]}>
+                    {subType.replace(/_/g, ' ').toUpperCase()}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
 
             <Text style={styles.label}>Services Offered</Text>
             <View style={styles.servicesContainer}>
@@ -298,7 +328,7 @@ export default function CaptainAuthScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#ffffff',
   },
   header: {
     padding: 20,
@@ -307,18 +337,18 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#000',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#999',
+    color: '#666',
   },
   toggleContainer: {
     flexDirection: 'row',
     marginHorizontal: 20,
     marginBottom: 30,
-    backgroundColor: '#333',
+    backgroundColor: '#f5f5f5',
     borderRadius: 8,
     padding: 4,
   },
@@ -332,7 +362,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FDB813',
   },
   toggleText: {
-    color: '#999',
+    color: '#666',
     fontWeight: '600',
   },
   toggleTextActive: {
@@ -342,18 +372,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   input: {
-    backgroundColor: '#333',
+    backgroundColor: '#fff',
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    color: '#fff',
+    color: '#000',
     fontSize: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#555',
+    borderColor: '#ddd',
   },
   label: {
-    color: '#fff',
+    color: '#000',
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 12,
@@ -367,21 +397,47 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#333',
+    backgroundColor: '#f5f5f5',
     borderRadius: 8,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#555',
+    borderColor: '#ddd',
   },
   vehicleTypeButtonActive: {
     backgroundColor: '#FDB813',
     borderColor: '#FDB813',
   },
   vehicleTypeText: {
-    color: '#999',
+    color: '#666',
     fontWeight: '600',
   },
   vehicleTypeTextActive: {
+    color: '#000',
+  },
+  vehicleSubTypeContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  vehicleSubTypeButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  vehicleSubTypeButtonActive: {
+    backgroundColor: '#FDB813',
+    borderColor: '#FDB813',
+  },
+  vehicleSubTypeText: {
+    color: '#666',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  vehicleSubTypeTextActive: {
     color: '#000',
   },
   servicesContainer: {
@@ -393,17 +449,17 @@ const styles = StyleSheet.create({
   serviceButton: {
     paddingVertical: 8,
     paddingHorizontal: 12,
-    backgroundColor: '#333',
+    backgroundColor: '#f5f5f5',
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#555',
+    borderColor: '#ddd',
   },
   serviceButtonActive: {
     backgroundColor: '#FDB813',
     borderColor: '#FDB813',
   },
   serviceText: {
-    color: '#999',
+    color: '#666',
     fontSize: 12,
     fontWeight: '600',
   },

@@ -63,6 +63,7 @@ app.use("/api/auth", require("./WinkgetExpress/routes/auth"));
 app.use("/api/parcels", require("./WinkgetExpress/routes/parcelRoutes"));
 app.use("/api/transport", require("./WinkgetExpress/routes/transportRoutes"));
 app.use("/api/packers", require("./WinkgetExpress/routes/packersMoveRoutes"));
+app.use("/api/captain-matching", require("./WinkgetExpress/routes/captainMatching"));
 
 // Winkget Business APIs
 app.use("/api/business/auth", require("./WinkgetBusiness/routes/auth"));

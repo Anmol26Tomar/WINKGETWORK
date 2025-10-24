@@ -447,27 +447,27 @@ export default function TripDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#ffffff',
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
-    color: '#fff',
+    color: '#000',
     fontSize: 16,
   },
   errorContainer: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   errorText: {
-    color: '#fff',
+    color: '#000',
     fontSize: 18,
     marginBottom: 20,
   },
@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   title: {
-    color: '#fff',
+    color: '#000',
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 8,
@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
   },
   tripInfo: {
     padding: 20,
-    backgroundColor: '#333',
+    backgroundColor: '#f5f5f5',
     margin: 20,
     borderRadius: 8,
   },
@@ -518,17 +518,17 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   infoLabel: {
-    color: '#999',
+    color: '#666',
     fontSize: 16,
   },
   infoValue: {
-    color: '#fff',
+    color: '#000',
     fontSize: 16,
     fontWeight: '600',
   },
   actionContainer: {
     padding: 20,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#ffffff',
   },
   actionButton: {
     paddingVertical: 16,

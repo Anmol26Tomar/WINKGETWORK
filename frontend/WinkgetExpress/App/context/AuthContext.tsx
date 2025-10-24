@@ -35,14 +35,12 @@ type ServiceScope = "intra-city" | "inter-city";
 
 type CaptainSignupPayload = {
   fullName: string;
-  email: string;
   phone: string;
   password: string;
   vehicleType: VehicleType;
   vehicleSubType?: VehicleSubtype;
-  serviceType: ServiceScope;
+  servicesOffered: string[];
   city: string;
-  confirmPassword: string;
 };
 
 interface AuthContextType {

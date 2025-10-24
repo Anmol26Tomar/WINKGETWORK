@@ -107,10 +107,13 @@ export default function TransportTrackingScreen() {
       fetchData();
     }, 10000);
 
-    // Set up socket listeners
+    // Set up socket listeners for captain matching
     const socket = getSocket();
     let acceptedHandler;
     let updateHandler;
+    let captainAssignedHandler;
+    let captainAcceptedHandler;
+    
     if (socket) {
       acceptedHandler = (payload) => {
         if (payload?.ride?._id === id) fetchData();
@@ -118,9 +121,20 @@ export default function TransportTrackingScreen() {
       updateHandler = (payload) => {
         if (payload?.ride?._id === id) fetchData();
       };
+      captainAssignedHandler = (payload) => {
+        console.log('Captain assigned:', payload);
+        fetchData(); // Refresh data to show captain info
+      };
+      captainAcceptedHandler = (payload) => {
+        console.log('Captain accepted:', payload);
+        fetchData(); // Refresh data to show captain info
+      };
+      
       socket.emit('user:subscribe-ride', { rideId: id });
       socket.on('ride-accepted', acceptedHandler);
       socket.on('ride-updated', updateHandler);
+      socket.on('captain:assigned', captainAssignedHandler);
+      socket.on('captain:accepted', captainAcceptedHandler);
     }
 
     return () => {
@@ -128,6 +142,8 @@ export default function TransportTrackingScreen() {
       if (socket) {
         socket.off('ride-accepted', acceptedHandler);
         socket.off('ride-updated', updateHandler);
+        socket.off('captain:assigned', captainAssignedHandler);
+        socket.off('captain:accepted', captainAcceptedHandler);
       }
     };
   }, [id, user?.id]);

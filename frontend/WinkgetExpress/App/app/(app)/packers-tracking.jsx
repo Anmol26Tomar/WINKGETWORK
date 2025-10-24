@@ -69,7 +69,43 @@ export default function PackersTrackingScreen() {
   };
 
   useEffect(() => {
-    if (id) fetchData();
+    if (!id) {
+      setLoading(false);
+      return;
+    }
+    fetchData();
+
+    // Set up polling for real-time updates
+    const interval = setInterval(() => {
+      fetchData();
+    }, 10000);
+
+    // Set up socket listeners for captain matching
+    const socket = getSocket();
+    let captainAssignedHandler;
+    let captainAcceptedHandler;
+    
+    if (socket) {
+      captainAssignedHandler = (payload) => {
+        console.log('Captain assigned:', payload);
+        fetchData(); // Refresh data to show captain info
+      };
+      captainAcceptedHandler = (payload) => {
+        console.log('Captain accepted:', payload);
+        fetchData(); // Refresh data to show captain info
+      };
+      
+      socket.on('captain:assigned', captainAssignedHandler);
+      socket.on('captain:accepted', captainAcceptedHandler);
+    }
+
+    return () => {
+      clearInterval(interval);
+      if (socket) {
+        socket.off('captain:assigned', captainAssignedHandler);
+        socket.off('captain:accepted', captainAcceptedHandler);
+      }
+    };
   }, [id]);
 
   const onRefresh = async () => {
