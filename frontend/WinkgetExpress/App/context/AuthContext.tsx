@@ -15,8 +15,8 @@ import {
   logoutUser as apiLogout,
 } from "../services/authService";
 
-const DEFAULT_BASE = 'http://10.233.13.139:3001';
-const BASE_URL = process.env.EXPO_PUBLIC_API_BASE;
+const DEFAULT_BASE = 'http://10.85.123.137:3001';
+const BASE_URL = process.env.EXPO_PUBLIC_API_BASE || DEFAULT_BASE;
 
 type Role = "user" | "captain" | null;
 
@@ -75,16 +75,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [approved, setApproved] = useState<boolean | null>(null);
 
   const isAuthenticated = !!token && (user || captain);
+  
+  console.log('AuthContext: isAuthenticated computed:', {
+    hasToken: !!token,
+    hasUser: !!user,
+    hasCaptain: !!captain,
+    isAuthenticated
+  });
 
   // Restore session
   useEffect(() => {
     (async () => {
       try {
+        console.log('AuthContext: Starting auth restore...');
         const storedToken = await AsyncStorage.getItem("token");
         const storedRole = await AsyncStorage.getItem("role");
         const storedUser = await AsyncStorage.getItem("user");
 
+        // console.log('AuthContext: Stored data:', { 
+        //   hasToken: !!storedToken, 
+        //   role: storedRole, 
+        //   hasUser: !!storedUser 
+        // });
+
         if (storedToken && storedRole && storedUser) {
+          console.log('AuthContext: Found stored auth data, restoring...');
           setToken(storedToken);
           setRole(storedRole as Role);
           const parsed = JSON.parse(storedUser);
@@ -94,10 +109,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Try to get profile if token exists but no stored data
           if (storedToken) {
             try {
-              const me = await getProfile();
-              if (me) {
-                setUser(me);
-                setRole("user");
+              // For captain role, use captain profile endpoint
+              if (storedRole === "captain") {
+                const res = await fetch(`${BASE_URL}/api/v1/captain/auth/profile`, {
+                  method: "GET",
+                  headers: { Authorization: `Bearer ${storedToken}` },
+                });
+                if (res.ok) {
+                  const captain = await res.json();
+                  setCaptain(captain);
+                  setRole("captain");
+                } else {
+                  throw new Error("Profile fetch failed");
+                }
+              } else {
+                // For user role, use old profile endpoint
+                const me = await getProfile();
+                if (me) {
+                  setUser(me);
+                  setRole("user");
+                }
               }
             } catch (err) {
               console.warn("Profile fetch failed, clearing token", err);
@@ -108,6 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (err) {
         console.warn("Auth restore failed", err);
       } finally {
+        // console.log('AuthContext: Auth restore complete, setting loading to false');
         setLoading(false);
       }
     })();
@@ -118,7 +150,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
 
       try {
-        const res = await fetch(`${BASE_URL}/api/auth/agent/profile`, {
+        const res = await fetch(`${BASE_URL}/api/v1/captain/auth/profile`, {
           method: "GET",
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -183,34 +215,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       try {
         console.log(BASE_URL);
-        const res = await fetch(`${BASE_URL}/api/auth/agent/captainlogin`, {
+        const res = await fetch(`${BASE_URL}/api/v1/captain/auth/login-password`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ phone: payload.email, password: payload.password }),
         });
         
         const data = await res.json();
         
         if (!res.ok) {
-          // Handle approval pending case
-          if (res.status === 403 && data.approved === false) {
-            setCaptain(data.agent);
-            setApproved(false);
-            setRole('captain');
-            return { ...data.agent, approved: false, requiresApproval: true };
-          }
           throw new Error(data.message || 'Captain login failed');
         }
         
-        setCaptain(data.agent);
+        setCaptain(data.captain);
         setToken(data.token);
-        setApproved(data.approved);
-        console.log(data);
+        setApproved(data.captain.isApproved || false);
+        console.log('Login successful, setting auth state:', data);
         setRole('captain');
         await AsyncStorage.setItem('token', data.token);
         await AsyncStorage.setItem('role', 'captain');
-        await AsyncStorage.setItem('user', JSON.stringify(data.agent));
-        return data.agent;
+        await AsyncStorage.setItem('user', JSON.stringify(data.captain));
+        return data.captain;
       } finally {
         setIsLoading(false);
       }
@@ -220,7 +245,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       console.log(payload);
       try {
-        const res = await fetch(`${BASE_URL}/api/auth/agent/captainsignup`, {
+        const res = await fetch(`${BASE_URL}/api/v1/captain/auth/signup`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -230,18 +255,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           throw new Error(err.message || 'Captain signup failed');
         }
         const data = await res.json();
-        console.log(data);
-        setCaptain(data.agent);
-        setApproved(data.approved);
-        // Don't set token or role for unapproved signups
-        if (data.approved) {
-          setToken(data.token);
-          setRole('captain');
-          await AsyncStorage.setItem('token', data.token);
-          await AsyncStorage.setItem('role', 'captain');
-        }
-        await AsyncStorage.setItem('user', JSON.stringify(data.agent));
-        return data.agent;
+        console.log('Signup successful, setting auth state:', data);
+        setCaptain(data.captain);
+        setApproved(data.captain.isApproved || false);
+        // Set token and role for successful signup
+        setToken(data.token);
+        setRole('captain');
+        await AsyncStorage.setItem('token', data.token);
+        await AsyncStorage.setItem('role', 'captain');
+        await AsyncStorage.setItem('user', JSON.stringify(data.captain));
+        return data.captain;
       } finally {
         setIsLoading(false);
       }

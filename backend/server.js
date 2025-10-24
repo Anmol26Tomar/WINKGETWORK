@@ -9,7 +9,8 @@ const app = express();
 const http = require("http").createServer(app);
 const { Server } = require("socket.io");
 const { setIO } = require("./WinkgetExpress/utils/socket");
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.SERVER_PORT || 5000;
+console.log('dabsv',PORT);
 const SERVER_IP = process.env.SERVER_IP || 'localhost';
 
 // Configure CORS to allow credentials
@@ -74,7 +75,9 @@ app.use(
   require("./WinkgetBusiness/routes/categories")
 );
 
-//captain routing
+// Captain routing
+app.use("/api/v1/captain/auth", require("./WinkgetExpress/captain/routes/captain.auth.routes"));
+app.use("/api/v1/captain/trips", require("./WinkgetExpress/captain/routes/captain.trip.routes"));
 
 app.use("/api/auth/agent", agentRoutes);
 app.use("/api/agents", require("./WinkgetExpress/routes/agents"));
@@ -85,6 +88,15 @@ app.use("/api/auth/admin", adminAuthRoutes);
 
 const io = new Server(http, { cors: { origin: process.env.SOCKET_CORS_ORIGIN || "*" } });
 setIO(io);
+
+// Initialize captain sockets
+try {
+  const { initCaptainSockets } = require("./WinkgetExpress/captain/sockets/captain.socket");
+  initCaptainSockets(io);
+  console.log("Captain sockets initialized successfully");
+} catch (error) {
+  console.error("Error initializing captain sockets:", error);
+}
 
 io.on("connection", (socket) => {
   console.log("Client connected:", socket.id);
@@ -118,4 +130,4 @@ io.on("connection", (socket) => {
   });
 });
 
-http.listen(PORT, '0.0.0.0', () => console.log(`Server running on 0.0.0.0:${PORT}`));
+http.listen(PORT, SERVER_IP, () => console.log(`Server running on ${SERVER_IP}:${PORT}`));
