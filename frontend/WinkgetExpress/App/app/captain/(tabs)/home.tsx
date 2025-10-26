@@ -81,10 +81,25 @@ export default function CaptainHome() {
   const [refreshing, setRefreshing] = useState(false);
   const [earnings, setEarnings] = useState(0);
   const [todayTrips, setTodayTrips] = useState(0);
-  const [rating, setRating] = useState(0);
+  const [rating, setRating] = useState(4.8);
+  const [availableTripsCount, setAvailableTripsCount] = useState(0);
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [tripModalVisible, setTripModalVisible] = useState(false);
   const [currentTrip, setCurrentTrip] = useState<Trip | null>(null);
+
+  // FETCH CAPTAIN STATS
+  const fetchCaptainStats = useCallback(async () => {
+    try {
+      const response = await captainTripApi.getCaptainStats();
+      if (response.data) {
+        setEarnings(response.data.earnings || 0);
+        setTodayTrips(response.data.todayTrips || 0);
+        setRating(response.data.rating || 4.8);
+      }
+    } catch (error) {
+      console.error('Error fetching captain stats:', error);
+    }
+  }, []);
 
   // BULLETPROOF LOCATION HANDLER
   const requestLocationPermission = useCallback(async () => {
@@ -153,6 +168,7 @@ export default function CaptainHome() {
 
       console.log('Safe trips:', safeTrips);
       setAvailableTrips(safeTrips);
+      setAvailableTripsCount(safeTrips.length);
       
       // Auto-select first trip if available
       if (safeTrips.length > 0 && !selectedTrip) {
@@ -321,6 +337,7 @@ export default function CaptainHome() {
           setCaptainApiToken(token);
         }
         await requestLocationPermission();
+        await fetchCaptainStats();
       } else {
         router.replace('/captain/(auth)');
       }
@@ -328,7 +345,7 @@ export default function CaptainHome() {
     };
 
     initializeCaptain();
-  }, [captain, token, router, requestLocationPermission]);
+  }, [captain, token, router, requestLocationPermission, fetchCaptainStats]);
 
   // ONLINE/OFFLINE EFFECT
   useEffect(() => {
@@ -421,10 +438,10 @@ export default function CaptainHome() {
             <Text style={styles.statValue}>{rating.toFixed(1)}★</Text>
             <Text style={styles.statLabel}>Rating</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{availableTrips.length}</Text>
-            <Text style={styles.statLabel}>Available Trips</Text>
-          </View>
+                 <View style={styles.statCard}>
+                   <Text style={styles.statValue}>{availableTripsCount}</Text>
+                   <Text style={styles.statLabel}>Available Trips</Text>
+                 </View>
         </View>
       </View>
 
@@ -613,11 +630,11 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 8,
   },
   statValue: {
     color: '#FF6B35',
@@ -644,11 +661,11 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 8,
   },
   onlineContainerActive: {
     backgroundColor: '#FFF5F0',
@@ -684,11 +701,11 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 6,
     },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 8,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 12,
   },
   map: {
     flex: 1,

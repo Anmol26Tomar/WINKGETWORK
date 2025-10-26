@@ -1,12 +1,47 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Switch, Pressable, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Switch, Pressable, Alert, ActivityIndicator } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'expo-router';
+import { captainTripApi } from '../lib/api';
 
 export default function ProfileScreen() {
   const { captain, logout } = useAuth();
   const router = useRouter();
   const [isOnline, setIsOnline] = React.useState(false);
+  const [loading, setLoading] = useState(true);
+  const [profileData, setProfileData] = useState({
+    email: '',
+    city: '',
+    phone: ''
+  });
+
+  useEffect(() => {
+    fetchProfileData();
+  }, []);
+
+  const fetchProfileData = async () => {
+    try {
+      setLoading(true);
+      const response = await captainTripApi.getProfile();
+      if (response.data) {
+        setProfileData({
+          email: response.data.email || captain?.email || 'N/A',
+          city: response.data.city || captain?.city || 'N/A',
+          phone: response.data.phone || captain?.phone || 'N/A'
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      // Use captain data as fallback
+      setProfileData({
+        email: captain?.email || 'N/A',
+        city: captain?.city || 'N/A',
+        phone: captain?.phone || 'N/A'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogout = async () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
@@ -21,6 +56,15 @@ export default function ProfileScreen() {
       },
     ]);
   };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FF6B35" />
+        <Text style={styles.loadingText}>Loading profile...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -54,21 +98,21 @@ export default function ProfileScreen() {
               <Text style={styles.infoIcon}>📞</Text>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Phone</Text>
-                <Text style={styles.infoValue}>{captain?.phone || 'N/A'}</Text>
+                <Text style={styles.infoValue}>{profileData.phone}</Text>
               </View>
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoIcon}>✉️</Text>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Email</Text>
-                <Text style={styles.infoValue}>{captain?.email || 'N/A'}</Text>
+                <Text style={styles.infoValue}>{profileData.email}</Text>
               </View>
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoIcon}>📍</Text>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>City</Text>
-                <Text style={styles.infoValue}>{captain?.city || 'N/A'}</Text>
+                <Text style={styles.infoValue}>{profileData.city}</Text>
               </View>
             </View>
           </View>
@@ -190,11 +234,11 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 8,
   },
   cardContent: {
     flexDirection: 'row',
@@ -318,5 +362,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 20,
     marginBottom: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FAFAFA',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#7F8C8D',
   },
 });
