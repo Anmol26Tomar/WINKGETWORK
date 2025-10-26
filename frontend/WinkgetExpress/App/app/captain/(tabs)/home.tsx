@@ -403,7 +403,7 @@ export default function CaptainHome() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FDB813" />
+        <ActivityIndicator size="large" color="#86CB92" />
         <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
@@ -458,7 +458,7 @@ export default function CaptainHome() {
         <Switch
           value={isOnline}
           onValueChange={handleOnlineToggle}
-          trackColor={{ false: '#E8E8E8', true: '#FF6B35' }}
+          trackColor={{ false: '#E8E8E8', true: '#86CB92' }}
           thumbColor={isOnline ? '#FFFFFF' : '#FFFFFF'}
         />
       </View>
@@ -528,7 +528,7 @@ export default function CaptainHome() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#FF6B35"
+            tintColor="#86CB92"
           />
         }
       >
@@ -637,7 +637,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   statValue: {
-    color: '#FF6B35',
+    color: '#86CB92',
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 4,
@@ -668,8 +668,8 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   onlineContainerActive: {
-    backgroundColor: '#FFF5F0',
-    borderColor: '#FF6B35',
+    backgroundColor: '#F0F8F0',
+    borderColor: '#86CB92',
     borderWidth: 2,
   },
   onlineLeft: {
@@ -681,7 +681,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   onlineTextActive: {
-    color: '#FF6B35',
+    color: '#86CB92',
   },
   onlineSubtext: {
     color: '#7F8C8D',
@@ -740,7 +740,7 @@ const styles = StyleSheet.create({
     minWidth: 80,
   },
   tripSelectorItemActive: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#86CB92',
   },
   tripSelectorText: {
     color: '#2C3E50',
@@ -749,7 +749,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   tripSelectorFare: {
-    color: '#FF6B35',
+    color: '#86CB92',
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -771,7 +771,7 @@ const styles = StyleSheet.create({
   refreshButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#86CB92',
     borderRadius: 8,
   },
   refreshText: {

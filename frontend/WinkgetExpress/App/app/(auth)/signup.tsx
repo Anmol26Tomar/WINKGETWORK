@@ -223,8 +223,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   vehicleTypeButtonActive: {
-    backgroundColor: "#FDB813",
-    borderColor: "#FDB813",
+    backgroundColor: "#86CB92",
+    borderColor: "#86CB92",
   },
   vehicleTypeText: {
     color: "#FFFFFF",
@@ -235,13 +235,13 @@ const styles = StyleSheet.create({
     color: "#000000",
   },
   btn: { 
-    backgroundColor: "#FDB813", 
+    backgroundColor: "#86CB92", 
     paddingVertical: 16, 
     paddingHorizontal: 24,
     borderRadius: 12, 
     alignItems: "center",
     marginTop: 24,
-    shadowColor: "#FDB813",
+    shadowColor: "#86CB92",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

@@ -60,7 +60,7 @@ export default function ProfileScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF6B35" />
+        <ActivityIndicator size="large" color="#86CB92" />
         <Text style={styles.loadingText}>Loading profile...</Text>
       </View>
     );
@@ -83,7 +83,7 @@ export default function ProfileScreen() {
               <Switch
                 value={isOnline}
                 onValueChange={setIsOnline}
-                trackColor={{ false: '#E8E8E8', true: '#FF6B35' }}
+                trackColor={{ false: '#E8E8E8', true: '#86CB92' }}
                 thumbColor={isOnline ? '#FFFFFF' : '#FFFFFF'}
               />
             </View>
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
     color: '#2C3E50',
   },
   pendingBadge: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#86CB92',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
     color: '#7F8C8D',
   },
   uploadButton: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#86CB92',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   logoutButton: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#86CB92',
     marginHorizontal: 20,
     marginTop: 20,
     padding: 16,

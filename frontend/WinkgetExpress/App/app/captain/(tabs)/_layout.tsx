@@ -8,7 +8,7 @@ export default function CaptainTabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#FF6B35',
+        tabBarActiveTintColor: '#86CB92',
         tabBarInactiveTintColor: '#7F8C8D',
         tabBarStyle: styles.tabBar,
         tabBarLabelStyle: styles.tabBarLabel,
@@ -29,15 +29,6 @@ export default function CaptainTabsLayout() {
           title: 'Earnings',
           tabBarIcon: ({ color }) => (
             <FontAwesome5 name="coins" size={24} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="wallet"
-        options={{
-          title: 'Wallet',
-          tabBarIcon: ({ color }) => (
-            <FontAwesome5 name="wallet" size={24} color={color} />
           ),
         }}
       />

@@ -12,7 +12,7 @@ export { useAuth } from '../context/AuthContext';
 function LoadingScreen() {
   return (
     <View style={styles.loadingContainer}>
-      <ActivityIndicator size="large" color="#FDB813" />
+      <ActivityIndicator size="large" color="#86CB92" />
     </View>
   );
 }

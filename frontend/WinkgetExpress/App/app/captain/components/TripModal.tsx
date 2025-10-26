@@ -236,13 +236,13 @@ export default function TripModal({
 
   const getStatusColor = () => {
     switch (tripStatus) {
-      case 'pending': return '#FF6B35';
+      case 'pending': return '#86CB92';
       case 'accepted': return '#4ECDC4';
       case 'started': return '#45B7D1';
       case 'reached_pickup': return '#96CEB4';
       case 'navigating': return '#FFEAA7';
       case 'completed': return '#6C5CE7';
-      default: return '#FF6B35';
+      default: return '#86CB92';
     }
   };
 
@@ -299,7 +299,7 @@ export default function TripModal({
           <View style={styles.tripDetails}>
             <View style={styles.locationRow}>
               <View style={styles.locationIcon}>
-                <Ionicons name="location" size={16} color="#FF6B35" />
+                <Ionicons name="location" size={16} color="#86CB92" />
               </View>
               <View style={styles.locationInfo}>
                 <Text style={styles.locationLabel}>Pickup Location</Text>
@@ -397,7 +397,7 @@ export default function TripModal({
 
             {loading && (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color="#FF6B35" />
+                <ActivityIndicator size="small" color="#86CB92" />
                 <Text style={styles.loadingText}>Processing...</Text>
               </View>
             )}
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
   tripFare: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FF6B35',
+    color: '#86CB92',
     marginTop: 4,
   },
   closeButton: {
@@ -572,7 +572,7 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   otpButton: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#86CB92',
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,

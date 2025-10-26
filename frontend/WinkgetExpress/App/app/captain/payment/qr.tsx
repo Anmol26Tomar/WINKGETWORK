@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   backButtonText: {
-    color: '#FDB813',
+    color: '#86CB92',
     fontSize: 16,
     fontWeight: '600',
   },

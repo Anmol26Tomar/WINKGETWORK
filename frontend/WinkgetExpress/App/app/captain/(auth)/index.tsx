@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   toggleButtonActive: {
-    backgroundColor: '#FDB813',
+    backgroundColor: '#86CB92',
   },
   toggleText: {
     color: '#666',
@@ -404,8 +404,8 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
   },
   vehicleTypeButtonActive: {
-    backgroundColor: '#FDB813',
-    borderColor: '#FDB813',
+    backgroundColor: '#86CB92',
+    borderColor: '#86CB92',
   },
   vehicleTypeText: {
     color: '#666',
@@ -429,8 +429,8 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
   },
   vehicleSubTypeButtonActive: {
-    backgroundColor: '#FDB813',
-    borderColor: '#FDB813',
+    backgroundColor: '#86CB92',
+    borderColor: '#86CB92',
   },
   vehicleSubTypeText: {
     color: '#666',
@@ -455,8 +455,8 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
   },
   serviceButtonActive: {
-    backgroundColor: '#FDB813',
-    borderColor: '#FDB813',
+    backgroundColor: '#86CB92',
+    borderColor: '#86CB92',
   },
   serviceText: {
     color: '#666',
@@ -471,12 +471,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   otpButtonText: {
-    color: '#FDB813',
+    color: '#86CB92',
     fontSize: 14,
     fontWeight: '600',
   },
   submitButton: {
-    backgroundColor: '#FDB813',
+    backgroundColor: '#86CB92',
     borderRadius: 8,
     paddingVertical: 16,
     alignItems: 'center',

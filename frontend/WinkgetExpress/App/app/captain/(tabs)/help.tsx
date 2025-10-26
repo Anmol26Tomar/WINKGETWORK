@@ -10,7 +10,7 @@ export default function HelpScreen() {
       icon: '❓',
       title: 'General FAQs',
       description: 'Basic information about Winkget Express',
-      color: '#FDB813',
+      color: '#86CB92',
     },
     {
       icon: '📱',
@@ -34,7 +34,7 @@ export default function HelpScreen() {
       icon: '📄',
       title: 'Profile & Documents',
       description: 'Profile updates and document verification',
-      color: '#FDB813',
+      color: '#86CB92',
     },
     {
       icon: '💬',
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   ticketButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#86CB92',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#86CB92',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,

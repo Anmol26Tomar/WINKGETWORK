@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   backButtonText: {
-    color: '#FDB813',
+    color: '#86CB92',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   resendText: {
-    color: '#FDB813',
+    color: '#86CB92',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   verifyButton: {
-    backgroundColor: '#FDB813',
+    backgroundColor: '#86CB92',
     borderRadius: 8,
     paddingVertical: 16,
     alignItems: 'center',

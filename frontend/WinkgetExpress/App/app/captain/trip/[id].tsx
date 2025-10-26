@@ -371,7 +371,7 @@ export default function TripDetailScreen() {
               <Marker
                 coordinate={currentLocation}
                 title="Your Location"
-                pinColor="#FDB813"
+                pinColor="#86CB92"
               />
             )}
           </MapView>
@@ -482,7 +482,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   backButtonText: {
-    color: '#FDB813',
+    color: '#86CB92',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -493,7 +493,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   statusText: {
-    color: '#FDB813',
+    color: '#86CB92',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -543,7 +543,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F44336',
   },
   primaryButton: {
-    backgroundColor: '#FDB813',
+    backgroundColor: '#86CB92',
   },
   actionButtonText: {
     color: '#000',
@@ -603,7 +603,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#555',
   },
   verifyButton: {
-    backgroundColor: '#FDB813',
+    backgroundColor: '#86CB92',
   },
   cancelButtonText: {
     color: '#fff',

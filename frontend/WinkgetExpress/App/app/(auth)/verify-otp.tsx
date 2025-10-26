@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   resendText: {
-    color: "#FDB813",
+    color: "#86CB92",
     fontSize: 16,
     fontWeight: "600",
   },
@@ -233,12 +233,12 @@ const styles = StyleSheet.create({
     color: "#666666",
   },
   btn: { 
-    backgroundColor: "#FDB813", 
+    backgroundColor: "#86CB92", 
     paddingVertical: 16, 
     paddingHorizontal: 24,
     borderRadius: 12, 
     alignItems: "center",
-    shadowColor: "#FDB813",
+    shadowColor: "#86CB92",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

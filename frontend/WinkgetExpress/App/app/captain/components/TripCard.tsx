@@ -23,7 +23,7 @@ interface TripCardProps {
 export default function TripCard({ trip, onPress }: TripCardProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'assigned': return '#FDB813';
+      case 'assigned': return '#86CB92';
       case 'accepted': return '#4CAF50';
       case 'payment_confirmed': return '#2196F3';
       default: return '#999';
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   serviceType: {
-    color: '#FDB813',
+    color: '#86CB92',
     fontSize: 14,
     fontWeight: 'bold',
   },

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { captainTripApi } from '../lib/api';
 
@@ -12,6 +12,8 @@ export default function EarningsScreen() {
     month: 0,
     total: 0
   });
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [transfersLeft, setTransfersLeft] = useState(3);
   const [transactions, setTransactions] = useState([]);
 
   useEffect(() => {
@@ -25,6 +27,13 @@ export default function EarningsScreen() {
       const response = await captainTripApi.getEarnings();
       if (response.data) {
         setEarnings(response.data);
+      }
+      
+      // Fetch wallet balance
+      const balanceResponse = await captainTripApi.getWalletBalance();
+      if (balanceResponse.data) {
+        setWalletBalance(balanceResponse.data.balance);
+        setTransfersLeft(balanceResponse.data.transfersLeft);
       }
       
       // Fetch transaction history
@@ -41,6 +50,8 @@ export default function EarningsScreen() {
         month: 0,
         total: 0
       });
+      setWalletBalance(0);
+      setTransfersLeft(3);
     } finally {
       setLoading(false);
     }
@@ -49,7 +60,7 @@ export default function EarningsScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF6B35" />
+        <ActivityIndicator size="large" color="#86CB92" />
         <Text style={styles.loadingText}>Loading earnings...</Text>
       </View>
     );
@@ -66,6 +77,24 @@ export default function EarningsScreen() {
         <Text style={styles.totalLabel}>Total Earnings</Text>
         <Text style={styles.totalAmount}>₹{earnings.total.toFixed(2)}</Text>
         <Text style={styles.totalDescription}>Lifetime earnings across all trips</Text>
+      </View>
+
+      <View style={styles.walletCard}>
+        <Text style={styles.walletLabel}>Your Wallet</Text>
+        <Text style={styles.walletAmount}>₹ {walletBalance.toFixed(2)}</Text>
+        <View style={styles.walletActions}>
+          <Pressable style={styles.walletActionButton}>
+            <Text style={styles.walletActionIcon}>🏦</Text>
+            <Text style={styles.walletActionText}>Money Transfer</Text>
+          </Pressable>
+          <Pressable style={styles.walletActionButton}>
+            <Text style={styles.walletActionIcon}>🔄</Text>
+            <Text style={styles.walletActionText}>Transfer Left: {transfersLeft}</Text>
+          </Pressable>
+        </View>
+        <Text style={styles.walletInfoText}>
+          Money Transfer renews every Monday! Learn More
+        </Text>
       </View>
 
       <View style={styles.periodGrid}>
@@ -163,12 +192,73 @@ const styles = StyleSheet.create({
   totalAmount: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: '#FF6B35',
+    color: '#86CB92',
     marginBottom: 8,
   },
   totalDescription: {
     fontSize: 14,
     color: '#7F8C8D',
+  },
+  walletCard: {
+    backgroundColor: '#FFFFFF',
+    margin: 20,
+    marginTop: 0,
+    padding: 24,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 12,
+  },
+  walletLabel: {
+    fontSize: 14,
+    color: '#7F8C8D',
+    marginBottom: 8,
+  },
+  walletAmount: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#86CB92',
+    marginBottom: 16,
+  },
+  walletActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  walletActionButton: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  walletActionIcon: {
+    fontSize: 24,
+    marginBottom: 8,
+  },
+  walletActionText: {
+    fontSize: 12,
+    color: '#2C3E50',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  walletInfoText: {
+    fontSize: 12,
+    color: '#7F8C8D',
+    textAlign: 'center',
   },
   periodGrid: {
     paddingHorizontal: 20,
@@ -196,7 +286,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   periodCardActive: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#86CB92',
   },
   periodAmount: {
     fontSize: 24,
@@ -304,6 +394,6 @@ const styles = StyleSheet.create({
   transactionAmount: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#FF6B35',
+    color: '#86CB92',
   },
 });
