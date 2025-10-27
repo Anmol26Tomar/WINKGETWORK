@@ -414,10 +414,20 @@ export default function CaptainHome() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.welcomeText}>Hello, {captain?.name || 'Captain'} 👋</Text>
+          <Text style={styles.welcomeText}>Hello, {captain?.name || 'Captain'}</Text>
           <Text style={styles.vehicleText}>
             {captain?.vehicleType?.toUpperCase() || 'VEHICLE'} • {captain?.servicesOffered?.join(', ') || 'All Services'}
           </Text>
+        </View>
+        <View style={styles.headerRight}>
+          <Pressable
+            style={[styles.onlineButton, isOnline && styles.onlineButtonActive]}
+            onPress={() => handleOnlineToggle(!isOnline)}
+          >
+            <Text style={[styles.onlineButtonText, isOnline && styles.onlineButtonTextActive]}>
+              {isOnline ? '🟢 Online' : '⚪ Go Online'}
+            </Text>
+          </Pressable>
         </View>
       </View>
 
@@ -429,38 +439,14 @@ export default function CaptainHome() {
             <Text style={styles.statLabel}>Today's Earnings</Text>
           </View>
           <View style={styles.statCard}>
+            <Text style={styles.statValue}>{availableTripsCount}</Text>
+            <Text style={styles.statLabel}>Active Trips</Text>
+          </View>
+          <View style={styles.statCard}>
             <Text style={styles.statValue}>{todayTrips}</Text>
             <Text style={styles.statLabel}>Trips Completed</Text>
           </View>
         </View>
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{rating.toFixed(1)}★</Text>
-            <Text style={styles.statLabel}>Rating</Text>
-          </View>
-                 <View style={styles.statCard}>
-                   <Text style={styles.statValue}>{availableTripsCount}</Text>
-                   <Text style={styles.statLabel}>Available Trips</Text>
-                 </View>
-        </View>
-      </View>
-
-      {/* Online Toggle */}
-      <View style={[styles.onlineContainer, isOnline && styles.onlineContainerActive]}>
-        <View style={styles.onlineLeft}>
-          <Text style={[styles.onlineText, isOnline && styles.onlineTextActive]}>
-            {isOnline ? '🟢 Online' : '⚪ Go Online'}
-          </Text>
-          <Text style={styles.onlineSubtext}>
-            {isOnline ? 'You\'re receiving trips' : 'Tap to start receiving trips'}
-          </Text>
-        </View>
-        <Switch
-          value={isOnline}
-          onValueChange={handleOnlineToggle}
-          trackColor={{ false: '#E8E8E8', true: '#86CB92' }}
-          thumbColor={isOnline ? '#FFFFFF' : '#FFFFFF'}
-        />
       </View>
 
       {/* NATIVE MAPVIEW WITH CURRENT LOCATION */}
@@ -592,7 +578,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
     paddingTop: 60,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
@@ -600,6 +587,9 @@ const styles = StyleSheet.create({
   },
   headerLeft: {
     flex: 1,
+  },
+  headerRight: {
+    alignItems: 'flex-end',
   },
   welcomeText: {
     color: '#2C3E50',
@@ -611,18 +601,38 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 4,
   },
+  onlineButton: {
+    backgroundColor: '#F8F9FA',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+  },
+  onlineButtonActive: {
+    backgroundColor: '#86CB92',
+    borderColor: '#86CB92',
+  },
+  onlineButtonText: {
+    color: '#2C3E50',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  onlineButtonTextActive: {
+    color: '#FFFFFF',
+  },
   statsGrid: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 8,
   },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 0,
   },
   statCard: {
     backgroundColor: '#FFFFFF',
-    padding: 16,
+    padding: 12,
     borderRadius: 16,
     flex: 1,
     marginHorizontal: 4,
@@ -638,61 +648,21 @@ const styles = StyleSheet.create({
   },
   statValue: {
     color: '#86CB92',
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 4,
   },
   statLabel: {
     color: '#7F8C8D',
-    fontSize: 12,
+    fontSize: 11,
     textAlign: 'center',
     fontWeight: '500',
-  },
-  onlineContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 20,
-    borderRadius: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  onlineContainerActive: {
-    backgroundColor: '#F0F8F0',
-    borderColor: '#86CB92',
-    borderWidth: 2,
-  },
-  onlineLeft: {
-    flex: 1,
-  },
-  onlineText: {
-    color: '#2C3E50',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  onlineTextActive: {
-    color: '#86CB92',
-  },
-  onlineSubtext: {
-    color: '#7F8C8D',
-    fontSize: 12,
-    marginTop: 2,
   },
   mainContent: {
     flex: 1,
   },
   mapContainer: {
-    height: 280,
+    height: 500,
     marginHorizontal: 20,
     borderRadius: 16,
     overflow: 'hidden',

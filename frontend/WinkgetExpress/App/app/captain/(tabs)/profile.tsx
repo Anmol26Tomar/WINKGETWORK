@@ -12,7 +12,8 @@ export default function ProfileScreen() {
   const [profileData, setProfileData] = useState({
     email: '',
     city: '',
-    phone: ''
+    phone: '',
+    rating: 4.8
   });
 
   useEffect(() => {
@@ -27,7 +28,8 @@ export default function ProfileScreen() {
         setProfileData({
           email: response.data.email || captain?.email || 'N/A',
           city: response.data.city || captain?.city || 'N/A',
-          phone: response.data.phone || captain?.phone || 'N/A'
+          phone: response.data.phone || captain?.phone || 'N/A',
+          rating: response.data.rating || 4.8
         });
       }
     } catch (error) {
@@ -36,7 +38,8 @@ export default function ProfileScreen() {
       setProfileData({
         email: captain?.email || 'N/A',
         city: captain?.city || 'N/A',
-        phone: captain?.phone || 'N/A'
+        phone: captain?.phone || 'N/A',
+        rating: 4.8
       });
     } finally {
       setLoading(false);
@@ -69,27 +72,19 @@ export default function ProfileScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Profile</Text>
-        <Text style={styles.subtitle}>Manage your account</Text>
+        <View style={styles.headerLeft}>
+          <Text style={styles.title}>Profile</Text>
+          <Text style={styles.subtitle}>Manage your account</Text>
+        </View>
+        <View style={styles.headerRight}>
+          <View style={styles.ratingBadge}>
+            <Text style={styles.ratingValue}>{profileData.rating.toFixed(1)}★</Text>
+            <Text style={styles.ratingLabel}>Rating</Text>
+          </View>
+        </View>
       </View>
 
       <ScrollView style={styles.content}>
-        {/* Available for Trips */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Available for Trips</Text>
-          <View style={styles.card}>
-            <View style={styles.cardContent}>
-              <Text style={styles.cardText}>You are {isOnline ? 'online' : 'offline'}</Text>
-              <Switch
-                value={isOnline}
-                onValueChange={setIsOnline}
-                trackColor={{ false: '#E8E8E8', true: '#86CB92' }}
-                thumbColor={isOnline ? '#FFFFFF' : '#FFFFFF'}
-              />
-            </View>
-          </View>
-        </View>
-
         {/* Personal Information */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Personal Information</Text>
@@ -197,11 +192,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAFAFA',
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 20,
     paddingTop: 60,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E8E8E8',
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  headerRight: {
+    alignItems: 'flex-end',
   },
   title: {
     fontSize: 28,
@@ -212,6 +216,29 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: '#7F8C8D',
+  },
+  ratingBadge: {
+    backgroundColor: '#86CB92',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  ratingValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  ratingLabel: {
+    fontSize: 10,
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   content: {
     flex: 1,
@@ -239,11 +266,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 6,
     elevation: 8,
-  },
-  cardContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
   },
   cardText: {
     fontSize: 16,

@@ -537,13 +537,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   acceptButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#86CB92',
   },
   rejectButton: {
     backgroundColor: '#F44336',
   },
   primaryButton: {
-    backgroundColor: '#86CB92',
+    backgroundColor: '#7BC4A4',
   },
   actionButtonText: {
     color: '#000',
@@ -556,7 +556,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   completedText: {
-    color: '#4CAF50',
+    color: '#86CB92',
     fontSize: 18,
     fontWeight: 'bold',
     textAlign: 'center',

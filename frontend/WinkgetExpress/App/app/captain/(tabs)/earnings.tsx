@@ -73,77 +73,73 @@ export default function EarningsScreen() {
         <Text style={styles.subtitle}>Track your income</Text>
       </View>
 
-      <View style={styles.totalEarningsCard}>
-        <Text style={styles.totalLabel}>Total Earnings</Text>
-        <Text style={styles.totalAmount}>₹{earnings.total.toFixed(2)}</Text>
-        <Text style={styles.totalDescription}>Lifetime earnings across all trips</Text>
-      </View>
-
-      <View style={styles.walletCard}>
-        <Text style={styles.walletLabel}>Your Wallet</Text>
-        <Text style={styles.walletAmount}>₹ {walletBalance.toFixed(2)}</Text>
-        <View style={styles.walletActions}>
-          <Pressable style={styles.walletActionButton}>
-            <Text style={styles.walletActionIcon}>🏦</Text>
-            <Text style={styles.walletActionText}>Money Transfer</Text>
-          </Pressable>
-          <Pressable style={styles.walletActionButton}>
-            <Text style={styles.walletActionIcon}>🔄</Text>
-            <Text style={styles.walletActionText}>Transfer Left: {transfersLeft}</Text>
-          </Pressable>
-        </View>
-        <Text style={styles.walletInfoText}>
-          Money Transfer renews every Monday! Learn More
-        </Text>
-      </View>
-
-      <View style={styles.periodGrid}>
-        <View style={styles.periodRow}>
-          <View style={[styles.periodCard, styles.periodCardActive]}>
-            <Text style={styles.periodAmount}>₹{earnings.today.toFixed(2)}</Text>
-            <Text style={styles.periodLabel}>Today</Text>
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        <View style={styles.walletCard}>
+          <Text style={styles.walletLabel}>Your Wallet</Text>
+          <Text style={styles.walletAmount}>₹{walletBalance.toFixed(2)}</Text>
+          <View style={styles.walletActions}>
+            <Pressable style={styles.walletActionButton}>
+              <Text style={styles.walletActionIcon}>🏦</Text>
+              <Text style={styles.walletActionText}>Money Transfer</Text>
+            </Pressable>
+            <Pressable style={styles.walletActionButton}>
+              <Text style={styles.walletActionIcon}>🔄</Text>
+              <Text style={styles.walletActionText}>Transfer Left: {transfersLeft}</Text>
+            </Pressable>
           </View>
-          <View style={styles.periodCard}>
-            <Text style={styles.periodAmount}>₹{earnings.week.toFixed(2)}</Text>
-            <Text style={styles.periodLabel}>This Week</Text>
-          </View>
+          <Text style={styles.walletInfoText}>
+            Money Transfer renews every Monday! Learn More
+          </Text>
         </View>
-        <View style={styles.periodRow}>
-          <View style={styles.periodCard}>
-            <Text style={styles.periodAmount}>₹{earnings.month.toFixed(2)}</Text>
-            <Text style={styles.periodLabel}>This Month</Text>
-          </View>
-          <View style={styles.periodCard}>
-            <Text style={styles.periodAmount}>₹{earnings.total.toFixed(2)}</Text>
-            <Text style={styles.periodLabel}>All Time</Text>
-          </View>
-        </View>
-      </View>
 
-      <View style={styles.historySection}>
-        <Text style={styles.historyTitle}>Transaction History</Text>
-        <Text style={styles.historyCount}>{transactions.length} transactions</Text>
-      </View>
-
-      {transactions.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyIcon}>$</Text>
-          <Text style={styles.emptyText}>No earnings yet</Text>
-          <Text style={styles.emptySubtext}>Complete trips to start</Text>
-        </View>
-      ) : (
-        <ScrollView style={styles.transactionsList}>
-          {transactions.map((transaction, index) => (
-            <View key={index} style={styles.transactionItem}>
-              <View style={styles.transactionInfo}>
-                <Text style={styles.transactionTitle}>Trip #{transaction.tripId}</Text>
-                <Text style={styles.transactionDate}>{transaction.date}</Text>
-              </View>
-              <Text style={styles.transactionAmount}>+₹{transaction.amount}</Text>
+        <View style={styles.periodGrid}>
+          <View style={styles.periodRow}>
+            <View style={[styles.periodCard, styles.periodCardActive]}>
+              <Text style={styles.periodAmount}>₹{earnings.today.toFixed(2)}</Text>
+              <Text style={styles.periodLabel}>Today</Text>
             </View>
-          ))}
-        </ScrollView>
-      )}
+            <View style={styles.periodCard}>
+              <Text style={styles.periodAmount}>₹{earnings.week.toFixed(2)}</Text>
+              <Text style={styles.periodLabel}>This Week</Text>
+            </View>
+          </View>
+          <View style={styles.periodRow}>
+            <View style={styles.periodCard}>
+              <Text style={styles.periodAmount}>₹{earnings.month.toFixed(2)}</Text>
+              <Text style={styles.periodLabel}>This Month</Text>
+            </View>
+            <View style={styles.periodCard}>
+              <Text style={styles.periodAmount}>₹{earnings.total.toFixed(2)}</Text>
+              <Text style={styles.periodLabel}>All Time</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.historySection}>
+          <Text style={styles.historyTitle}>Transaction History</Text>
+          <Text style={styles.historyCount}>{transactions.length} transactions</Text>
+        </View>
+
+        {transactions.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyIcon}>₹</Text>
+            <Text style={styles.emptyText}>No earnings yet</Text>
+            <Text style={styles.emptySubtext}>Complete trips to start earning</Text>
+          </View>
+        ) : (
+          <View style={styles.transactionsList}>
+            {transactions.map((transaction, index) => (
+              <View key={index} style={styles.transactionItem}>
+                <View style={styles.transactionInfo}>
+                  <Text style={styles.transactionTitle}>Trip #{transaction.tripId}</Text>
+                  <Text style={styles.transactionDate}>{transaction.date}</Text>
+                </View>
+                <Text style={styles.transactionAmount}>+₹{transaction.amount}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </ScrollView>
     </View>
   );
 }
@@ -152,10 +148,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FAFAFA',
-    paddingTop: 60,
+  },
+  scrollContainer: {
+    flex: 1,
   },
   header: {
     padding: 20,
+    paddingTop: 60,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E8E8E8',
@@ -170,49 +169,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#7F8C8D',
   },
-  totalEarningsCard: {
-    backgroundColor: '#FFFFFF',
-    margin: 20,
-    padding: 24,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 12,
-  },
-  totalLabel: {
-    fontSize: 14,
-    color: '#7F8C8D',
-    marginBottom: 8,
-  },
-  totalAmount: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#86CB92',
-    marginBottom: 8,
-  },
-  totalDescription: {
-    fontSize: 14,
-    color: '#7F8C8D',
-  },
   walletCard: {
     backgroundColor: '#FFFFFF',
-    margin: 20,
-    marginTop: 0,
-    padding: 24,
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 20,
+    padding: 20,
     borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 6,
+      height: 4,
     },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 12,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 8,
   },
   walletLabel: {
     fontSize: 14,
@@ -220,7 +191,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   walletAmount: {
-    fontSize: 36,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#86CB92',
     marginBottom: 16,
@@ -228,12 +199,12 @@ const styles = StyleSheet.create({
   walletActions: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   walletActionButton: {
     flex: 1,
     backgroundColor: '#F8F9FA',
-    padding: 16,
+    padding: 12,
     borderRadius: 12,
     alignItems: 'center',
     shadowColor: '#000',
@@ -271,7 +242,7 @@ const styles = StyleSheet.create({
   },
   periodCard: {
     backgroundColor: '#FFFFFF',
-    padding: 16,
+    padding: 18,
     borderRadius: 16,
     flex: 1,
     marginHorizontal: 4,
@@ -289,14 +260,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#86CB92',
   },
   periodAmount: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#2C3E50',
     marginBottom: 8,
   },
   periodLabel: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#7F8C8D',
+    textAlign: 'center',
+    numberOfLines: 1,
   },
   historySection: {
     flexDirection: 'row',
@@ -358,8 +331,8 @@ const styles = StyleSheet.create({
     color: '#7F8C8D',
   },
   transactionsList: {
-    flex: 1,
     paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   transactionItem: {
     flexDirection: 'row',

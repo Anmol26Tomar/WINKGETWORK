@@ -364,7 +364,7 @@ export default function TripModal({
                 'Accept Trip',
                 handleAcceptTrip,
                 'checkmark-circle',
-                '#4ECDC4'
+                '#86CB92'
               )
             )}
 
@@ -373,7 +373,7 @@ export default function TripModal({
                 'Start Trip',
                 handleStartTrip,
                 'play-circle',
-                '#45B7D1'
+                '#7BC4A4'
               )
             )}
 
@@ -382,7 +382,7 @@ export default function TripModal({
                 'Navigate to Destination',
                 handleNavigateToDestination,
                 'navigate',
-                '#FFEAA7'
+                '#96CEB4'
               )
             )}
 
@@ -391,7 +391,7 @@ export default function TripModal({
                 'Complete Trip',
                 handleCompleteTrip,
                 'checkmark-done',
-                '#6C5CE7'
+                '#86CB92'
               )
             )}
 
