@@ -33,6 +33,11 @@ const captainSchema = new Schema({
       message: 'Phone must be exactly 10 digits',
     },
   },
+  city: {
+    type: String,
+    trim: true,
+    default: null,
+  },
   passwordHash: {
     type: String,
     required: true,

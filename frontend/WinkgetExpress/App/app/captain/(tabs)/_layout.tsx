@@ -1,6 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { StyleSheet, Text } from 'react-native';
+import { Colors } from '@/constants/colors';
 import { FontAwesome5 } from '@expo/vector-icons';
 
 export default function CaptainTabsLayout() {
@@ -8,8 +9,8 @@ export default function CaptainTabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#86CB92',
-        tabBarInactiveTintColor: '#7F8C8D',
+        tabBarActiveTintColor: Colors.primary,
+        tabBarInactiveTintColor: Colors.mutedText,
         tabBarStyle: styles.tabBar,
         tabBarLabelStyle: styles.tabBarLabel,
       }}
@@ -32,15 +33,7 @@ export default function CaptainTabsLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="ride"
-        options={{
-          title: 'Ride',
-          tabBarIcon: ({ color }) => (
-            <FontAwesome5 name="car" size={24} color={color} />
-          ),
-        }}
-      />
+      { /* Ride tab removed as requested */ }
       <Tabs.Screen
         name="help"
         options={{
@@ -65,13 +58,13 @@ export default function CaptainTabsLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E8E8E8',
+    backgroundColor: Colors.background,
+    borderTopWidth: 1.25,
+    borderTopColor: Colors.border,
     height: 60,
     paddingBottom: 8,
     paddingTop: 8,
-    shadowColor: '#000',
+    shadowColor: Colors.shadow,
     shadowOffset: {
       width: 0,
       height: -2,

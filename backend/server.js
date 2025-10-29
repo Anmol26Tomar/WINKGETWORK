@@ -79,6 +79,7 @@ app.use(
 // Captain routing
 app.use("/api/v1/captain/auth", require("./WinkgetExpress/captain/routes/captain.auth.routes"));
 app.use("/api/v1/captain/trips", require("./WinkgetExpress/captain/routes/captain.trip.routes"));
+app.use("/api/v1/captain", require("./WinkgetExpress/captain/routes/captain.misc.routes"));
 
 app.use("/api/auth/agent", agentRoutes);
 app.use("/api/agents", require("./WinkgetExpress/routes/agents"));

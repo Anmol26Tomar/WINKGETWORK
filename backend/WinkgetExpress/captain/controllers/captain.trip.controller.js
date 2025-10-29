@@ -357,7 +357,7 @@ const verifyTripOtp = async (req, res) => {
       });
     }
 
-    console.log(`[CaptainTrips] Verifying OTP for ${type} trip ${id}, phase: ${phase}`);
+    console.log(`[CaptainTrips] Verifying OTP for ${type} trip ${id}, phase: ${phase}, provided OTP: ${otp}`);
 
     let trip;
     let Model;
@@ -395,23 +395,40 @@ const verifyTripOtp = async (req, res) => {
     let isValidOtp = false;
     let newStatus = '';
 
-    if (phase === 'pickup') {
-      isValidOtp = verifyOtp(otp, trip.otpPickupHash);
-      newStatus = 'in_transit';
-    } else if (phase === 'drop') {
-      isValidOtp = verifyOtp(otp, trip.otpDropHash);
-      newStatus = 'delivered';
+    // Prefer explicit OTP object if present (e.g., Parcel.otp.code)
+    if (trip.otp && typeof trip.otp === 'object') {
+      // verify against plain code
+      isValidOtp = String(trip.otp.code || '').trim() === String(otp).trim();
+    } else {
+      if (phase === 'pickup') {
+        isValidOtp = verifyOtp(otp, trip.otpPickupHash);
+        newStatus = 'in_transit';
+      } else if (phase === 'drop') {
+        isValidOtp = verifyOtp(otp, trip.otpDropHash);
+        newStatus = 'delivered';
+      }
     }
 
     if (!isValidOtp) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'Invalid OTP' 
-      });
+      // Increment attempts counter if present
+      if (trip.otp && typeof trip.otp === 'object') {
+        const attempts = (trip.otp.attempts || 0) + 1;
+        await Model.findByIdAndUpdate(id, { 'otp.attempts': attempts });
+      }
+      return res.status(400).json({ success: false, message: 'Invalid OTP' });
     }
 
-    // Update trip status
-    await Model.findByIdAndUpdate(id, { status: newStatus });
+    // Mark verified and update status if phase-based
+    const updateDoc = {};
+    if (trip.otp && typeof trip.otp === 'object') {
+      updateDoc['otp.verified'] = true;
+    }
+    if (newStatus) {
+      updateDoc.status = newStatus;
+    }
+    if (Object.keys(updateDoc).length > 0) {
+      await Model.findByIdAndUpdate(id, updateDoc);
+    }
 
     console.log(`[CaptainTrips] OTP verified for ${type} trip ${id}, new status: ${newStatus}`);
 
@@ -422,7 +439,7 @@ const verifyTripOtp = async (req, res) => {
       trip: {
         id: trip._id,
         type: type,
-        status: newStatus
+        status: newStatus || trip.status
       }
     });
   } catch (error) {

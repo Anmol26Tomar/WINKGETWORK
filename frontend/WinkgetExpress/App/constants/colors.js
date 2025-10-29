@@ -1,15 +1,14 @@
 // Color palette for the app
 export const Colors = {
-    // Modern palette: royal blue primary, teal accent, amber warning
-    background: '#F6F9FC',
-    primary: '#1E40AF', // royal blue
-    accent: '#0FB9B1',  // teal
-    warning: '#F59E0B', // amber
-    text: '#0F172A',
-    mutedText: '#64748B',
-    card: '#FFFFFF',
-    border: '#E5E7EB',
-    shadow: 'rgba(2, 6, 23, 0.08)'
+    // Brand palette
+    background: '#E1F2FE',      // page background
+    text: '#001A23',            // primary text
+    primary: '#77AD78',         // replace green usage
+    danger: '#EF2D56',          // logout & alerts
+    card: '#EDF6F9',            // cards/divs/boxes background
+    border: '#E9FFF9',          // softer border to match card
+    mutedText: '#5B6B74',
+    shadow: 'rgba(0, 0, 0, 0.08)'
 };
 
 export const Spacing = {

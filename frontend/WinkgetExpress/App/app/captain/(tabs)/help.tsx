@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
+import { Colors } from '@/constants/colors';
 
 export default function HelpScreen() {
   const { captain } = useAuth();
@@ -104,27 +105,26 @@ export default function HelpScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: Colors.background,
+    paddingTop: 60,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
-    paddingTop: 60,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
+    paddingTop: 0,
+    backgroundColor: Colors.background,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#2C3E50',
+    color: Colors.text,
   },
   ticketButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#86CB92',
+    backgroundColor: Colors.primary,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -140,11 +140,13 @@ const styles = StyleSheet.create({
   },
   profileCard: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.card,
     margin: 20,
     padding: 16,
     borderRadius: 16,
-    shadowColor: '#000',
+    borderWidth: 1.25,
+    borderColor: Colors.border,
+    shadowColor: Colors.shadow,
     shadowOffset: {
       width: 0,
       height: 4,
@@ -157,7 +159,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#86CB92',
+    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -173,12 +175,12 @@ const styles = StyleSheet.create({
   profileName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#2C3E50',
+    color: Colors.text,
     marginBottom: 4,
   },
   profileDetails: {
     fontSize: 14,
-    color: '#7F8C8D',
+    color: Colors.mutedText,
     marginBottom: 8,
   },
   profileContact: {
@@ -191,17 +193,19 @@ const styles = StyleSheet.create({
   },
   contactNumber: {
     fontSize: 14,
-    color: '#2C3E50',
+    color: Colors.text,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.card,
     marginHorizontal: 20,
     padding: 16,
     borderRadius: 16,
     marginBottom: 20,
-    shadowColor: '#000',
+    borderWidth: 1.25,
+    borderColor: Colors.border,
+    shadowColor: Colors.shadow,
     shadowOffset: {
       width: 0,
       height: 4,
@@ -216,7 +220,7 @@ const styles = StyleSheet.create({
   },
   searchPlaceholder: {
     fontSize: 16,
-    color: '#7F8C8D',
+    color: Colors.mutedText,
   },
   faqsSection: {
     flex: 1,
@@ -225,12 +229,12 @@ const styles = StyleSheet.create({
   faqsTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#2C3E50',
+    color: Colors.text,
     marginBottom: 4,
   },
   faqsSubtitle: {
     fontSize: 14,
-    color: '#7F8C8D',
+    color: Colors.mutedText,
     marginBottom: 16,
   },
   faqsList: {
@@ -239,11 +243,13 @@ const styles = StyleSheet.create({
   faqCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.card,
     padding: 16,
     borderRadius: 16,
     marginBottom: 12,
-    shadowColor: '#000',
+    borderWidth: 1.25,
+    borderColor: Colors.border,
+    shadowColor: Colors.shadow,
     shadowOffset: {
       width: 0,
       height: 4,
@@ -269,15 +275,15 @@ const styles = StyleSheet.create({
   faqTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#2C3E50',
+    color: Colors.text,
     marginBottom: 4,
   },
   faqDescription: {
     fontSize: 14,
-    color: '#7F8C8D',
+    color: Colors.mutedText,
   },
   faqArrow: {
     fontSize: 24,
-    color: '#7F8C8D',
+    color: Colors.mutedText,
   },
 });

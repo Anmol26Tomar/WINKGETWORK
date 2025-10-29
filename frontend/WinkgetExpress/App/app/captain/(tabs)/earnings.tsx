@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { captainTripApi } from '../lib/api';
+import { Colors } from '@/constants/colors';
+import AlertBox from '@/components/ui/AlertBox';
 
 export default function EarningsScreen() {
   const { captain } = useAuth();
@@ -15,6 +17,9 @@ export default function EarningsScreen() {
   const [walletBalance, setWalletBalance] = useState(0);
   const [transfersLeft, setTransfersLeft] = useState(3);
   const [transactions, setTransactions] = useState([]);
+  const [period, setPeriod] = useState<'today' | 'week' | 'month' | 'total'>('week');
+  const [showFilterSummary, setShowFilterSummary] = useState(false);
+  const [showFilterHistory, setShowFilterHistory] = useState(false);
 
   useEffect(() => {
     fetchEarnings();
@@ -57,10 +62,33 @@ export default function EarningsScreen() {
     }
   };
 
+  const filteredTransactions = useMemo(() => {
+    if (!transactions || transactions.length === 0) return [];
+    const now = new Date();
+    const start = new Date();
+    if (period === 'today') {
+      start.setHours(0, 0, 0, 0);
+    } else if (period === 'week') {
+      const day = now.getDay();
+      const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Monday as start
+      start.setDate(diff);
+      start.setHours(0, 0, 0, 0);
+    } else if (period === 'month') {
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+    } else {
+      start.setTime(0);
+    }
+    return transactions.filter((t: any) => {
+      const d = new Date(t.date);
+      return d >= start && d <= now;
+    });
+  }, [transactions, period]);
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#86CB92" />
+        <ActivityIndicator size="large" color={Colors.primary} />
         <Text style={styles.loadingText}>Loading earnings...</Text>
       </View>
     );
@@ -74,61 +102,66 @@ export default function EarningsScreen() {
       </View>
 
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        <View style={styles.walletCard}>
-          <Text style={styles.walletLabel}>Your Wallet</Text>
-          <Text style={styles.walletAmount}>₹{walletBalance.toFixed(2)}</Text>
-          <View style={styles.walletActions}>
-            <Pressable style={styles.walletActionButton}>
-              <Text style={styles.walletActionIcon}>🏦</Text>
-              <Text style={styles.walletActionText}>Money Transfer</Text>
-            </Pressable>
-            <Pressable style={styles.walletActionButton}>
-              <Text style={styles.walletActionIcon}>🔄</Text>
-              <Text style={styles.walletActionText}>Transfer Left: {transfersLeft}</Text>
-            </Pressable>
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryHeader}>
+            <Text style={styles.summaryTitle}>Earnings Summary</Text>
+            <View style={styles.filterAnchor}>
+              <Pressable style={styles.filterButton} onPress={() => setShowFilterSummary(v => !v)}>
+              <Text style={styles.filterButtonText}>
+                {period === 'today' ? 'Today' : period === 'week' ? 'This Week' : period === 'month' ? 'This Month' : 'All Time'} ▾
+              </Text>
+              </Pressable>
+              {showFilterSummary && (
+                <View style={styles.dropdownMenu}>
+              {(['today','week','month','total'] as const).map(p => (
+                    <Pressable key={p} style={[styles.filterMenuItem, period === p && styles.filterMenuItemActive]} onPress={() => { setPeriod(p); setShowFilterSummary(false); }}>
+                      <Text style={[styles.filterMenuItemText, period === p && styles.filterMenuItemTextActive]}>
+                    {p === 'today' ? 'Today' : p === 'week' ? 'This Week' : p === 'month' ? 'This Month' : 'All Time'}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+            </View>
           </View>
-          <Text style={styles.walletInfoText}>
-            Money Transfer renews every Monday! Learn More
+          <Text style={styles.summaryAmount}>
+            ₹{(period === 'today' ? earnings.today : period === 'week' ? earnings.week : period === 'month' ? earnings.month : earnings.total).toFixed(2)}
           </Text>
-        </View>
-
-        <View style={styles.periodGrid}>
-          <View style={styles.periodRow}>
-            <View style={[styles.periodCard, styles.periodCardActive]}>
-              <Text style={styles.periodAmount}>₹{earnings.today.toFixed(2)}</Text>
-              <Text style={styles.periodLabel}>Today</Text>
-            </View>
-            <View style={styles.periodCard}>
-              <Text style={styles.periodAmount}>₹{earnings.week.toFixed(2)}</Text>
-              <Text style={styles.periodLabel}>This Week</Text>
-            </View>
-          </View>
-          <View style={styles.periodRow}>
-            <View style={styles.periodCard}>
-              <Text style={styles.periodAmount}>₹{earnings.month.toFixed(2)}</Text>
-              <Text style={styles.periodLabel}>This Month</Text>
-            </View>
-            <View style={styles.periodCard}>
-              <Text style={styles.periodAmount}>₹{earnings.total.toFixed(2)}</Text>
-              <Text style={styles.periodLabel}>All Time</Text>
-            </View>
-          </View>
+          <Text style={styles.summarySubtext}>
+            {period === 'today' ? 'Today' : period === 'week' ? 'This Week' : period === 'month' ? 'This Month' : 'All Time'} earnings
+          </Text>
         </View>
 
         <View style={styles.historySection}>
           <Text style={styles.historyTitle}>Transaction History</Text>
-          <Text style={styles.historyCount}>{transactions.length} transactions</Text>
+          <View style={styles.filterAnchor}>
+            <Pressable style={styles.filterButton} onPress={() => setShowFilterHistory(v => !v)}>
+              <Text style={styles.filterButtonText}>
+                {period === 'today' ? 'Today' : period === 'week' ? 'This Week' : period === 'month' ? 'This Month' : 'All Time'} ▾
+              </Text>
+            </Pressable>
+            {showFilterHistory && (
+              <View style={styles.dropdownMenu}>
+                {(['today','week','month','total'] as const).map(p => (
+                  <Pressable key={p} style={[styles.filterMenuItem, period === p && styles.filterMenuItemActive]} onPress={() => { setPeriod(p); setShowFilterHistory(false); }}>
+                    <Text style={[styles.filterMenuItemText, period === p && styles.filterMenuItemTextActive]}>
+                      {p === 'today' ? 'Today' : p === 'week' ? 'This Week' : p === 'month' ? 'This Month' : 'All Time'}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+          </View>
         </View>
 
-        {transactions.length === 0 ? (
+        {filteredTransactions.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>₹</Text>
-            <Text style={styles.emptyText}>No earnings yet</Text>
-            <Text style={styles.emptySubtext}>Complete trips to start earning</Text>
+            <AlertBox title="No earnings in this period" message="Complete trips to start earning. Try switching the filter to a wider range." variant="warning" />
           </View>
         ) : (
           <View style={styles.transactionsList}>
-            {transactions.map((transaction, index) => (
+            {filteredTransactions.map((transaction: any, index: number) => (
               <View key={index} style={styles.transactionItem}>
                 <View style={styles.transactionInfo}>
                   <Text style={styles.transactionTitle}>Trip #{transaction.tripId}</Text>
@@ -147,53 +180,119 @@ export default function EarningsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: Colors.background,
+    paddingTop: 60,
   },
   scrollContainer: {
     flex: 1,
   },
   header: {
     padding: 20,
-    paddingTop: 60,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
+    paddingTop: 0,
+    backgroundColor: Colors.background,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#2C3E50',
+    color: Colors.text,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#7F8C8D',
+    color: Colors.mutedText,
   },
-  walletCard: {
-    backgroundColor: '#FFFFFF',
+  filterAnchor: {
+    position: 'relative',
+  },
+  filterButton: {
+    backgroundColor: Colors.background,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  filterButtonText: {
+    color: Colors.text,
+    fontWeight: '600',
+    fontSize: 12,
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    top: '100%',
+    right: 0,
+    marginTop: 6,
+    backgroundColor: Colors.card,
+    borderRadius: 12,
+    borderWidth: 1.25,
+    borderColor: Colors.border,
+    overflow: 'hidden',
+    zIndex: 10,
+  },
+  filterMenuItem: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: Colors.card,
+  },
+  filterMenuItemActive: {
+    backgroundColor: Colors.background,
+  },
+  filterMenuItemText: {
+    color: Colors.mutedText,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  filterMenuItemTextActive: {
+    color: Colors.text,
+  },
+  summaryCard: {
+    backgroundColor: Colors.card,
     marginHorizontal: 20,
-    marginTop: 20,
+    marginTop: 12,
     marginBottom: 20,
     padding: 20,
     borderRadius: 16,
-    shadowColor: '#000',
+    borderWidth: 1.25,
+    borderColor: Colors.border,
+    shadowColor: Colors.shadow,
     shadowOffset: {
       width: 0,
       height: 4,
     },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.12,
     shadowRadius: 6,
-    elevation: 8,
+    elevation: 6,
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  summaryTitle: {
+    fontSize: 16,
+    color: Colors.text,
+    fontWeight: '700',
+  },
+  summaryAmount: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: Colors.primary,
+  },
+  summarySubtext: {
+    fontSize: 12,
+    color: Colors.mutedText,
+    marginTop: 4,
   },
   walletLabel: {
     fontSize: 14,
-    color: '#7F8C8D',
+    color: Colors.mutedText,
     marginBottom: 8,
   },
   walletAmount: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#86CB92',
+    color: Colors.primary,
     marginBottom: 16,
   },
   walletActions: {
@@ -203,11 +302,13 @@ const styles = StyleSheet.create({
   },
   walletActionButton: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: Colors.background,
     padding: 12,
     borderRadius: 12,
     alignItems: 'center',
-    shadowColor: '#000',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    shadowColor: Colors.shadow,
     shadowOffset: {
       width: 0,
       height: 2,
@@ -222,13 +323,13 @@ const styles = StyleSheet.create({
   },
   walletActionText: {
     fontSize: 12,
-    color: '#2C3E50',
+    color: Colors.text,
     fontWeight: '600',
     textAlign: 'center',
   },
   walletInfoText: {
     fontSize: 12,
-    color: '#7F8C8D',
+    color: Colors.mutedText,
     textAlign: 'center',
   },
   periodGrid: {
@@ -241,13 +342,15 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   periodCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.card,
     padding: 18,
     borderRadius: 16,
     flex: 1,
     marginHorizontal: 4,
     alignItems: 'center',
-    shadowColor: '#000',
+    borderWidth: 1.25,
+    borderColor: Colors.border,
+    shadowColor: Colors.shadow,
     shadowOffset: {
       width: 0,
       height: 4,
@@ -257,17 +360,17 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   periodCardActive: {
-    backgroundColor: '#86CB92',
+    backgroundColor: Colors.primary,
   },
   periodAmount: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#2C3E50',
+    color: Colors.text,
     marginBottom: 8,
   },
   periodLabel: {
     fontSize: 13,
-    color: '#7F8C8D',
+    color: Colors.mutedText,
     textAlign: 'center',
     numberOfLines: 1,
   },
@@ -281,21 +384,23 @@ const styles = StyleSheet.create({
   historyTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#2C3E50',
+    color: Colors.text,
   },
   historyCount: {
     fontSize: 14,
-    color: '#7F8C8D',
+    color: Colors.mutedText,
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 40,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.card,
     marginHorizontal: 20,
     borderRadius: 16,
-    shadowColor: '#000',
+    borderWidth: 1.25,
+    borderColor: Colors.border,
+    shadowColor: Colors.shadow,
     shadowOffset: {
       width: 0,
       height: 2,
@@ -306,29 +411,29 @@ const styles = StyleSheet.create({
   },
   emptyIcon: {
     fontSize: 64,
-    color: '#E8E8E8',
+    color: Colors.border,
     marginBottom: 16,
   },
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#7F8C8D',
+    color: Colors.mutedText,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#95A5A6',
+    color: Colors.mutedText,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FAFAFA',
+    backgroundColor: Colors.background,
   },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: '#7F8C8D',
+    color: Colors.mutedText,
   },
   transactionsList: {
     paddingHorizontal: 20,
@@ -338,11 +443,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.card,
     padding: 16,
     borderRadius: 12,
     marginBottom: 8,
-    shadowColor: '#000',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    shadowColor: Colors.shadow,
     shadowOffset: {
       width: 0,
       height: 1,
@@ -357,16 +464,16 @@ const styles = StyleSheet.create({
   transactionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#2C3E50',
+    color: Colors.text,
     marginBottom: 4,
   },
   transactionDate: {
     fontSize: 14,
-    color: '#7F8C8D',
+    color: Colors.mutedText,
   },
   transactionAmount: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#86CB92',
+    color: Colors.primary,
   },
 });

@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { Colors } from '@/constants/colors';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
@@ -12,7 +13,7 @@ export { useAuth } from '../context/AuthContext';
 function LoadingScreen() {
   return (
     <View style={styles.loadingContainer}>
-      <ActivityIndicator size="large" color="#86CB92" />
+      <ActivityIndicator size="large" color={Colors.primary} />
     </View>
   );
 }
@@ -89,7 +90,7 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },

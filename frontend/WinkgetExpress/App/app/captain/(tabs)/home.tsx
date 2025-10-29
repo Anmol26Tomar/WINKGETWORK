@@ -13,6 +13,7 @@ import {
   Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Colors } from '@/constants/colors';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { captainTripApi, setCaptainApiToken } from '../lib/api';
@@ -265,15 +266,17 @@ export default function CaptainHome() {
     }
   }, [currentTrip, handleTripAcceptance]);
 
-  const handleStartTrip = useCallback(async (tripId: string) => {
+  const handleStartTrip = useCallback(async (tripId: string, otp: string) => {
     try {
-      // API call to start trip
-      console.log('Trip started:', tripId);
+      const tripType = currentTrip?.type || 'transport';
+      // For pickup OTP verification
+      await captainTripApi.verifyOtp(tripId, tripType, { otp, phase: 'pickup' });
+      console.log('Trip OTP verification requested for start:', tripId, 'type:', tripType);
     } catch (error) {
       console.error('Error starting trip:', error);
       throw error;
     }
-  }, []);
+  }, [currentTrip]);
 
   const handleReachedPickup = useCallback(async (tripId: string) => {
     try {
@@ -403,7 +406,7 @@ export default function CaptainHome() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#86CB92" />
+        <ActivityIndicator size="large" color={Colors.primary} />
         <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
@@ -411,15 +414,16 @@ export default function CaptainHome() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.welcomeText}>Hello, {captain?.name || 'Captain'}</Text>
-          <Text style={styles.vehicleText}>
-            {captain?.vehicleType?.toUpperCase() || 'VEHICLE'} • {captain?.servicesOffered?.join(', ') || 'All Services'}
+      {/* Profile Info Card */}
+      <View style={styles.profileCard}>
+        <View style={styles.profileLeft}>
+          <Text style={styles.profileGreeting}>Welcome back</Text>
+          <Text style={styles.profileName}>{captain?.name || 'Captain'}</Text>
+          <Text style={styles.profileMeta}>
+            {(captain?.vehicleType?.toUpperCase() || 'VEHICLE')} • {(captain?.servicesOffered?.join(', ') || 'All Services')}
           </Text>
         </View>
-        <View style={styles.headerRight}>
+        <View style={styles.profileRight}>
           <Pressable
             style={[styles.onlineButton, isOnline && styles.onlineButtonActive]}
             onPress={() => handleOnlineToggle(!isOnline)}
@@ -514,7 +518,7 @@ export default function CaptainHome() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#86CB92"
+            tintColor={Colors.primary}
           />
         }
       >
@@ -561,7 +565,8 @@ export default function CaptainHome() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: Colors.background,
+    paddingTop: 60,
   },
   loadingContainer: {
     flex: 1,
@@ -574,47 +579,44 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 10,
   },
-  header: {
+  profileCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    paddingTop: 60,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
+    marginHorizontal: 20,
+    marginTop: 12,
+    marginBottom: 12,
+    backgroundColor: Colors.card,
+    borderRadius: 18,
+    borderWidth: 1.25,
+    borderColor: Colors.border,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    shadowColor: Colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 6,
   },
-  headerLeft: {
-    flex: 1,
-  },
-  headerRight: {
-    alignItems: 'flex-end',
-  },
-  welcomeText: {
-    color: '#2C3E50',
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
-  vehicleText: {
-    color: '#7F8C8D',
-    fontSize: 14,
-    marginTop: 4,
-  },
+  profileLeft: { flex: 1 },
+  profileRight: { alignItems: 'flex-end' },
+  profileGreeting: { color: Colors.mutedText, fontSize: 12 },
+  profileName: { color: Colors.text, fontSize: 20, fontWeight: 'bold', marginTop: 2 },
+  profileMeta: { color: Colors.mutedText, fontSize: 12, marginTop: 4 },
   onlineButton: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: Colors.background,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
+    borderWidth: 1.25,
+    borderColor: Colors.border,
   },
   onlineButtonActive: {
-    backgroundColor: '#86CB92',
-    borderColor: '#86CB92',
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
   onlineButtonText: {
-    color: '#2C3E50',
+    color: Colors.text,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -631,13 +633,15 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   statCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.card,
     padding: 12,
     borderRadius: 16,
     flex: 1,
     marginHorizontal: 4,
     alignItems: 'center',
-    shadowColor: '#000',
+    borderWidth: 1.25,
+    borderColor: Colors.border,
+    shadowColor: Colors.shadow,
     shadowOffset: {
       width: 0,
       height: 4,
@@ -647,13 +651,13 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   statValue: {
-    color: '#86CB92',
+    color: Colors.primary,
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 4,
   },
   statLabel: {
-    color: '#7F8C8D',
+    color: Colors.mutedText,
     fontSize: 11,
     textAlign: 'center',
     fontWeight: '500',
@@ -668,7 +672,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 20,
     position: 'relative',
-    shadowColor: '#000',
+    shadowColor: Colors.shadow,
     shadowOffset: {
       width: 0,
       height: 6,
@@ -683,12 +687,12 @@ const styles = StyleSheet.create({
   tripSelectorOverlay: {
     position: 'absolute',
     top: 12,
-    left: 12,
-    right: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(255, 237, 223, 0.96)',
     borderRadius: 12,
     paddingVertical: 8,
-    shadowColor: '#000',
+    shadowColor: Colors.shadow,
     shadowOffset: {
       width: 0,
       height: 2,
@@ -701,25 +705,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   tripSelectorItem: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: Colors.background,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
     marginRight: 8,
     alignItems: 'center',
     minWidth: 80,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   tripSelectorItemActive: {
-    backgroundColor: '#86CB92',
+    backgroundColor: Colors.primary,
   },
   tripSelectorText: {
-    color: '#2C3E50',
+    color: Colors.text,
     fontSize: 10,
     fontWeight: 'bold',
     marginBottom: 2,
   },
   tripSelectorFare: {
-    color: '#86CB92',
+    color: Colors.primary,
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -734,14 +740,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   tripsTitle: {
-    color: '#2C3E50',
+    color: Colors.text,
     fontSize: 18,
     fontWeight: 'bold',
   },
   refreshButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#86CB92',
+    backgroundColor: Colors.primary,
     borderRadius: 8,
   },
   refreshText: {
@@ -755,10 +761,12 @@ const styles = StyleSheet.create({
   noTripsContainer: {
     alignItems: 'center',
     paddingVertical: 40,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.card,
     borderRadius: 16,
     marginHorizontal: 20,
-    shadowColor: '#000',
+    borderWidth: 1.25,
+    borderColor: Colors.border,
+    shadowColor: Colors.shadow,
     shadowOffset: {
       width: 0,
       height: 2,
@@ -768,13 +776,13 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   noTripsText: {
-    color: '#7F8C8D',
+    color: Colors.mutedText,
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
   },
   noTripsSubtext: {
-    color: '#95A5A6',
+    color: Colors.mutedText,
     fontSize: 14,
     textAlign: 'center',
     paddingHorizontal: 20,

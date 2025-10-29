@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Switch, Pressable, Alert, ActivityI
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'expo-router';
 import { captainTripApi } from '../lib/api';
+import { Colors } from '@/constants/colors';
 
 export default function ProfileScreen() {
   const { captain, logout } = useAuth();
@@ -63,7 +64,7 @@ export default function ProfileScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#86CB92" />
+        <ActivityIndicator size="large" color={Colors.primary} />
         <Text style={styles.loadingText}>Loading profile...</Text>
       </View>
     );
@@ -96,13 +97,7 @@ export default function ProfileScreen() {
                 <Text style={styles.infoValue}>{profileData.phone}</Text>
               </View>
             </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoIcon}>✉️</Text>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Email</Text>
-                <Text style={styles.infoValue}>{profileData.email}</Text>
-              </View>
-            </View>
+            {/* Email removed as requested */}
             <View style={styles.infoRow}>
               <Text style={styles.infoIcon}>📍</Text>
               <View style={styles.infoContent}>
@@ -189,17 +184,16 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: Colors.background,
+    paddingTop: 60,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
-    paddingTop: 60,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
+    paddingTop: 0,
+    backgroundColor: Colors.background,
   },
   headerLeft: {
     flex: 1,
@@ -210,15 +204,15 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#2C3E50',
+    color: Colors.text,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#7F8C8D',
+    color: Colors.mutedText,
   },
   ratingBadge: {
-    backgroundColor: '#86CB92',
+    backgroundColor: Colors.primary,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
@@ -249,16 +243,18 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#2C3E50',
+    color: Colors.text,
     marginBottom: 12,
     paddingHorizontal: 20,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.card,
     marginHorizontal: 20,
     padding: 16,
     borderRadius: 16,
-    shadowColor: '#000',
+    borderWidth: 1.25,
+    borderColor: Colors.border,
+    shadowColor: Colors.shadow,
     shadowOffset: {
       width: 0,
       height: 4,
@@ -269,7 +265,7 @@ const styles = StyleSheet.create({
   },
   cardText: {
     fontSize: 16,
-    color: '#2C3E50',
+    color: Colors.text,
   },
   infoRow: {
     flexDirection: 'row',
@@ -285,12 +281,12 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 14,
-    color: '#7F8C8D',
+    color: Colors.mutedText,
     marginBottom: 4,
   },
   infoValue: {
     fontSize: 16,
-    color: '#2C3E50',
+    color: Colors.text,
   },
   verificationHeader: {
     flexDirection: 'row',
@@ -301,10 +297,10 @@ const styles = StyleSheet.create({
   verificationLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#2C3E50',
+    color: Colors.text,
   },
   pendingBadge: {
-    backgroundColor: '#86CB92',
+    backgroundColor: Colors.primary,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
@@ -316,7 +312,7 @@ const styles = StyleSheet.create({
   },
   verificationMessage: {
     fontSize: 14,
-    color: '#7F8C8D',
+    color: Colors.mutedText,
     marginBottom: 16,
   },
   documentList: {
@@ -325,9 +321,11 @@ const styles = StyleSheet.create({
   documentItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8F9FA',
+    backgroundColor: Colors.background,
     padding: 12,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   documentIcon: {
     fontSize: 24,
@@ -339,15 +337,15 @@ const styles = StyleSheet.create({
   documentName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#2C3E50',
+    color: Colors.text,
     marginBottom: 4,
   },
   documentDesc: {
     fontSize: 12,
-    color: '#7F8C8D',
+    color: Colors.mutedText,
   },
   uploadButton: {
-    backgroundColor: '#86CB92',
+    backgroundColor: Colors.primary,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -358,7 +356,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   logoutButton: {
-    backgroundColor: '#86CB92',
+    backgroundColor: Colors.danger,
     marginHorizontal: 20,
     marginTop: 20,
     padding: 16,
@@ -380,7 +378,7 @@ const styles = StyleSheet.create({
   },
   version: {
     textAlign: 'center',
-    color: '#95A5A6',
+    color: Colors.mutedText,
     fontSize: 12,
     marginTop: 20,
     marginBottom: 20,
@@ -389,11 +387,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FAFAFA',
+    backgroundColor: Colors.background,
   },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: '#7F8C8D',
+    color: Colors.mutedText,
   },
 });

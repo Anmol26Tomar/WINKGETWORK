@@ -39,7 +39,7 @@ interface TripModalProps {
   trip: Trip | null;
   onClose: () => void;
   onAcceptTrip: (tripId: string) => void;
-  onStartTrip: (tripId: string) => void;
+  onStartTrip: (tripId: string, otp: string) => void;
   onReachedPickup: (tripId: string) => void;
   onNavigateToDestination: (trip: Trip) => void;
   onCompleteTrip: (tripId: string) => void;
@@ -162,7 +162,14 @@ export default function TripModal({
   const handleStartTrip = async () => {
     setLoading(true);
     try {
-      await onStartTrip(trip.id);
+      if (!otp || otp.length !== 4) {
+        console.log('StartTrip blocked: OTP missing or invalid', otp);
+        Alert.alert('OTP Required', 'Please enter the 4-digit OTP to start the trip.');
+        return;
+      }
+      console.log('Verifying OTP before startTrip:', otp);
+      // Delegate to parent to call backend verify endpoint
+      await onStartTrip(trip.id, otp);
       setTripStatus('started');
       Alert.alert('Trip Started!', 'You are now en route to pickup location.');
     } catch (error) {

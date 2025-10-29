@@ -66,7 +66,7 @@ export const captainTripApi = {
   acceptTrip: (tripId: string, tripType: string = 'transport') => captainApi.post(`/trips/${tripType}/${tripId}/accept`),
   reachedPickup: (tripId: string, tripType: string = 'transport') => captainApi.post(`/trips/${tripType}/${tripId}/reached-pickup`),
   verifyOtp: (tripId: string, tripType: string, data: any) => captainApi.post(`/trips/${tripType}/${tripId}/verify-otp`, data),
-  reachedDestination: (tripId: string, tripType: string = 'transport') => captainApi.post(`/trips/${tripType}/${tripId}/complete`),
+  reachedDestination: (tripId: string, tripType: string = 'transport') => captainApi.post(`/trips/${tripType}/${tripId}/reached-destination`),
   resendOtp: (tripId: string, tripType: string, data: any) => captainApi.post(`/trips/${tripType}/${tripId}/resend-otp`, data),
   getEarnings: () => captainApi.get('/earnings'),
   getTransactions: () => captainApi.get('/transactions'),

@@ -43,6 +43,7 @@ const signupCaptain = async (req, res) => {
       licenseNumber,
       vehicleNumber,
       phone,
+      city,
       passwordHash,
       vehicleType,
       vehicleSubType,
@@ -68,6 +69,7 @@ const signupCaptain = async (req, res) => {
       captain: {
         id: captain._id,
         name: captain.name,
+        city: captain.city,
         phone: captain.phone,
         vehicleType: captain.vehicleType,
         vehicleSubType: captain.vehicleSubType,
@@ -143,6 +145,7 @@ const verifyOtpAndLogin = async (req, res) => {
       captain: {
         id: captain._id,
         name: captain.name,
+        city: captain.city,
         phone: captain.phone,
         vehicleType: captain.vehicleType,
         vehicleSubType: captain.vehicleSubType,
@@ -187,6 +190,7 @@ const loginWithPassword = async (req, res) => {
       captain: {
         id: captain._id,
         name: captain.name,
+        city: captain.city,
         phone: captain.phone,
         vehicleType: captain.vehicleType,
         vehicleSubType: captain.vehicleSubType,
@@ -207,6 +211,7 @@ const getProfile = async (req, res) => {
     res.json({
       id: captain._id,
       name: captain.name,
+      city: captain.city,
       phone: captain.phone,
       vehicleType: captain.vehicleType,
       vehicleSubType: captain.vehicleSubType,

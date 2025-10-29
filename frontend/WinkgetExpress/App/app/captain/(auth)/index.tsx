@@ -10,7 +10,9 @@ import {
   Switch,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { captainAuthApi, setCaptainApiToken } from '../lib/api';
+import { Colors } from '@/constants/colors';
 import * as SecureStore from 'expo-secure-store';
 import { connectSocket } from '../lib/socket';
 import { useAuth } from '@/context/AuthContext';
@@ -46,6 +48,7 @@ export default function CaptainAuthScreen() {
   // Common fields
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   // Signup fields
   const [name, setName] = useState('');
@@ -177,7 +180,7 @@ export default function CaptainAuthScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.centerContent}>
       <View style={styles.header}>
         <Text style={styles.title}>Welcome, Captain</Text>
         <Text style={styles.subtitle}>
@@ -296,14 +299,19 @@ export default function CaptainAuthScreen() {
           </>
         )}
 
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          placeholderTextColor="#999"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
+        <View style={styles.inputPasswordWrapper}>
+          <TextInput
+            style={[styles.input, styles.inputPassword]}
+            placeholder="Password"
+            placeholderTextColor="#999"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!showPassword}
+          />
+          <Pressable style={styles.eyeButton} onPress={() => setShowPassword(v => !v)}>
+            <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={20} color={Colors.mutedText} />
+          </Pressable>
+        </View>
 
         {isLogin && (
           <Pressable style={styles.otpButton} onPress={handleRequestOtp}>
@@ -328,62 +336,89 @@ export default function CaptainAuthScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.background,
+  },
+  centerContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingVertical: 24,
   },
   header: {
     padding: 20,
-    paddingTop: 60,
+    alignItems: 'center',
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#000',
+    color: Colors.text,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: Colors.mutedText,
   },
   toggleContainer: {
     flexDirection: 'row',
     marginHorizontal: 20,
     marginBottom: 30,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    padding: 4,
+    backgroundColor: Colors.card,
+    borderRadius: 16,
+    padding: 6,
+    borderWidth: 1.25,
+    borderColor: Colors.border,
   },
   toggleButton: {
     flex: 1,
     paddingVertical: 12,
     alignItems: 'center',
-    borderRadius: 6,
+    borderRadius: 12,
   },
   toggleButtonActive: {
-    backgroundColor: '#86CB92',
+    backgroundColor: Colors.primary,
   },
   toggleText: {
-    color: '#666',
+    color: Colors.mutedText,
     fontWeight: '600',
   },
   toggleTextActive: {
-    color: '#000',
+    color: Colors.text,
   },
   form: {
     paddingHorizontal: 20,
   },
   input: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
+    backgroundColor: Colors.card,
+    borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    color: '#000',
+    color: Colors.text,
     fontSize: 16,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderWidth: 1.25,
+    borderColor: Colors.border,
+  },
+  inputPasswordWrapper: {
+    position: 'relative',
+  },
+  inputPassword: {
+    paddingRight: 44,
+    paddingVertical: 14,
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: 12,
+    top: '50%',
+    transform: [{ translateY: -10 }],
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 32,
+    height: 20,
+  },
+  eyeText: {
+    fontSize: 16,
   },
   label: {
-    color: '#000',
+    color: Colors.text,
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 12,
@@ -397,22 +432,22 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
+    backgroundColor: Colors.card,
+    borderRadius: 12,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderWidth: 1.25,
+    borderColor: Colors.border,
   },
   vehicleTypeButtonActive: {
-    backgroundColor: '#86CB92',
-    borderColor: '#86CB92',
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
   vehicleTypeText: {
-    color: '#666',
+    color: Colors.mutedText,
     fontWeight: '600',
   },
   vehicleTypeTextActive: {
-    color: '#000',
+    color: Colors.text,
   },
   vehicleSubTypeContainer: {
     flexDirection: 'row',
@@ -423,22 +458,22 @@ const styles = StyleSheet.create({
   vehicleSubTypeButton: {
     paddingVertical: 8,
     paddingHorizontal: 12,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    backgroundColor: Colors.card,
+    borderRadius: 10,
+    borderWidth: 1.25,
+    borderColor: Colors.border,
   },
   vehicleSubTypeButtonActive: {
-    backgroundColor: '#86CB92',
-    borderColor: '#86CB92',
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
   vehicleSubTypeText: {
-    color: '#666',
+    color: Colors.mutedText,
     fontSize: 12,
     fontWeight: '600',
   },
   vehicleSubTypeTextActive: {
-    color: '#000',
+    color: Colors.text,
   },
   servicesContainer: {
     flexDirection: 'row',
@@ -449,35 +484,35 @@ const styles = StyleSheet.create({
   serviceButton: {
     paddingVertical: 8,
     paddingHorizontal: 12,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    backgroundColor: Colors.card,
+    borderRadius: 10,
+    borderWidth: 1.25,
+    borderColor: Colors.border,
   },
   serviceButtonActive: {
-    backgroundColor: '#86CB92',
-    borderColor: '#86CB92',
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
   serviceText: {
-    color: '#666',
+    color: Colors.mutedText,
     fontSize: 12,
     fontWeight: '600',
   },
   serviceTextActive: {
-    color: '#000',
+    color: Colors.text,
   },
   otpButton: {
     alignSelf: 'flex-end',
     marginBottom: 16,
   },
   otpButtonText: {
-    color: '#86CB92',
+    color: Colors.primary,
     fontSize: 14,
     fontWeight: '600',
   },
   submitButton: {
-    backgroundColor: '#86CB92',
-    borderRadius: 8,
+    backgroundColor: Colors.primary,
+    borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 20,
@@ -486,7 +521,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   submitButtonText: {
-    color: '#000',
+    color: Colors.text,
     fontSize: 16,
     fontWeight: 'bold',
   },
