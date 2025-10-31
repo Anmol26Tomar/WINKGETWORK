@@ -299,9 +299,9 @@ export default function CaptainAuthScreen() {
           </>
         )}
 
-        <View style={styles.inputPasswordWrapper}>
+        <View style={styles.passwordContainer}>
           <TextInput
-            style={[styles.input, styles.inputPassword]}
+            style={styles.passwordInput}
             placeholder="Password"
             placeholderTextColor="#999"
             value={password}
@@ -397,22 +397,29 @@ const styles = StyleSheet.create({
     borderWidth: 1.25,
     borderColor: Colors.border,
   },
-  inputPasswordWrapper: {
-    position: 'relative',
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.card,
+    borderRadius: 14,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    borderWidth: 1.25,
+    borderColor: Colors.border,
+    marginBottom: 16,
   },
-  inputPassword: {
-    paddingRight: 44,
+  passwordInput: {
+    flex: 1,
+    color: Colors.text,
+    fontSize: 16,
     paddingVertical: 14,
+    paddingHorizontal: 16,
   },
   eyeButton: {
-    position: 'absolute',
-    right: 12,
-    top: '50%',
-    transform: [{ translateY: -10 }],
     justifyContent: 'center',
     alignItems: 'center',
-    width: 32,
-    height: 20,
+    paddingHorizontal: 12,
+    height: 44,
   },
   eyeText: {
     fontSize: 16,

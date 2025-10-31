@@ -9,7 +9,7 @@ export const captainApi = axios.create({
   baseURL: `${API_BASE}/api/v1/captain`,
   timeout: 10000,
 });
-
+console.log('XXXX---API_BASE---XXXX', API_BASE);
 // Function to set auth token
 export const setCaptainApiToken = (token: string) => {
   captainApi.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -74,6 +74,10 @@ export const captainTripApi = {
   updateProfile: (data: any) => captainApi.put('/profile', data),
   getWalletBalance: () => captainApi.get('/wallet/balance'),
   getWalletTransactions: () => captainApi.get('/wallet/transactions'),
-  getCaptainStats: () => captainApi.get('/captain/stats'),
+  getCaptainStats: () => captainApi.get('/stats'),
 };
+
+// Helper to upload a document
+export const captainTripApiUploadDocument = (type: string, fileDataUri: string) =>
+  captainApi.post(`/documents/${type}`, { file: fileDataUri });
 

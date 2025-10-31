@@ -39,7 +39,7 @@ interface TripModalProps {
   trip: Trip | null;
   onClose: () => void;
   onAcceptTrip: (tripId: string) => void;
-  onStartTrip: (tripId: string, otp: string) => void;
+  onStartTrip: (tripId: string) => void;
   onReachedPickup: (tripId: string) => void;
   onNavigateToDestination: (trip: Trip) => void;
   onCompleteTrip: (tripId: string) => void;
@@ -162,14 +162,7 @@ export default function TripModal({
   const handleStartTrip = async () => {
     setLoading(true);
     try {
-      if (!otp || otp.length !== 4) {
-        console.log('StartTrip blocked: OTP missing or invalid', otp);
-        Alert.alert('OTP Required', 'Please enter the 4-digit OTP to start the trip.');
-        return;
-      }
-      console.log('Verifying OTP before startTrip:', otp);
-      // Delegate to parent to call backend verify endpoint
-      await onStartTrip(trip.id, otp);
+      await onStartTrip(trip.id);
       setTripStatus('started');
       Alert.alert('Trip Started!', 'You are now en route to pickup location.');
     } catch (error) {
@@ -327,7 +320,7 @@ export default function TripModal({
             <View style={styles.tripInfo}>
               <View style={styles.infoItem}>
                 <Text style={styles.infoLabel}>Distance</Text>
-                <Text style={styles.infoValue}>{trip.distanceKm} km</Text>
+                <Text style={styles.infoValue}>{Math.round((trip.distanceKm || 0) * 10) / 10} km</Text>
               </View>
               <View style={styles.infoItem}>
                 <Text style={styles.infoLabel}>Vehicle</Text>
@@ -341,7 +334,7 @@ export default function TripModal({
           </View>
 
           {/* OTP Verification Section */}
-          {tripStatus === 'started' && (
+          {(tripStatus === 'accepted' || tripStatus === 'started') && (
             <View style={styles.otpContainer}>
               <Text style={styles.otpTitle}>Verify Pickup OTP</Text>
               <Text style={styles.otpSubtitle}>Enter the 4-digit OTP from customer</Text>
@@ -496,6 +489,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#2C3E50',
     lineHeight: 20,
+    flexShrink: 1,
+    flexWrap: 'wrap',
   },
   tripInfo: {
     flexDirection: 'row',

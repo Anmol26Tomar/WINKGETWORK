@@ -100,10 +100,28 @@ const captainSchema = new Schema({
     type: Number,
     default: 0,
   },
+  todayEarnings: {
+    type: Number,
+    default: 0,
+  },
+  todayTrips: {
+    type: Number,
+    default: 0,
+  },
+  activeTrips: {
+    type: Number,
+    default: 0,
+  },
   isApproved: {
     type: Boolean,
     default: false,
   },
+  // Document URLs
+  drivingLicenseUrl: { type: String, default: null },
+  aadharCardUrl: { type: String, default: null },
+  vehicleRegistrationUrl: { type: String, default: null },
+  insuranceUrl: { type: String, default: null },
+  driverVehiclePhotoUrl: { type: String, default: null },
 }, {
   timestamps: true,
 });

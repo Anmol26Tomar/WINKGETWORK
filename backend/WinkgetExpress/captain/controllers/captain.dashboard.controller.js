@@ -28,12 +28,15 @@ exports.getStats = async (req, res) => {
     const week = await computeRange(captainId, startOfWeek());
     const month = await computeRange(captainId, startOfMonth());
 
+    // Prefer counters on Captain if available for "today" (fast, immediate),
+    // fall back to computed if not present
     res.json({
-      earnings: today.earnings,
-      todayTrips: today.tripsCompleted,
+      earnings: typeof req.captain.todayEarnings === 'number' ? req.captain.todayEarnings : today.earnings,
+      todayTrips: typeof req.captain.todayTrips === 'number' ? req.captain.todayTrips : today.tripsCompleted,
       rating: req.captain.rating || 0,
       weekEarnings: week.earnings,
       monthEarnings: month.earnings,
+      activeTrips: req.captain.activeTrips || 0,
     });
   } catch (e) {
     console.error('getStats error', e);

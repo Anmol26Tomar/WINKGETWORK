@@ -44,6 +44,13 @@ export default function TripDetailScreen() {
   const [otp, setOtp] = useState('');
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
 
+  const getTripTypeFromService = (serviceType?: string): 'transport' | 'parcel' | 'packers' => {
+    if (!serviceType) return 'transport';
+    if (serviceType.includes('parcel')) return 'parcel';
+    if (serviceType.includes('packers')) return 'packers';
+    return 'transport';
+  };
+
   useEffect(() => {
     if (id) {
       fetchTripDetails();
@@ -137,7 +144,7 @@ export default function TripDetailScreen() {
   const handleAcceptTrip = async () => {
     setActionLoading(true);
     try {
-      const response = await captainTripApi.acceptTrip(id!);
+      const response = await captainTripApi.acceptTrip(id!, getTripTypeFromService(trip?.serviceType));
       setTrip(response.data.trip);
       
       const socket = getSocket();
@@ -156,7 +163,7 @@ export default function TripDetailScreen() {
   const handleReachedPickup = async () => {
     setActionLoading(true);
     try {
-      await captainTripApi.reachedPickup(id!);
+      await captainTripApi.reachedPickup(id!, getTripTypeFromService(trip?.serviceType));
       setTrip(prev => prev ? { ...prev, status: 'at_pickup' } : null);
       Alert.alert('Success', 'Marked as reached pickup location');
     } catch (error: any) {
@@ -169,7 +176,7 @@ export default function TripDetailScreen() {
   const handleReachedDestination = async () => {
     setActionLoading(true);
     try {
-      await captainTripApi.reachedDestination(id!);
+      await captainTripApi.reachedDestination(id!, getTripTypeFromService(trip?.serviceType));
       setTrip(prev => prev ? { ...prev, status: 'at_destination' } : null);
       Alert.alert('Success', 'Marked as reached destination');
     } catch (error: any) {
@@ -187,7 +194,7 @@ export default function TripDetailScreen() {
 
     setActionLoading(true);
     try {
-      await captainTripApi.verifyOtp(id!, { otp, phase: otpPhase });
+      await captainTripApi.verifyOtp(id!, getTripTypeFromService(trip?.serviceType), { otp, phase: otpPhase });
       
       if (otpPhase === 'pickup') {
         setTrip(prev => prev ? { ...prev, status: 'enroute_drop' } : null);

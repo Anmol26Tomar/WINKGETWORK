@@ -1,21 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Switch, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Switch, Pressable, Alert, ActivityIndicator, Image, Modal } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'expo-router';
 import { captainTripApi } from '../lib/api';
 import { Colors } from '@/constants/colors';
-
+import { captainTripApiUploadDocument } from '../lib/api';
 export default function ProfileScreen() {
   const { captain, logout } = useAuth();
   const router = useRouter();
   const [isOnline, setIsOnline] = React.useState(false);
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState({
-    email: '',
     city: '',
     phone: '',
-    rating: 4.8
+    rating: 0
   });
+  const [docUrls, setDocUrls] = useState({
+    driving_license: '',
+    aadhar_card: '',
+    vehicle_registration: '',
+    insurance: '',
+    driver_vehicle_photo: '',
+  });
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProfileData();
@@ -25,25 +33,58 @@ export default function ProfileScreen() {
     try {
       setLoading(true);
       const response = await captainTripApi.getProfile();
+      const stats = await captainTripApi.getCaptainStats();
       if (response.data) {
         setProfileData({
-          email: response.data.email || captain?.email || 'N/A',
           city: response.data.city || captain?.city || 'N/A',
           phone: response.data.phone || captain?.phone || 'N/A',
-          rating: response.data.rating || 4.8
+          rating: (stats?.data?.rating ?? response.data.rating ?? 0)
+        });
+        setDocUrls({
+          driving_license: response.data.drivingLicenseUrl || '',
+          aadhar_card: response.data.aadharCardUrl || '',
+          vehicle_registration: response.data.vehicleRegistrationUrl || '',
+          insurance: response.data.insuranceUrl || '',
+          driver_vehicle_photo: response.data.driverVehiclePhotoUrl || '',
         });
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
       // Use captain data as fallback
       setProfileData({
-        email: captain?.email || 'N/A',
         city: captain?.city || 'N/A',
         phone: captain?.phone || 'N/A',
-        rating: 4.8
+        rating: 0
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const pickAndUpload = async (type: keyof typeof docUrls) => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (permission.status !== 'granted') {
+        Alert.alert('Permission required', 'Please allow photo access to upload documents');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        base64: true,
+        quality: 0.8,
+      });
+      if (result.canceled || !result.assets?.[0]?.base64) return;
+      const asset = result.assets[0];
+      const dataUri = `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`;
+      const res = await captainTripApiUploadDocument(type, dataUri);
+      if (res?.data?.url) {
+        setDocUrls(prev => ({ ...prev, [type]: res.data.url }));
+        Alert.alert('Success', 'Document uploaded successfully');
+      } else {
+        Alert.alert('Error', 'Upload failed');
+      }
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'Upload failed');
     }
   };
 
@@ -97,7 +138,7 @@ export default function ProfileScreen() {
                 <Text style={styles.infoValue}>{profileData.phone}</Text>
               </View>
             </View>
-            {/* Email removed as requested */}
+            
             <View style={styles.infoRow}>
               <Text style={styles.infoIcon}>📍</Text>
               <View style={styles.infoContent}>
@@ -128,43 +169,89 @@ export default function ProfileScreen() {
                 <View style={styles.documentInfo}>
                   <Text style={styles.documentName}>Driving License</Text>
                   <Text style={styles.documentDesc}>Valid driving license</Text>
+                  {!!docUrls.driving_license && (<Text style={styles.docLink}>Uploaded</Text>)}
                 </View>
-                <Pressable style={styles.uploadButton}>
-                  <Text style={styles.uploadText}>Upload</Text>
-                </Pressable>
+                {docUrls.driving_license ? (
+                  <Pressable style={styles.uploadButton} onPress={() => setPreviewUrl(docUrls.driving_license)}>
+                    <Text style={styles.uploadText}>View</Text>
+                  </Pressable>
+                ) : (
+                  <Pressable style={styles.uploadButton} onPress={() => pickAndUpload('driving_license')}>
+                    <Text style={styles.uploadText}>Upload</Text>
+                  </Pressable>
+                )}
               </View>
-              
-              <View style={styles.documentItem}>
-                <Text style={styles.documentIcon}>📄</Text>
-                <View style={styles.documentInfo}>
-                  <Text style={styles.documentName}>Vehicle Registration</Text>
-                  <Text style={styles.documentDesc}>Vehicle registration certificate</Text>
-                </View>
-                <Pressable style={styles.uploadButton}>
-                  <Text style={styles.uploadText}>Upload</Text>
-                </Pressable>
-              </View>
-              
-              <View style={styles.documentItem}>
-                <Text style={styles.documentIcon}>📄</Text>
-                <View style={styles.documentInfo}>
-                  <Text style={styles.documentName}>PAN Card</Text>
-                  <Text style={styles.documentDesc}>PAN card for tax purposes</Text>
-                </View>
-                <Pressable style={styles.uploadButton}>
-                  <Text style={styles.uploadText}>Upload</Text>
-                </Pressable>
-              </View>
-              
+
               <View style={styles.documentItem}>
                 <Text style={styles.documentIcon}>📄</Text>
                 <View style={styles.documentInfo}>
                   <Text style={styles.documentName}>Aadhar Card</Text>
-                  <Text style={styles.documentDesc}>Aadhar card for identity verification</Text>
+                  <Text style={styles.documentDesc}>Government ID</Text>
+                  {!!docUrls.aadhar_card && (<Text style={styles.docLink}>Uploaded</Text>)}
                 </View>
-                <Pressable style={styles.uploadButton}>
-                  <Text style={styles.uploadText}>Upload</Text>
-                </Pressable>
+                {docUrls.aadhar_card ? (
+                  <Pressable style={styles.uploadButton} onPress={() => setPreviewUrl(docUrls.aadhar_card)}>
+                    <Text style={styles.uploadText}>View</Text>
+                  </Pressable>
+                ) : (
+                  <Pressable style={styles.uploadButton} onPress={() => pickAndUpload('aadhar_card')}>
+                    <Text style={styles.uploadText}>Upload</Text>
+                  </Pressable>
+                )}
+              </View>
+
+              <View style={styles.documentItem}>
+                <Text style={styles.documentIcon}>📄</Text>
+                <View style={styles.documentInfo}>
+                  <Text style={styles.documentName}>Vehicle Registration</Text>
+                  <Text style={styles.documentDesc}>RC document</Text>
+                  {!!docUrls.vehicle_registration && (<Text style={styles.docLink}>Uploaded</Text>)}
+                </View>
+                {docUrls.vehicle_registration ? (
+                  <Pressable style={styles.uploadButton} onPress={() => setPreviewUrl(docUrls.vehicle_registration)}>
+                    <Text style={styles.uploadText}>View</Text>
+                  </Pressable>
+                ) : (
+                  <Pressable style={styles.uploadButton} onPress={() => pickAndUpload('vehicle_registration')}>
+                    <Text style={styles.uploadText}>Upload</Text>
+                  </Pressable>
+                )}
+              </View>
+
+              <View style={styles.documentItem}>
+                <Text style={styles.documentIcon}>📄</Text>
+                <View style={styles.documentInfo}>
+                  <Text style={styles.documentName}>Insurance</Text>
+                  <Text style={styles.documentDesc}>Valid vehicle insurance</Text>
+                  {!!docUrls.insurance && (<Text style={styles.docLink}>Uploaded</Text>)}
+                </View>
+                {docUrls.insurance ? (
+                  <Pressable style={styles.uploadButton} onPress={() => setPreviewUrl(docUrls.insurance)}>
+                    <Text style={styles.uploadText}>View</Text>
+                  </Pressable>
+                ) : (
+                  <Pressable style={styles.uploadButton} onPress={() => pickAndUpload('insurance')}>
+                    <Text style={styles.uploadText}>Upload</Text>
+                  </Pressable>
+                )}
+              </View>
+
+              <View style={styles.documentItem}>
+                <Text style={styles.documentIcon}>📷</Text>
+                <View style={styles.documentInfo}>
+                  <Text style={styles.documentName}>Driver with Vehicle Photo</Text>
+                  <Text style={styles.documentDesc}>Clear photo of you with vehicle</Text>
+                  {!!docUrls.driver_vehicle_photo && (<Text style={styles.docLink}>Uploaded</Text>)}
+                </View>
+                {docUrls.driver_vehicle_photo ? (
+                  <Pressable style={styles.uploadButton} onPress={() => setPreviewUrl(docUrls.driver_vehicle_photo)}>
+                    <Text style={styles.uploadText}>View</Text>
+                  </Pressable>
+                ) : (
+                  <Pressable style={styles.uploadButton} onPress={() => pickAndUpload('driver_vehicle_photo')}>
+                    <Text style={styles.uploadText}>Upload</Text>
+                  </Pressable>
+                )}
               </View>
             </View>
           </View>
@@ -177,6 +264,20 @@ export default function ProfileScreen() {
 
         <Text style={styles.version}>Version Captain</Text>
       </ScrollView>
+
+      {/* Image Preview Modal */}
+      <Modal visible={!!previewUrl} transparent animationType="fade" onRequestClose={() => setPreviewUrl(null)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Pressable style={styles.modalClose} onPress={() => setPreviewUrl(null)}>
+              <Text style={styles.modalCloseText}>×</Text>
+            </Pressable>
+            {previewUrl && (
+              <Image source={{ uri: previewUrl }} style={styles.previewImage} resizeMode="contain" />
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -344,6 +445,49 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.mutedText,
   },
+  docLink: {
+    fontSize: 11,
+    color: Colors.primary,
+    marginTop: 6,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: Colors.card,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  modalClose: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 2,
+    backgroundColor: '#00000088',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCloseText: {
+    color: '#fff',
+    fontSize: 18,
+    lineHeight: 18,
+  },
+  previewImage: {
+    width: '100%',
+    height: 320,
+    borderRadius: 8,
+  },
   uploadButton: {
     backgroundColor: Colors.primary,
     paddingHorizontal: 16,
@@ -393,5 +537,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     color: Colors.mutedText,
+    textAlign: 'center',
   },
 });

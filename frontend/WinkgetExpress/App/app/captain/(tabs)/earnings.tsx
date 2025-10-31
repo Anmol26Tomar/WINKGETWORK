@@ -17,7 +17,8 @@ export default function EarningsScreen() {
   const [walletBalance, setWalletBalance] = useState(0);
   const [transfersLeft, setTransfersLeft] = useState(3);
   const [transactions, setTransactions] = useState([]);
-  const [period, setPeriod] = useState<'today' | 'week' | 'month' | 'total'>('week');
+  const [summaryPeriod, setSummaryPeriod] = useState<'today' | 'week' | 'month' | 'total'>('week');
+  const [historyPeriod, setHistoryPeriod] = useState<'today' | 'week' | 'month' | 'total'>('week');
   const [showFilterSummary, setShowFilterSummary] = useState(false);
   const [showFilterHistory, setShowFilterHistory] = useState(false);
 
@@ -66,14 +67,14 @@ export default function EarningsScreen() {
     if (!transactions || transactions.length === 0) return [];
     const now = new Date();
     const start = new Date();
-    if (period === 'today') {
+    if (historyPeriod === 'today') {
       start.setHours(0, 0, 0, 0);
-    } else if (period === 'week') {
+    } else if (historyPeriod === 'week') {
       const day = now.getDay();
       const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Monday as start
       start.setDate(diff);
       start.setHours(0, 0, 0, 0);
-    } else if (period === 'month') {
+    } else if (historyPeriod === 'month') {
       start.setDate(1);
       start.setHours(0, 0, 0, 0);
     } else {
@@ -83,7 +84,7 @@ export default function EarningsScreen() {
       const d = new Date(t.date);
       return d >= start && d <= now;
     });
-  }, [transactions, period]);
+  }, [transactions, historyPeriod]);
 
   if (loading) {
     return (
@@ -102,20 +103,20 @@ export default function EarningsScreen() {
       </View>
 
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        <View style={styles.summaryCard}>
+        <View style={[styles.summaryCard, showFilterSummary && styles.summaryCardOpen]}>
           <View style={styles.summaryHeader}>
             <Text style={styles.summaryTitle}>Earnings Summary</Text>
             <View style={styles.filterAnchor}>
               <Pressable style={styles.filterButton} onPress={() => setShowFilterSummary(v => !v)}>
               <Text style={styles.filterButtonText}>
-                {period === 'today' ? 'Today' : period === 'week' ? 'This Week' : period === 'month' ? 'This Month' : 'All Time'} ▾
+                {summaryPeriod === 'today' ? 'Today' : summaryPeriod === 'week' ? 'This Week' : summaryPeriod === 'month' ? 'This Month' : 'All Time'} ▾
               </Text>
               </Pressable>
               {showFilterSummary && (
                 <View style={styles.dropdownMenu}>
               {(['today','week','month','total'] as const).map(p => (
-                    <Pressable key={p} style={[styles.filterMenuItem, period === p && styles.filterMenuItemActive]} onPress={() => { setPeriod(p); setShowFilterSummary(false); }}>
-                      <Text style={[styles.filterMenuItemText, period === p && styles.filterMenuItemTextActive]}>
+                    <Pressable key={p} style={[styles.filterMenuItem, summaryPeriod === p && styles.filterMenuItemActive]} onPress={() => { setSummaryPeriod(p); setShowFilterSummary(false); }}>
+                      <Text style={[styles.filterMenuItemText, summaryPeriod === p && styles.filterMenuItemTextActive]}>
                     {p === 'today' ? 'Today' : p === 'week' ? 'This Week' : p === 'month' ? 'This Month' : 'All Time'}
                       </Text>
                     </Pressable>
@@ -125,53 +126,55 @@ export default function EarningsScreen() {
             </View>
           </View>
           <Text style={styles.summaryAmount}>
-            ₹{(period === 'today' ? earnings.today : period === 'week' ? earnings.week : period === 'month' ? earnings.month : earnings.total).toFixed(2)}
+            ₹{(summaryPeriod === 'today' ? earnings.today : summaryPeriod === 'week' ? earnings.week : summaryPeriod === 'month' ? earnings.month : earnings.total).toFixed(2)}
           </Text>
           <Text style={styles.summarySubtext}>
-            {period === 'today' ? 'Today' : period === 'week' ? 'This Week' : period === 'month' ? 'This Month' : 'All Time'} earnings
+            {summaryPeriod === 'today' ? 'Today' : summaryPeriod === 'week' ? 'This Week' : summaryPeriod === 'month' ? 'This Month' : 'All Time'} earnings
           </Text>
         </View>
 
-        <View style={styles.historySection}>
-          <Text style={styles.historyTitle}>Transaction History</Text>
-          <View style={styles.filterAnchor}>
+        <View style={styles.historyCard}>
+          <View style={styles.historyHeader}>
+            <Text style={styles.historyTitle}>Transaction History</Text>
+            <View style={styles.filterAnchor}>
             <Pressable style={styles.filterButton} onPress={() => setShowFilterHistory(v => !v)}>
               <Text style={styles.filterButtonText}>
-                {period === 'today' ? 'Today' : period === 'week' ? 'This Week' : period === 'month' ? 'This Month' : 'All Time'} ▾
+                {historyPeriod === 'today' ? 'Today' : historyPeriod === 'week' ? 'This Week' : historyPeriod === 'month' ? 'This Month' : 'All Time'} ▾
               </Text>
-            </Pressable>
-            {showFilterHistory && (
-              <View style={styles.dropdownMenu}>
+              </Pressable>
+              {showFilterHistory && (
+                <View style={styles.dropdownMenu}>
                 {(['today','week','month','total'] as const).map(p => (
-                  <Pressable key={p} style={[styles.filterMenuItem, period === p && styles.filterMenuItemActive]} onPress={() => { setPeriod(p); setShowFilterHistory(false); }}>
-                    <Text style={[styles.filterMenuItemText, period === p && styles.filterMenuItemTextActive]}>
+                  <Pressable key={p} style={[styles.filterMenuItem, historyPeriod === p && styles.filterMenuItemActive]} onPress={() => { setHistoryPeriod(p); setShowFilterHistory(false); }}>
+                    <Text style={[styles.filterMenuItemText, historyPeriod === p && styles.filterMenuItemTextActive]}>
                       {p === 'today' ? 'Today' : p === 'week' ? 'This Week' : p === 'month' ? 'This Month' : 'All Time'}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            )}
-          </View>
-        </View>
-
-        {filteredTransactions.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>₹</Text>
-            <AlertBox title="No earnings in this period" message="Complete trips to start earning. Try switching the filter to a wider range." variant="warning" />
-          </View>
-        ) : (
-          <View style={styles.transactionsList}>
-            {filteredTransactions.map((transaction: any, index: number) => (
-              <View key={index} style={styles.transactionItem}>
-                <View style={styles.transactionInfo}>
-                  <Text style={styles.transactionTitle}>Trip #{transaction.tripId}</Text>
-                  <Text style={styles.transactionDate}>{transaction.date}</Text>
+                      </Text>
+                    </Pressable>
+                  ))}
                 </View>
-                <Text style={styles.transactionAmount}>+₹{transaction.amount}</Text>
-              </View>
-            ))}
+              )}
+            </View>
           </View>
-        )}
+
+          {filteredTransactions.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyIcon}>₹</Text>
+              <AlertBox title="No earnings in this period" message="Complete trips to start earning. Try switching the filter to a wider range." variant="warning" />
+            </View>
+          ) : (
+            <View style={styles.transactionsList}>
+              {filteredTransactions.map((transaction: any, index: number) => (
+                <View key={index} style={styles.transactionItem}>
+                  <View style={styles.transactionInfo}>
+                    <Text style={styles.transactionTitle}>Trip #{transaction.tripId}</Text>
+                    <Text style={styles.transactionDate}>{transaction.date}</Text>
+                  </View>
+                  <Text style={styles.transactionAmount}>+₹{transaction.amount}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
       </ScrollView>
     </View>
   );
@@ -203,6 +206,7 @@ const styles = StyleSheet.create({
   },
   filterAnchor: {
     position: 'relative',
+    zIndex: 101,
   },
   filterButton: {
     backgroundColor: Colors.background,
@@ -227,7 +231,8 @@ const styles = StyleSheet.create({
     borderWidth: 1.25,
     borderColor: Colors.border,
     overflow: 'hidden',
-    zIndex: 10,
+    zIndex: 100,
+    elevation: 12,
   },
   filterMenuItem: {
     paddingHorizontal: 14,
@@ -249,7 +254,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.card,
     marginHorizontal: 20,
     marginTop: 12,
-    marginBottom: 20,
+    marginBottom: 40,
     padding: 20,
     borderRadius: 16,
     borderWidth: 1.25,
@@ -262,6 +267,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 6,
     elevation: 6,
+    zIndex: 2,
+  },
+  summaryCardOpen: {
+    marginBottom: 48,
   },
   summaryHeader: {
     flexDirection: 'row',
@@ -374,12 +383,34 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     numberOfLines: 1,
   },
-  historySection: {
+  historyCard: {
+    backgroundColor: Colors.card,
+    marginHorizontal: 20,
+    marginTop: 0,
+    marginBottom: 20,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1.25,
+    borderColor: Colors.border,
+    shadowColor: Colors.shadow,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 6,
+    position: 'relative',
+    zIndex: 1,
+  },
+  historyCardOpen: {
+    paddingBottom: 12,
+  },
+  historyHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   historyTitle: {
     fontSize: 18,
@@ -434,6 +465,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     color: Colors.mutedText,
+    textAlign: 'center',
   },
   transactionsList: {
     paddingHorizontal: 20,

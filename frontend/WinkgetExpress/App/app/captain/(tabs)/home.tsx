@@ -20,6 +20,7 @@ import { captainTripApi, setCaptainApiToken } from '../lib/api';
 import { useAuth } from '@/context/AuthContext';
 import TripCard from '../components/TripCard';
 import TripModal from '../components/TripModal';
+import { connectSocket, setupSocketListeners, emitLocationUpdate, getSocket } from '../lib/socket';
 
 const { width, height } = Dimensions.get('window');
 
@@ -76,26 +77,29 @@ export default function CaptainHome() {
   
   // STATE
   const [isOnline, setIsOnline] = useState(false);
+  const [city, setCity] = useState<string | null>(null);
   const [availableTrips, setAvailableTrips] = useState<Trip[]>([]);
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [earnings, setEarnings] = useState(0);
   const [todayTrips, setTodayTrips] = useState(0);
-  const [rating, setRating] = useState(4.8);
+  const [rating, setRating] = useState(0);
   const [availableTripsCount, setAvailableTripsCount] = useState(0);
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [tripModalVisible, setTripModalVisible] = useState(false);
   const [currentTrip, setCurrentTrip] = useState<Trip | null>(null);
+  const [newTripToast, setNewTripToast] = useState<Trip | null>(null);
 
   // FETCH CAPTAIN STATS
   const fetchCaptainStats = useCallback(async () => {
     try {
       const response = await captainTripApi.getCaptainStats();
+      console.log('XXXX---RESPONSE---XXXX', response.data);
       if (response.data) {
         setEarnings(response.data.earnings || 0);
         setTodayTrips(response.data.todayTrips || 0);
-        setRating(response.data.rating || 4.8);
+        setRating(typeof response.data.rating === 'number' ? response.data.rating : 0);
       }
     } catch (error) {
       console.error('Error fetching captain stats:', error);
@@ -196,10 +200,10 @@ export default function CaptainHome() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await fetchNearbyTrips();
-      setEarnings(Math.floor(Math.random() * 1000) + 200);
-      setTodayTrips(Math.floor(Math.random() * 10) + 1);
-      setRating(4.2 + Math.random() * 0.8);
+      await Promise.all([
+        fetchNearbyTrips(),
+        fetchCaptainStats(),
+      ]);
     } catch (error) {
       console.error('Refresh error:', error);
     } finally {
@@ -255,6 +259,7 @@ export default function CaptainHome() {
       const tripType = currentTrip?.type || 'transport';
       await captainTripApi.acceptTrip(tripId, tripType);
       console.log('Trip accepted:', tripId, 'type:', tripType);
+      await fetchCaptainStats();
       
       // Automatically redirect to Google Maps for navigation to pickup
       if (currentTrip) {
@@ -266,17 +271,15 @@ export default function CaptainHome() {
     }
   }, [currentTrip, handleTripAcceptance]);
 
-  const handleStartTrip = useCallback(async (tripId: string, otp: string) => {
+  const handleStartTrip = useCallback(async (tripId: string) => {
     try {
-      const tripType = currentTrip?.type || 'transport';
-      // For pickup OTP verification
-      await captainTripApi.verifyOtp(tripId, tripType, { otp, phase: 'pickup' });
-      console.log('Trip OTP verification requested for start:', tripId, 'type:', tripType);
+      // API call to start trip
+      console.log('Trip started:', tripId);
     } catch (error) {
       console.error('Error starting trip:', error);
       throw error;
     }
-  }, [currentTrip]);
+  }, []);
 
   const handleReachedPickup = useCallback(async (tripId: string) => {
     try {
@@ -299,13 +302,8 @@ export default function CaptainHome() {
       await captainTripApi.reachedDestination(tripId, tripType);
       console.log('Trip completed:', tripId, 'type:', tripType);
       
-      // Update earnings and trip count
-      if (currentTrip) {
-        const tripEarnings = Math.round(currentTrip.fareEstimate * 0.7); // 70% of trip value
-        setEarnings(prev => prev + tripEarnings);
-        setTodayTrips(prev => prev + 1);
-        console.log(`Earnings updated: +₹${tripEarnings}, Total: ₹${earnings + tripEarnings}`);
-      }
+      // Refresh stats from backend to avoid stale/random values
+      await fetchCaptainStats();
     } catch (error) {
       console.error('Error completing trip:', error);
       throw error;
@@ -335,12 +333,20 @@ export default function CaptainHome() {
   useEffect(() => {
     const initializeCaptain = async () => {
       if (captain) {
-        setIsOnline(captain.isActive || false);
+        setIsOnline(false);
         if (token) {
           setCaptainApiToken(token);
         }
         await requestLocationPermission();
         await fetchCaptainStats();
+        try {
+          const profile = await captainTripApi.getProfile();
+          if (profile?.data) {
+            setCity(profile.data.city || null);
+          }
+        } catch (e) {
+          console.warn('Failed to fetch profile for city');
+        }
       } else {
         router.replace('/captain/(auth)');
       }
@@ -359,6 +365,53 @@ export default function CaptainHome() {
       setSelectedTrip(null);
     }
   }, [isOnline, currentLocation, fetchNearbyTrips]);
+
+  // SOCKET: Connect and live update trips
+  useEffect(() => {
+    let isMounted = true;
+    const setup = async () => {
+      try {
+        if (!isOnline || !token) return;
+        const socket = await connectSocket(token);
+
+        if (!isMounted) return;
+
+        setupSocketListeners(socket, {
+          onTripAssigned: (trip: any) => {
+            setAvailableTrips(prev => {
+              const exists = prev.some(t => t.id === trip.id);
+              if (exists) return prev;
+              return [trip, ...prev];
+            });
+            setAvailableTripsCount(prev => prev + 1);
+            setNewTripToast(trip);
+            setTimeout(() => setNewTripToast(null), 5000);
+          },
+          onTripCancelled: (data: any) => {
+            const { tripId } = data || {};
+            if (!tripId) return;
+            setAvailableTrips(prev => prev.filter(t => t.id !== tripId));
+            setAvailableTripsCount(prev => Math.max(0, prev - 1));
+          },
+        });
+
+        // Send initial location
+        if (currentLocation) {
+          emitLocationUpdate(socket, currentLocation);
+        }
+      } catch (e) {
+        console.warn('Socket init failed:', e);
+      }
+    };
+    setup();
+
+    return () => {
+      isMounted = false;
+      const s = getSocket();
+      // listeners are ephemeral; rely on page unmount to drop them
+      void s;
+    };
+  }, [isOnline, token, currentLocation]);
 
   // BULLETPROOF MAP REGION
   const mapRegion = useMemo(() => {
@@ -414,13 +467,18 @@ export default function CaptainHome() {
 
   return (
     <View style={styles.container}>
+      {newTripToast && (
+        <Pressable style={styles.newTripToast} onPress={() => { setCurrentTrip(newTripToast); setTripModalVisible(true); setNewTripToast(null); }}>
+          <Text style={styles.newTripToastText}>New Trip • ₹{Math.round(newTripToast.fareEstimate || 0)} • Tap to view</Text>
+        </Pressable>
+      )}
       {/* Profile Info Card */}
       <View style={styles.profileCard}>
         <View style={styles.profileLeft}>
           <Text style={styles.profileGreeting}>Welcome back</Text>
           <Text style={styles.profileName}>{captain?.name || 'Captain'}</Text>
           <Text style={styles.profileMeta}>
-            {(captain?.vehicleType?.toUpperCase() || 'VEHICLE')} • {(captain?.servicesOffered?.join(', ') || 'All Services')}
+            {(captain?.vehicleType?.toUpperCase() || 'VEHICLE')} • {(captain?.servicesOffered?.join(', ') || 'All Services')}{city ? ` • ${city}` : ''}
           </Text>
         </View>
         <View style={styles.profileRight}>
@@ -489,25 +547,27 @@ export default function CaptainHome() {
         </MapView>
         
         {/* TRIP SELECTOR OVERLAY */}
-        <View style={styles.tripSelectorOverlay}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tripSelector}>
-            {availableTrips.map((trip) => (
-              <Pressable
-                key={trip.id}
-                style={[
-                  styles.tripSelectorItem,
-                  selectedTrip?.id === trip.id && styles.tripSelectorItemActive
-                ]}
-                onPress={() => setSelectedTrip(trip)}
-              >
-                <Text style={styles.tripSelectorText}>
-                  {trip.type?.toUpperCase() || 'TRIP'}
-                </Text>
-                <Text style={styles.tripSelectorFare}>₹{trip.fareEstimate || 0}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
+        {availableTrips.length > 0 && (
+          <View style={styles.tripSelectorOverlay}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tripSelector}>
+              {availableTrips.map((trip) => (
+                <Pressable
+                  key={trip.id}
+                  style={[
+                    styles.tripSelectorItem,
+                    selectedTrip?.id === trip.id && styles.tripSelectorItemActive
+                  ]}
+                  onPress={() => setSelectedTrip(trip)}
+                >
+                  <Text style={styles.tripSelectorText}>
+                    {trip.type?.toUpperCase() || 'TRIP'}
+                  </Text>
+                  <Text style={styles.tripSelectorFare}>₹{trip.fareEstimate || 0}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        )}
       </View>
 
       {/* Trips List */}
@@ -578,6 +638,7 @@ const styles = StyleSheet.create({
     color: '#2C3E50',
     fontSize: 16,
     marginTop: 10,
+    textAlign: 'center',
   },
   profileCard: {
     flexDirection: 'row',
@@ -786,5 +847,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     paddingHorizontal: 20,
+  },
+  newTripToast: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    right: 20,
+    backgroundColor: '#1f2937',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    zIndex: 999,
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+  },
+  newTripToastText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });

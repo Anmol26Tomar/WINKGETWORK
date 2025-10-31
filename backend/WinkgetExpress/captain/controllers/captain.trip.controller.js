@@ -231,6 +231,13 @@ const acceptTrip = async (req, res) => {
     }
 
     console.log(`[CaptainTrips] Trip ${id} accepted by captain ${captain._id}`);
+    // Increment active trips counter for captain
+    try {
+      const { Captain } = require('../models/Captain.model');
+      await Captain.findByIdAndUpdate(captain._id, { $inc: { activeTrips: 1 } });
+    } catch (e) {
+      console.warn('Could not increment activeTrips for captain', e.message);
+    }
 
     res.json({
       success: true,
@@ -357,7 +364,7 @@ const verifyTripOtp = async (req, res) => {
       });
     }
 
-    console.log(`[CaptainTrips] Verifying OTP for ${type} trip ${id}, phase: ${phase}, provided OTP: ${otp}`);
+    console.log(`[CaptainTrips] Verifying OTP for ${type} trip ${id}, phase: ${phase}`);
 
     let trip;
     let Model;
@@ -395,40 +402,23 @@ const verifyTripOtp = async (req, res) => {
     let isValidOtp = false;
     let newStatus = '';
 
-    // Prefer explicit OTP object if present (e.g., Parcel.otp.code)
-    if (trip.otp && typeof trip.otp === 'object') {
-      // verify against plain code
-      isValidOtp = String(trip.otp.code || '').trim() === String(otp).trim();
-    } else {
-      if (phase === 'pickup') {
-        isValidOtp = verifyOtp(otp, trip.otpPickupHash);
-        newStatus = 'in_transit';
-      } else if (phase === 'drop') {
-        isValidOtp = verifyOtp(otp, trip.otpDropHash);
-        newStatus = 'delivered';
-      }
+    if (phase === 'pickup') {
+      isValidOtp = verifyOtp(otp, trip.otpPickupHash);
+      newStatus = 'in_transit';
+    } else if (phase === 'drop') {
+      isValidOtp = verifyOtp(otp, trip.otpDropHash);
+      newStatus = 'delivered';
     }
 
     if (!isValidOtp) {
-      // Increment attempts counter if present
-      if (trip.otp && typeof trip.otp === 'object') {
-        const attempts = (trip.otp.attempts || 0) + 1;
-        await Model.findByIdAndUpdate(id, { 'otp.attempts': attempts });
-      }
-      return res.status(400).json({ success: false, message: 'Invalid OTP' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid OTP' 
+      });
     }
 
-    // Mark verified and update status if phase-based
-    const updateDoc = {};
-    if (trip.otp && typeof trip.otp === 'object') {
-      updateDoc['otp.verified'] = true;
-    }
-    if (newStatus) {
-      updateDoc.status = newStatus;
-    }
-    if (Object.keys(updateDoc).length > 0) {
-      await Model.findByIdAndUpdate(id, updateDoc);
-    }
+    // Update trip status
+    await Model.findByIdAndUpdate(id, { status: newStatus });
 
     console.log(`[CaptainTrips] OTP verified for ${type} trip ${id}, new status: ${newStatus}`);
 
@@ -439,7 +429,7 @@ const verifyTripOtp = async (req, res) => {
       trip: {
         id: trip._id,
         type: type,
-        status: newStatus || trip.status
+        status: newStatus
       }
     });
   } catch (error) {
@@ -498,6 +488,17 @@ const reachedDestination = async (req, res) => {
     }
 
     console.log(`[CaptainTrips] Trip ${id} completed by captain ${captain._id}`);
+    // Update captain counters: decrement activeTrips, increment todayTrips and todayEarnings (70% of fare)
+    try {
+      const { Captain } = require('../models/Captain.model');
+      const fare = Number(trip.fareEstimate || trip.fare || 0);
+      const takeHome = Math.round(fare * 0.7);
+      await Captain.findByIdAndUpdate(captain._id, {
+        $inc: { activeTrips: -1, todayTrips: 1, todayEarnings: takeHome }
+      });
+    } catch (e) {
+      console.warn('Could not update captain earnings/trips', e.message);
+    }
 
     // Return payment QR info (mock data)
     res.json({ 
