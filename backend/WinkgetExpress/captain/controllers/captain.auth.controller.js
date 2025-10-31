@@ -8,7 +8,6 @@ const signupCaptain = async (req, res) => {
   try {
     console.log('Signup request received:', req.body);
     const { fullName, phone, password, vehicleType, vehicleSubType, servicesOffered, city } = req.body;
-
     // Validate required fields
     if (!fullName || !phone || !password || !vehicleType || !servicesOffered || !city) {
       return res.status(400).json({ message: 'All required fields must be provided' });
