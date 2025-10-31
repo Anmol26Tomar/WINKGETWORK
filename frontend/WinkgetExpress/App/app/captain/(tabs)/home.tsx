@@ -142,7 +142,7 @@ export default function CaptainHome() {
         radius: 10,
       });
 
-      console.log('API Response:', response.data);
+      console.log('API Response:', response);
 
       // BULLETPROOF TRIP FILTERING
       const safeTrips: Trip[] = (response.data?.trips || [])
@@ -337,16 +337,26 @@ export default function CaptainHome() {
         if (token) {
           setCaptainApiToken(token);
         }
-        await requestLocationPermission();
-        await fetchCaptainStats();
+        // Try to fetch profile/city first with retry to avoid occasional misses
         try {
           const profile = await captainTripApi.getProfile();
-          if (profile?.data) {
-            setCity(profile.data.city || null);
+          if (profile?.data?.city) {
+            setCity(profile.data.city);
+          } else if (captain?.city) {
+            setCity(captain.city);
+          } else {
+            setTimeout(async () => {
+              try {
+                const p2 = await captainTripApi.getProfile();
+                if (p2?.data?.city) setCity(p2.data.city);
+              } catch {}
+            }, 500);
           }
-        } catch (e) {
-          console.warn('Failed to fetch profile for city');
+        } catch {
+          if (captain?.city) setCity(captain.city);
         }
+        await requestLocationPermission();
+        await fetchCaptainStats();
       } else {
         router.replace('/captain/(auth)');
       }
@@ -366,15 +376,19 @@ export default function CaptainHome() {
     }
   }, [isOnline, currentLocation, fetchNearbyTrips]);
 
-  // SOCKET: Connect and live update trips
+  // SOCKET: Connect and live update trips (connect as long as we have a token)
   useEffect(() => {
     let isMounted = true;
     const setup = async () => {
       try {
-        if (!isOnline || !token) return;
+        if (!token) return;
         const socket = await connectSocket(token);
 
         if (!isMounted) return;
+
+        // prevent duplicate handlers
+        socket.off('trip:assigned');
+        socket.off('new-trip');
 
         setupSocketListeners(socket, {
           onTripAssigned: (trip: any) => {
@@ -386,6 +400,8 @@ export default function CaptainHome() {
             setAvailableTripsCount(prev => prev + 1);
             setNewTripToast(trip);
             setTimeout(() => setNewTripToast(null), 5000);
+            // Optionally refresh stats
+            fetchCaptainStats();
           },
           onTripCancelled: (data: any) => {
             const { tripId } = data || {};
@@ -411,7 +427,16 @@ export default function CaptainHome() {
       // listeners are ephemeral; rely on page unmount to drop them
       void s;
     };
-  }, [isOnline, token, currentLocation]);
+  }, [token, currentLocation]);
+
+  // Fallback polling while online (in case sockets fail on some networks)
+  useEffect(() => {
+    if (!isOnline) return;
+    const id = setInterval(() => {
+      fetchNearbyTrips();
+    }, 15000);
+    return () => clearInterval(id);
+  }, [isOnline, fetchNearbyTrips]);
 
   // BULLETPROOF MAP REGION
   const mapRegion = useMemo(() => {

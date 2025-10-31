@@ -65,6 +65,11 @@ export const setupSocketListeners = (socket: Socket, handlers: {
     handlers.onTripAssigned?.(trip);
   });
 
+  socket.on('new-trip', (trip) => {
+    console.log('New trip (broadcast):', trip);
+    handlers.onTripAssigned?.(trip);
+  });
+
   socket.on('trip:cancelled', (data) => {
     console.log('Trip cancelled:', data);
     handlers.onTripCancelled?.(data);

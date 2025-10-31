@@ -7,12 +7,10 @@ function notifyCaptainsNewParcel(parcelId, meta) {
 	// Broadcast to available captains
 	const io = getIO();
 	if (io) {
-		io.to('available-captains').emit('new-trip', {
-			id: parcelId,
-			...meta,
-			type: 'parcel'
-		});
-		console.log('[socket] Broadcasted new parcel to available captains');
+		const payload = { id: parcelId, ...meta, type: 'parcel' };
+		io.of('/captain').emit('trip:assigned', payload);
+		io.emit('new-trip', payload);
+		console.log('[socket] Broadcasted new parcel to captains namespace');
 	}
 }
 
@@ -23,20 +21,10 @@ function notifyCaptainsNewTransport(transportId, meta) {
 	// Broadcast to available captains
 	const io = getIO();
 	if (io) {
-		const tripData = {
-			id: transportId,
-			...meta,
-			type: 'transport'
-		};
-		
-		console.log('[socket] Broadcasting to available-captains room:', tripData);
-		io.to('available-captains').emit('new-trip', tripData);
-		
-		// Also broadcast to specific vehicle type room
-		console.log('[socket] Broadcasting to vehicle type room:', `vehicle:${meta.vehicleType}`);
-		io.to(`vehicle:${meta.vehicleType}`).emit('new-trip', tripData);
-		
-		console.log('[socket] Broadcasted new transport to available captains');
+		const tripData = { id: transportId, ...meta, type: 'transport' };
+		io.of('/captain').emit('trip:assigned', tripData);
+		io.emit('new-trip', tripData);
+		console.log('[socket] Broadcasted new transport to captains namespace');
 	} else {
 		console.error('[socket] IO not available for broadcasting');
 	}

@@ -56,6 +56,13 @@ export default function ProfileScreen() {
         phone: captain?.phone || 'N/A',
         rating: 0
       });
+      // brief retry to mitigate transient failures
+      setTimeout(async () => {
+        try {
+          const r2 = await captainTripApi.getProfile();
+          if (r2?.data?.city) setProfileData(prev => ({ ...prev, city: r2.data.city }));
+        } catch {}
+      }, 500);
     } finally {
       setLoading(false);
     }
