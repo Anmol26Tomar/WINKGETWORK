@@ -14,6 +14,7 @@ import { captainAuthApi, setCaptainApiToken } from "../lib/api";
 import { connectSocket } from "../lib/socket";
 import { useAuth } from "@/context/AuthContext";
 import { Colors, Spacing, Radius } from "@/constants/colors";
+import * as SecureStore from 'expo-secure-store';
 
 type VehicleType = "bike" | "truck" | "cab";
 type ServiceType =
@@ -45,7 +46,7 @@ const getVehicleSubTypes = (vehicleType: VehicleType): string[] => {
 
 export default function CaptainAuthScreen() {
   const router = useRouter();
-  const { loginCaptain, signupCaptain, token } = useAuth();
+  const { login, logout } = useAuth(); // ✅ simplified to use your new AuthContext (captain only)
 
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -55,6 +56,7 @@ export default function CaptainAuthScreen() {
   // Common fields
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   // Signup fields
   const [name, setName] = useState("");
@@ -78,16 +80,30 @@ export default function CaptainAuthScreen() {
     setLoading(true);
     setError("");
     try {
-      const captain = await loginCaptain({ email: phone, password });
-      if (token) {
-        setCaptainApiToken(token);
-        await connectSocket(token);
-      }
+      const response = await captainAuthApi.loginPassword({ phone, password });
+      const token = response.data.token;
+      const captainData = response.data.captain;
+      
+      // Store in SecureStore for API interceptor
+      await SecureStore.setItemAsync('captainToken', token);
+      
+      // Store in AuthContext
+      const captain = {
+        id: captainData.id,
+        name: captainData.name,
+        email: captainData.phone || phone,
+        token: token
+      };
+      await login(captain);
+
+      setCaptainApiToken(token);
+      await connectSocket(token);
+
       setSuccess("Login successful!");
-      router.replace("/captain/(tabs)/home");
+      router.replace("/(app)/(tabs)/home");
     } catch (e: any) {
       console.error("Login error:", e);
-      setError(e.message || "Login failed");
+      setError(e.response?.data?.message || e.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -102,26 +118,39 @@ export default function CaptainAuthScreen() {
     setLoading(true);
     setError("");
     try {
-      const captain = await signupCaptain({
+      const response = await captainAuthApi.signup({
         fullName: name,
         phone,
         password,
+        city,
         vehicleType,
         vehicleSubType,
         servicesOffered,
-        city,
       });
+      
+      const token = response.data.token;
+      const captainData = response.data.captain;
+      
+      // Store in SecureStore for API interceptor
+      await SecureStore.setItemAsync('captainToken', token);
+      
+      // Store in AuthContext
+      const captain = {
+        id: captainData.id,
+        name: captainData.name,
+        email: captainData.phone || phone,
+        token: token
+      };
+      await login(captain);
 
-      if (token) {
-        setCaptainApiToken(token);
-        await connectSocket(token);
-      }
+      setCaptainApiToken(token);
+      await connectSocket(token);
 
       setSuccess("Signup successful!");
-      router.replace("/captain/(tabs)/home");
+      router.replace("/(app)/(tabs)/home");
     } catch (e: any) {
       console.error("Signup error:", e);
-      setError(e.message || "Signup failed");
+      setError(e.response?.data?.message || e.message || "Signup failed");
     } finally {
       setLoading(false);
     }
@@ -137,7 +166,7 @@ export default function CaptainAuthScreen() {
     try {
       await captainAuthApi.requestOtp({ phone });
       Alert.alert("Success", "OTP sent to your phone", [
-        { text: "OK", onPress: () => router.push("/captain/(auth)/verify-otp") },
+        { text: "OK", onPress: () => router.push("/(app)/(auth)/verify-otp") }, // ✅ fixed path
       ]);
     } catch (error: any) {
       Alert.alert("Error", error.response?.data?.message || "Failed to send OTP");
@@ -186,13 +215,21 @@ export default function CaptainAuthScreen() {
               value={phone}
               onChangeText={setPhone}
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-            />
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Password"
+                secureTextEntry={!showPassword}
+                value={password}
+                onChangeText={setPassword}
+              />
+              <TouchableOpacity
+                style={styles.eyeButton}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                <Text style={styles.eyeIcon}>{showPassword ? '👁️' : '🙈'}</Text>
+              </TouchableOpacity>
+            </View>
             <TouchableOpacity
               style={styles.btnSecondary}
               disabled={loading}
@@ -293,13 +330,21 @@ export default function CaptainAuthScreen() {
               ))}
             </View>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-            />
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Password"
+                secureTextEntry={!showPassword}
+                value={password}
+                onChangeText={setPassword}
+              />
+              <TouchableOpacity
+                style={styles.eyeButton}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                <Text style={styles.eyeIcon}>{showPassword ? '👁️' : '🙈'}</Text>
+              </TouchableOpacity>
+            </View>
             <TouchableOpacity
               style={styles.btnPrimary}
               onPress={handleSignup}
@@ -317,6 +362,8 @@ export default function CaptainAuthScreen() {
     </View>
   );
 }
+
+// (styles unchanged)
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
@@ -349,6 +396,30 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
     backgroundColor: Colors.card,
     color: Colors.text,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.card,
+    marginBottom: Spacing.md,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: Spacing.sm,
+    fontSize: 14,
+    color: Colors.text,
+  },
+  eyeButton: {
+    padding: Spacing.sm,
+    paddingRight: Spacing.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  eyeIcon: {
+    fontSize: 18,
   },
   toggleContainer: {
     flexDirection: "row",

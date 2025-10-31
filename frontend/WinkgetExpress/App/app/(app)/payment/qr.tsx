@@ -23,7 +23,7 @@ export default function PaymentQRScreen() {
         if (data.tripId === tripId) {
           setPaymentCompleted(true);
           Alert.alert('Success', 'Payment completed! Trip finished.', [
-            { text: 'OK', onPress: () => router.replace('/captain') }
+            { text: 'OK', onPress: () => router.replace('/(app)/(tabs)/home') }
           ]);
         }
       });
@@ -76,7 +76,7 @@ export default function PaymentQRScreen() {
           <Text style={styles.successText}>Payment Completed!</Text>
           <Pressable
             style={styles.successButton}
-            onPress={() => router.replace('/captain')}
+            onPress={() => router.replace('/(app)/(tabs)/home')}
           >
             <Text style={styles.successButtonText}>Back to Dashboard</Text>
           </Pressable>

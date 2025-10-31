@@ -1,10 +1,29 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { Colors } from '@/constants/colors';
+import { captainTripApi } from '../lib/api';
 
 export default function HelpScreen() {
   const { captain } = useAuth();
+  const [profileData, setProfileData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await captainTripApi.getProfile();
+        if (response?.data) {
+          setProfileData(response.data);
+        }
+      } catch (error) {
+        console.warn('Failed to fetch profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   const faqCategories = [
     {
@@ -58,16 +77,16 @@ export default function HelpScreen() {
       {/* User Profile Card */}
       <View style={styles.profileCard}>
         <View style={styles.profileAvatar}>
-          <Text style={styles.profileInitial}>{captain?.name?.[0] || 'C'}</Text>
+          <Text style={styles.profileInitial}>{(profileData?.name || captain?.name || 'C')?.[0] || 'C'}</Text>
         </View>
         <View style={styles.profileInfo}>
-          <Text style={styles.profileName}>{captain?.name || 'Captain'}</Text>
+          <Text style={styles.profileName}>{profileData?.name || captain?.name || 'Captain'}</Text>
           <Text style={styles.profileDetails}>
-            {captain?.vehicleType?.toUpperCase()} • {captain?.city || 'Unknown'}
+            {(profileData?.vehicleType || captain?.vehicleType || 'UNKNOWN')?.toUpperCase()} • {profileData?.city || captain?.city || 'Unknown'}
           </Text>
           <View style={styles.profileContact}>
             <Text style={styles.contactIcon}>📞</Text>
-            <Text style={styles.contactNumber}>{captain?.phone || 'N/A'}</Text>
+            <Text style={styles.contactNumber}>{profileData?.phone || captain?.phone || 'N/A'}</Text>
           </View>
         </View>
       </View>

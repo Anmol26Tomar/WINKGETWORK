@@ -125,12 +125,14 @@ export default function EarningsScreen() {
               )}
             </View>
           </View>
-          <Text style={styles.summaryAmount}>
-            ₹{(summaryPeriod === 'today' ? earnings.today : summaryPeriod === 'week' ? earnings.week : summaryPeriod === 'month' ? earnings.month : earnings.total).toFixed(2)}
-          </Text>
-          <Text style={styles.summarySubtext}>
-            {summaryPeriod === 'today' ? 'Today' : summaryPeriod === 'week' ? 'This Week' : summaryPeriod === 'month' ? 'This Month' : 'All Time'} earnings
-          </Text>
+          <View style={styles.summaryContent}>
+            <Text style={styles.summaryAmount}>
+              ₹{(summaryPeriod === 'today' ? earnings.today : summaryPeriod === 'week' ? earnings.week : summaryPeriod === 'month' ? earnings.month : earnings.total).toFixed(2)}
+            </Text>
+            <Text style={styles.summarySubtext}>
+              {summaryPeriod === 'today' ? 'Today' : summaryPeriod === 'week' ? 'This Week' : summaryPeriod === 'month' ? 'This Month' : 'All Time'} earnings
+            </Text>
+          </View>
         </View>
 
         <View style={styles.historyCard}>
@@ -254,8 +256,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.card,
     marginHorizontal: 20,
     marginTop: 12,
-    marginBottom: 40,
-    padding: 20,
+    marginBottom: 20,
+    padding: 16,
     borderRadius: 16,
     borderWidth: 1.25,
     borderColor: Colors.border,
@@ -268,9 +270,10 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 6,
     zIndex: 2,
+    minHeight: 200,
   },
   summaryCardOpen: {
-    marginBottom: 48,
+    marginBottom: 20,
   },
   summaryHeader: {
     flexDirection: 'row',
@@ -287,6 +290,13 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
     color: Colors.primary,
+  },
+  summaryContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    paddingTop: 20,
+    paddingBottom: 20,
   },
   summarySubtext: {
     fontSize: 12,
@@ -402,6 +412,7 @@ const styles = StyleSheet.create({
     elevation: 6,
     position: 'relative',
     zIndex: 1,
+    minHeight: 200,
   },
   historyCardOpen: {
     paddingBottom: 12,

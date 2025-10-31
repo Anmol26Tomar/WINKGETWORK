@@ -8,7 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { captainAuthApi } from '../lib/api';
+import { captainAuthApi, setCaptainApiToken } from '../lib/api';
 import * as SecureStore from 'expo-secure-store';
 import { connectSocket } from '../lib/socket';
 
@@ -60,14 +60,18 @@ export default function VerifyOtpScreen() {
       });
 
       // Save token and profile
-      await SecureStore.setItemAsync('captainToken', response.data.token);
+      const token = response.data.token;
+      await SecureStore.setItemAsync('captainToken', token);
       await SecureStore.setItemAsync('captainProfile', JSON.stringify(response.data.captain));
 
+      // Set token on API instance
+      setCaptainApiToken(token);
+
       // Connect socket
-      await connectSocket();
+      await connectSocket(token);
 
       Alert.alert('Success', 'OTP verified successfully!', [
-        { text: 'OK', onPress: () => router.replace('/captain') }
+        { text: 'OK', onPress: () => router.replace('/(app)/(tabs)/home') }
       ]);
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.message || 'OTP verification failed');

@@ -24,9 +24,14 @@ export const clearCaptainApiToken = () => {
 captainApi.interceptors.request.use(
   async (config) => {
     try {
-      // Try to get token from SecureStore as fallback
+      // First check if Authorization is already set (from setCaptainApiToken)
+      if (config.headers.Authorization) {
+        return config;
+      }
+      
+      // Try to get token from SecureStore
       const token = await SecureStore.getItemAsync('captainToken');
-      if (token && !config.headers.Authorization) {
+      if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (error) {

@@ -3,9 +3,9 @@ import { View, Text, StyleSheet, ScrollView, Switch, Pressable, Alert, ActivityI
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'expo-router';
-import { captainTripApi } from '../lib/api';
+import { captainTripApi, captainTripApiUploadDocument, clearCaptainApiToken } from '../lib/api';
 import { Colors } from '@/constants/colors';
-import { captainTripApiUploadDocument } from '../lib/api';
+import * as SecureStore from 'expo-secure-store';
 export default function ProfileScreen() {
   const { captain, logout } = useAuth();
   const router = useRouter();
@@ -102,8 +102,17 @@ export default function ProfileScreen() {
         text: 'Logout',
         style: 'destructive',
         onPress: async () => {
+          // Clear SecureStore and API token
+          try {
+            await SecureStore.deleteItemAsync('captainToken');
+            await SecureStore.deleteItemAsync('captainProfile');
+            clearCaptainApiToken();
+          } catch (e) {
+            console.warn('Error clearing SecureStore:', e);
+          }
+          
           await logout();
-          router.replace('/captain/(auth)');
+          router.replace('/(app)/(auth)');
         },
       },
     ]);

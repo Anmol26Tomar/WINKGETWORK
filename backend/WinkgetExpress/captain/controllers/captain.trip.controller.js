@@ -85,7 +85,11 @@ const listNearbyTrips = async (req, res) => {
         .filter(trip => canHandleService(
           tripType === 'parcel' ? 'local_parcel' : 
           tripType === 'packers' ? 'packers_movers' :
-          tripType === 'transport' ? (trip.vehicleType === 'bike' ? 'bike_ride' : 'cab_booking') : '',
+          tripType === 'transport' ? (
+            trip.vehicleType === 'bike' ? 'bike_ride' : 
+            trip.vehicleType === 'cab' ? 'cab_booking' : 
+            trip.vehicleType === 'truck' ? 'intra_truck' : ''
+          ) : '',
           trip.vehicleType,
           trip.vehicleSubType
         ));
@@ -232,9 +236,19 @@ const acceptTrip = async (req, res) => {
 
     console.log(`[CaptainTrips] Trip ${id} accepted by captain ${captain._id}`);
     // Increment active trips counter for captain
+    let updatedCaptain;
     try {
       const { Captain } = require('../models/Captain.model');
-      await Captain.findByIdAndUpdate(captain._id, { $inc: { activeTrips: 1 } });
+      updatedCaptain = await Captain.findByIdAndUpdate(captain._id, { $inc: { activeTrips: 1 } }, { new: true });
+      
+      // Emit stats update to captain via socket
+      const { getIO } = require('../../utils/socket');
+      const io = getIO();
+      if (io && updatedCaptain?.socketId) {
+        io.of('/captain').to(updatedCaptain.socketId).emit('stats:updated', {
+          activeTrips: updatedCaptain.activeTrips
+        });
+      }
     } catch (e) {
       console.warn('Could not increment activeTrips for captain', e.message);
     }
@@ -489,13 +503,25 @@ const reachedDestination = async (req, res) => {
 
     console.log(`[CaptainTrips] Trip ${id} completed by captain ${captain._id}`);
     // Update captain counters: decrement activeTrips, increment todayTrips and todayEarnings (70% of fare)
+    let updatedCaptain;
     try {
       const { Captain } = require('../models/Captain.model');
       const fare = Number(trip.fareEstimate || trip.fare || 0);
       const takeHome = Math.round(fare * 0.7);
-      await Captain.findByIdAndUpdate(captain._id, {
+      updatedCaptain = await Captain.findByIdAndUpdate(captain._id, {
         $inc: { activeTrips: -1, todayTrips: 1, todayEarnings: takeHome }
-      });
+      }, { new: true });
+      
+      // Emit stats update to captain via socket
+      const { getIO } = require('../../utils/socket');
+      const io = getIO();
+      if (io && updatedCaptain?.socketId) {
+        io.of('/captain').to(updatedCaptain.socketId).emit('stats:updated', {
+          todayTrips: updatedCaptain.todayTrips,
+          todayEarnings: updatedCaptain.todayEarnings,
+          activeTrips: updatedCaptain.activeTrips
+        });
+      }
     } catch (e) {
       console.warn('Could not update captain earnings/trips', e.message);
     }
