@@ -219,7 +219,13 @@ const getProfile = async (req, res) => {
       isActive: captain.isActive,
       isApproved: captain.isApproved,
       rating: captain.rating,
-      totalTrips: captain.totalTrips
+      totalTrips: captain.totalTrips,
+      // document URLs
+      drivingLicenseUrl: captain.drivingLicenseUrl || null,
+      aadharCardUrl: captain.aadharCardUrl || null,
+      vehicleRegistrationUrl: captain.vehicleRegistrationUrl || null,
+      insuranceUrl: captain.insuranceUrl || null,
+      driverVehiclePhotoUrl: captain.driverVehiclePhotoUrl || null
     });
   } catch (error) {
     console.error('Get profile error:', error);
