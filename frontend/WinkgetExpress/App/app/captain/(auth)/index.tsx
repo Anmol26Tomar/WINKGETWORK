@@ -1,39 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
   TextInput,
-  Pressable,
-  StyleSheet,
+  TouchableOpacity,
   ScrollView,
+  StyleSheet,
   Alert,
-  Switch,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { captainAuthApi, setCaptainApiToken } from '../lib/api';
-import { Colors } from '@/constants/colors';
-import * as SecureStore from 'expo-secure-store';
-import { connectSocket } from '../lib/socket';
-import { useAuth } from '@/context/AuthContext';
+  ActivityIndicator,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { captainAuthApi, setCaptainApiToken } from "../lib/api";
+import { connectSocket } from "../lib/socket";
+import { useAuth } from "@/context/AuthContext";
+import { Colors, Spacing, Radius } from "@/constants/colors";
 
-type VehicleType = 'bike' | 'truck' | 'cab';
-type ServiceType = 'local_parcel' | 'intra_truck' | 'all_india_parcel' | 'cab_booking' | 'bike_ride' | 'packers_movers';
+type VehicleType = "bike" | "truck" | "cab";
+type ServiceType =
+  | "local_parcel"
+  | "intra_truck"
+  | "all_india_parcel"
+  | "cab_booking"
+  | "bike_ride"
+  | "packers_movers";
 
 const VALID_SERVICES: Record<VehicleType, ServiceType[]> = {
-  bike: ['local_parcel', 'bike_ride'],
-  truck: ['intra_truck', 'all_india_parcel', 'packers_movers'],
-  cab: ['cab_booking'],
+  bike: ["local_parcel", "bike_ride"],
+  truck: ["intra_truck", "all_india_parcel", "packers_movers"],
+  cab: ["cab_booking"],
 };
 
 const getVehicleSubTypes = (vehicleType: VehicleType): string[] => {
   switch (vehicleType) {
-    case 'bike':
-      return ['bike_standard'];
-    case 'cab':
-      return ['cab_sedan', 'cab_suv', 'cab_hatchback'];
-    case 'truck':
-      return ['truck_3wheeler', 'truck_mini_van', 'truck_pickup', 'truck_full_size'];
+    case "bike":
+      return ["bike_standard"];
+    case "cab":
+      return ["cab_sedan", "cab_suv", "cab_hatchback"];
+    case "truck":
+      return ["truck_3wheeler", "truck_mini_van", "truck_pickup", "truck_full_size"];
     default:
       return [];
   }
@@ -42,119 +46,82 @@ const getVehicleSubTypes = (vehicleType: VehicleType): string[] => {
 export default function CaptainAuthScreen() {
   const router = useRouter();
   const { loginCaptain, signupCaptain, token } = useAuth();
+
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   // Common fields
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
 
   // Signup fields
-  const [name, setName] = useState('');
-  const [city, setCity] = useState('');
-  const [vehicleType, setVehicleType] = useState<VehicleType>('bike');
-  const [vehicleSubType, setVehicleSubType] = useState<string>('');
+  const [name, setName] = useState("");
+  const [city, setCity] = useState("");
+  const [vehicleType, setVehicleType] = useState<VehicleType>("bike");
+  const [vehicleSubType, setVehicleSubType] = useState<string>("");
   const [servicesOffered, setServicesOffered] = useState<ServiceType[]>([]);
 
   const handleServiceToggle = (service: ServiceType) => {
-    setServicesOffered(prev => 
-      prev.includes(service) 
-        ? prev.filter(s => s !== service)
-        : [...prev, service]
+    setServicesOffered((prev) =>
+      prev.includes(service) ? prev.filter((s) => s !== service) : [...prev, service]
     );
   };
 
-  const handleSignup = async () => {
-    if (!name || !phone || !password || !city || !vehicleSubType || servicesOffered.length === 0) {
-      Alert.alert('Error', 'Please fill all required fields');
+  const handleLogin = async () => {
+    if (!phone || !password) {
+      setError("Please enter phone and password");
       return;
     }
 
     setLoading(true);
+    setError("");
     try {
-      console.log('Attempting signup with data:', {
-        name,
+      const captain = await loginCaptain({ email: phone, password });
+      if (token) {
+        setCaptainApiToken(token);
+        await connectSocket(token);
+      }
+      setSuccess("Login successful!");
+      router.replace("/captain/(tabs)/home");
+    } catch (e: any) {
+      console.error("Login error:", e);
+      setError(e.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignup = async () => {
+    if (!name || !phone || !password || !city || !vehicleSubType || !servicesOffered.length) {
+      setError("Please fill all required fields");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    try {
+      const captain = await signupCaptain({
+        fullName: name,
         phone,
-        password: '***',
+        password,
         vehicleType,
         vehicleSubType,
         servicesOffered,
         city,
       });
 
-      // Use AuthContext signupCaptain
-      const captain = await signupCaptain({
-        fullName: name,
-        phone,
-        password,
-        vehicleType,
-        vehicleSubType: vehicleSubType as any,
-        servicesOffered,
-        city,
-      });
-
-      console.log('Signup successful:', captain);
-      console.log('AuthContext state after signup:', { captain, token });
-
-      // Set API token for future requests
       if (token) {
         setCaptainApiToken(token);
-        console.log('API token set after signup');
-      }
-
-      // Connect socket after successful signup
-      if (token) {
         await connectSocket(token);
       }
 
-      // Navigate immediately without alert for faster UX
-      console.log('Signup successful, redirecting to dashboard...');
-      router.replace('/captain/(tabs)/home');
-    } catch (error: any) {
-      console.error('Signup error:', error);
-      Alert.alert('Error', error.message || 'Signup failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLogin = async () => {
-    if (!phone || !password) {
-      Alert.alert('Error', 'Please enter phone and password');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      console.log('Attempting login with phone:', phone);
-
-      // Use AuthContext loginCaptain
-      const captain = await loginCaptain({
-        email: phone, // AuthContext expects 'email' field but we're using phone
-        password,
-      });
-
-      console.log('Login successful:', captain);
-      console.log('AuthContext state after login:', { captain, token });
-
-      // Set API token for future requests
-      if (token) {
-        setCaptainApiToken(token);
-        console.log('API token set after login');
-      }
-
-      // Connect socket after successful login
-      if (token) {
-        await connectSocket(token);
-      }
-
-      // Navigate immediately without alert for faster UX
-      console.log('Login successful, redirecting to dashboard...');
-      router.replace('/captain/(tabs)/home');
-    } catch (error: any) {
-      console.error('Login error:', error);
-      Alert.alert('Error', error.message || 'Login failed');
+      setSuccess("Signup successful!");
+      router.replace("/captain/(tabs)/home");
+    } catch (e: any) {
+      console.error("Signup error:", e);
+      setError(e.message || "Signup failed");
     } finally {
       setLoading(false);
     }
@@ -162,375 +129,264 @@ export default function CaptainAuthScreen() {
 
   const handleRequestOtp = async () => {
     if (!phone) {
-      Alert.alert('Error', 'Please enter phone number');
+      Alert.alert("Error", "Please enter phone number");
       return;
     }
 
     setLoading(true);
     try {
       await captainAuthApi.requestOtp({ phone });
-      Alert.alert('Success', 'OTP sent to your phone', [
-        { text: 'OK', onPress: () => router.push('/captain/(auth)/verify-otp') }
+      Alert.alert("Success", "OTP sent to your phone", [
+        { text: "OK", onPress: () => router.push("/captain/(auth)/verify-otp") },
       ]);
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to send OTP');
+      Alert.alert("Error", error.response?.data?.message || "Failed to send OTP");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.centerContent}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Welcome, Captain</Text>
+    <View style={styles.container}>
+      <ScrollView
+        style={styles.card}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.title}>Welcome, Captain 👋</Text>
         <Text style={styles.subtitle}>
-          {isLogin ? 'Sign in to your account' : 'Create your captain account'}
+          {isLogin ? "Sign in to your account" : "Create your captain account"}
         </Text>
-      </View>
 
-      <View style={styles.toggleContainer}>
-        <Pressable
-          style={[styles.toggleButton, isLogin && styles.toggleButtonActive]}
-          onPress={() => setIsLogin(true)}
-        >
-          <Text style={[styles.toggleText, isLogin && styles.toggleTextActive]}>Login</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.toggleButton, !isLogin && styles.toggleButtonActive]}
-          onPress={() => setIsLogin(false)}
-        >
-          <Text style={[styles.toggleText, !isLogin && styles.toggleTextActive]}>Signup</Text>
-        </Pressable>
-      </View>
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {success ? <Text style={styles.success}>{success}</Text> : null}
 
-      <View style={styles.form}>
-        <TextInput
-          style={styles.input}
-          placeholder="Phone Number"
-          placeholderTextColor="#999"
-          value={phone}
-          onChangeText={setPhone}
-          keyboardType="phone-pad"
-        />
+        {/* Toggle Buttons */}
+        <View style={styles.toggleContainer}>
+          <TouchableOpacity
+            style={[styles.toggleBtn, isLogin && styles.activeBtn]}
+            onPress={() => setIsLogin(true)}
+          >
+            <Text style={[styles.toggleText, isLogin && styles.activeText]}>Login</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.toggleBtn, !isLogin && styles.activeBtn]}
+            onPress={() => setIsLogin(false)}
+          >
+            <Text style={[styles.toggleText, !isLogin && styles.activeText]}>Signup</Text>
+          </TouchableOpacity>
+        </View>
 
-        {!isLogin && (
+        {isLogin ? (
           <>
             <TextInput
               style={styles.input}
+              placeholder="Phone Number"
+              keyboardType="phone-pad"
+              value={phone}
+              onChangeText={setPhone}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+            />
+            <TouchableOpacity
+              style={styles.btnSecondary}
+              disabled={loading}
+              onPress={handleRequestOtp}
+            >
+              <Text style={styles.btnSecondaryText}>Login with OTP</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.btnPrimary}
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color={Colors.text} />
+              ) : (
+                <Text style={styles.btnText}>Sign In</Text>
+              )}
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
+            <TextInput
+              style={styles.input}
+              placeholder="Phone Number"
+              value={phone}
+              onChangeText={setPhone}
+            />
+            <TextInput
+              style={styles.input}
               placeholder="Full Name"
-              placeholderTextColor="#999"
               value={name}
               onChangeText={setName}
             />
-
             <TextInput
               style={styles.input}
               placeholder="City"
-              placeholderTextColor="#999"
               value={city}
               onChangeText={setCity}
             />
 
             <Text style={styles.label}>Vehicle Type</Text>
-            <View style={styles.vehicleTypeContainer}>
-              {(['bike', 'truck', 'cab'] as VehicleType[]).map((type) => (
-                <Pressable
+            <View style={styles.optionRow}>
+              {(["bike", "truck", "cab"] as VehicleType[]).map((type) => (
+                <TouchableOpacity
                   key={type}
-                  style={[
-                    styles.vehicleTypeButton,
-                    vehicleType === type && styles.vehicleTypeButtonActive
-                  ]}
+                  style={[styles.option, vehicleType === type && styles.optionActive]}
                   onPress={() => {
                     setVehicleType(type);
                     setServicesOffered([]);
+                    setVehicleSubType("");
                   }}
                 >
-                  <Text style={[
-                    styles.vehicleTypeText,
-                    vehicleType === type && styles.vehicleTypeTextActive
-                  ]}>
-                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  <Text style={vehicleType === type ? styles.optionTextActive : styles.optionText}>
+                    {type}
                   </Text>
-                </Pressable>
+                </TouchableOpacity>
               ))}
             </View>
 
-            <Text style={styles.label}>Vehicle Sub-Type</Text>
-            <View style={styles.vehicleSubTypeContainer}>
-              {getVehicleSubTypes(vehicleType).map((subType) => (
-                <Pressable
-                  key={subType}
-                  style={[
-                    styles.vehicleSubTypeButton,
-                    vehicleSubType === subType && styles.vehicleSubTypeButtonActive
-                  ]}
-                  onPress={() => setVehicleSubType(subType)}
+            <Text style={styles.label}>Vehicle Sub Type</Text>
+            <View style={styles.optionRow}>
+              {getVehicleSubTypes(vehicleType).map((sub) => (
+                <TouchableOpacity
+                  key={sub}
+                  style={[styles.option, vehicleSubType === sub && styles.optionActive]}
+                  onPress={() => setVehicleSubType(sub)}
                 >
-                  <Text style={[
-                    styles.vehicleSubTypeText,
-                    vehicleSubType === subType && styles.vehicleSubTypeTextActive
-                  ]}>
-                    {subType.replace(/_/g, ' ').toUpperCase()}
+                  <Text
+                    style={vehicleSubType === sub ? styles.optionTextActive : styles.optionText}
+                  >
+                    {sub.replace(/_/g, " ")}
                   </Text>
-                </Pressable>
+                </TouchableOpacity>
               ))}
             </View>
 
             <Text style={styles.label}>Services Offered</Text>
-            <View style={styles.servicesContainer}>
+            <View style={styles.optionRow}>
               {VALID_SERVICES[vehicleType].map((service) => (
-                <Pressable
+                <TouchableOpacity
                   key={service}
                   style={[
-                    styles.serviceButton,
-                    servicesOffered.includes(service) && styles.serviceButtonActive
+                    styles.option,
+                    servicesOffered.includes(service) && styles.optionActive,
                   ]}
                   onPress={() => handleServiceToggle(service)}
                 >
-                  <Text style={[
-                    styles.serviceText,
-                    servicesOffered.includes(service) && styles.serviceTextActive
-                  ]}>
-                    {service.replace(/_/g, ' ').toUpperCase()}
+                  <Text
+                    style={
+                      servicesOffered.includes(service)
+                        ? styles.optionTextActive
+                        : styles.optionText
+                    }
+                  >
+                    {service.replace(/_/g, " ")}
                   </Text>
-                </Pressable>
+                </TouchableOpacity>
               ))}
             </View>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+            />
+            <TouchableOpacity
+              style={styles.btnPrimary}
+              onPress={handleSignup}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color={Colors.text} />
+              ) : (
+                <Text style={styles.btnText}>Create Account</Text>
+              )}
+            </TouchableOpacity>
           </>
         )}
-
-        <View style={styles.passwordContainer}>
-          <TextInput
-            style={styles.passwordInput}
-            placeholder="Password"
-            placeholderTextColor="#999"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!showPassword}
-          />
-          <Pressable style={styles.eyeButton} onPress={() => setShowPassword(v => !v)}>
-            <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={20} color={Colors.mutedText} />
-          </Pressable>
-        </View>
-
-        {isLogin && (
-          <Pressable style={styles.otpButton} onPress={handleRequestOtp}>
-            <Text style={styles.otpButtonText}>Login with OTP</Text>
-          </Pressable>
-        )}
-
-        <Pressable
-          style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-          onPress={isLogin ? handleLogin : handleSignup}
-          disabled={loading}
-        >
-          <Text style={styles.submitButtonText}>
-            {loading ? 'Please wait...' : (isLogin ? 'Login' : 'Signup')}
-          </Text>
-        </Pressable>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  centerContent: {
+  container: { flex: 1, backgroundColor: Colors.background },
+  card: { flexGrow: 1 },
+  scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
-    paddingVertical: 24,
-  },
-  header: {
-    padding: 20,
-    alignItems: 'center',
+    justifyContent: "center",
+    padding: Spacing.lg,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 22,
+    fontWeight: "bold",
     color: Colors.text,
-    marginBottom: 8,
+    textAlign: "center",
+    marginBottom: Spacing.xs,
   },
   subtitle: {
-    fontSize: 16,
     color: Colors.mutedText,
+    textAlign: "center",
+    marginBottom: Spacing.lg,
+  },
+  error: { color: Colors.danger, textAlign: "center", marginBottom: Spacing.sm },
+  success: { color: Colors.primary, textAlign: "center", marginBottom: Spacing.sm },
+  input: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    padding: Spacing.sm,
+    fontSize: 14,
+    marginBottom: Spacing.md,
+    backgroundColor: Colors.card,
+    color: Colors.text,
   },
   toggleContainer: {
-    flexDirection: 'row',
-    marginHorizontal: 20,
-    marginBottom: 30,
+    flexDirection: "row",
+    marginBottom: Spacing.md,
+    borderRadius: Radius.sm,
     backgroundColor: Colors.card,
-    borderRadius: 16,
-    padding: 6,
-    borderWidth: 1.25,
+  },
+  toggleBtn: { flex: 1, padding: Spacing.sm, alignItems: "center", borderRadius: Radius.sm },
+  toggleText: { color: Colors.mutedText, fontWeight: "600" },
+  activeBtn: { backgroundColor: Colors.primary },
+  activeText: { color: Colors.text },
+  label: { marginTop: Spacing.sm, fontWeight: "600", color: Colors.mutedText },
+  optionRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 6 },
+  option: {
+    borderWidth: 1,
     borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    margin: 4,
   },
-  toggleButton: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderRadius: 12,
-  },
-  toggleButtonActive: {
+  optionActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  optionText: { color: Colors.mutedText, fontSize: 12 },
+  optionTextActive: { color: Colors.text, fontSize: 12 },
+  btnPrimary: {
     backgroundColor: Colors.primary,
+    borderRadius: Radius.sm,
+    padding: Spacing.md,
+    alignItems: "center",
+    marginTop: Spacing.sm,
   },
-  toggleText: {
-    color: Colors.mutedText,
-    fontWeight: '600',
-  },
-  toggleTextActive: {
-    color: Colors.text,
-  },
-  form: {
-    paddingHorizontal: 20,
-  },
-  input: {
+  btnText: { color: Colors.text, fontWeight: "600" },
+  btnSecondary: {
     backgroundColor: Colors.card,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    color: Colors.text,
-    fontSize: 16,
-    marginBottom: 16,
-    borderWidth: 1.25,
-    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    padding: Spacing.md,
+    alignItems: "center",
+    marginVertical: Spacing.xs,
   },
-  passwordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.card,
-    borderRadius: 14,
-    paddingHorizontal: 0,
-    paddingVertical: 0,
-    borderWidth: 1.25,
-    borderColor: Colors.border,
-    marginBottom: 16,
-  },
-  passwordInput: {
-    flex: 1,
-    color: Colors.text,
-    fontSize: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-  },
-  eyeButton: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    height: 44,
-  },
-  eyeText: {
-    fontSize: 16,
-  },
-  label: {
-    color: Colors.text,
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  vehicleTypeContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    gap: 12,
-  },
-  vehicleTypeButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: Colors.card,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 1.25,
-    borderColor: Colors.border,
-  },
-  vehicleTypeButtonActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  vehicleTypeText: {
-    color: Colors.mutedText,
-    fontWeight: '600',
-  },
-  vehicleTypeTextActive: {
-    color: Colors.text,
-  },
-  vehicleSubTypeContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
-  },
-  vehicleSubTypeButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: Colors.card,
-    borderRadius: 10,
-    borderWidth: 1.25,
-    borderColor: Colors.border,
-  },
-  vehicleSubTypeButtonActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  vehicleSubTypeText: {
-    color: Colors.mutedText,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  vehicleSubTypeTextActive: {
-    color: Colors.text,
-  },
-  servicesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
-  },
-  serviceButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: Colors.card,
-    borderRadius: 10,
-    borderWidth: 1.25,
-    borderColor: Colors.border,
-  },
-  serviceButtonActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  serviceText: {
-    color: Colors.mutedText,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  serviceTextActive: {
-    color: Colors.text,
-  },
-  otpButton: {
-    alignSelf: 'flex-end',
-    marginBottom: 16,
-  },
-  otpButtonText: {
-    color: Colors.primary,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  submitButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  submitButtonDisabled: {
-    opacity: 0.6,
-  },
-  submitButtonText: {
-    color: Colors.text,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  btnSecondaryText: { color: Colors.mutedText, fontWeight: "600" },
 });
-
