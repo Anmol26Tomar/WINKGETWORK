@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect /*, useMemo*/ } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { captainTripApi } from '../lib/api';
@@ -16,11 +16,14 @@ export default function EarningsScreen() {
   });
   const [walletBalance, setWalletBalance] = useState(0);
   const [transfersLeft, setTransfersLeft] = useState(3);
-  const [transactions, setTransactions] = useState([]);
+
+  // 🟡 Transaction history (commented out)
+  // const [transactions, setTransactions] = useState([]);
+  // const [historyPeriod, setHistoryPeriod] = useState<'today' | 'week' | 'month' | 'total'>('week');
+  // const [showFilterHistory, setShowFilterHistory] = useState(false);
+
   const [summaryPeriod, setSummaryPeriod] = useState<'today' | 'week' | 'month' | 'total'>('week');
-  const [historyPeriod, setHistoryPeriod] = useState<'today' | 'week' | 'month' | 'total'>('week');
   const [showFilterSummary, setShowFilterSummary] = useState(false);
-  const [showFilterHistory, setShowFilterHistory] = useState(false);
 
   useEffect(() => {
     fetchEarnings();
@@ -42,11 +45,11 @@ export default function EarningsScreen() {
         setTransfersLeft(balanceResponse.data.transfersLeft);
       }
       
-      // Fetch transaction history
-      const transactionsResponse = await captainTripApi.getTransactions();
-      if (transactionsResponse.data) {
-        setTransactions(transactionsResponse.data);
-      }
+      // 🟡 Commented out: transaction history fetch
+      // const transactionsResponse = await captainTripApi.getTransactions();
+      // if (transactionsResponse.data) {
+      //   setTransactions(transactionsResponse.data);
+      // }
     } catch (error) {
       console.error('Error fetching earnings:', error);
       // Use default values if API fails
@@ -63,28 +66,29 @@ export default function EarningsScreen() {
     }
   };
 
-  const filteredTransactions = useMemo(() => {
-    if (!transactions || transactions.length === 0) return [];
-    const now = new Date();
-    const start = new Date();
-    if (historyPeriod === 'today') {
-      start.setHours(0, 0, 0, 0);
-    } else if (historyPeriod === 'week') {
-      const day = now.getDay();
-      const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Monday as start
-      start.setDate(diff);
-      start.setHours(0, 0, 0, 0);
-    } else if (historyPeriod === 'month') {
-      start.setDate(1);
-      start.setHours(0, 0, 0, 0);
-    } else {
-      start.setTime(0);
-    }
-    return transactions.filter((t: any) => {
-      const d = new Date(t.date);
-      return d >= start && d <= now;
-    });
-  }, [transactions, historyPeriod]);
+  // 🟡 Commented out: filtered transactions logic
+  // const filteredTransactions = useMemo(() => {
+  //   if (!transactions || transactions.length === 0) return [];
+  //   const now = new Date();
+  //   const start = new Date();
+  //   if (historyPeriod === 'today') {
+  //     start.setHours(0, 0, 0, 0);
+  //   } else if (historyPeriod === 'week') {
+  //     const day = now.getDay();
+  //     const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+  //     start.setDate(diff);
+  //     start.setHours(0, 0, 0, 0);
+  //   } else if (historyPeriod === 'month') {
+  //     start.setDate(1);
+  //     start.setHours(0, 0, 0, 0);
+  //   } else {
+  //     start.setTime(0);
+  //   }
+  //   return transactions.filter((t: any) => {
+  //     const d = new Date(t.date);
+  //     return d >= start && d <= now;
+  //   });
+  // }, [transactions, historyPeriod]);
 
   if (loading) {
     return (
@@ -108,16 +112,43 @@ export default function EarningsScreen() {
             <Text style={styles.summaryTitle}>Earnings Summary</Text>
             <View style={styles.filterAnchor}>
               <Pressable style={styles.filterButton} onPress={() => setShowFilterSummary(v => !v)}>
-              <Text style={styles.filterButtonText}>
-                {summaryPeriod === 'today' ? 'Today' : summaryPeriod === 'week' ? 'This Week' : summaryPeriod === 'month' ? 'This Month' : 'All Time'} ▾
-              </Text>
+                <Text style={styles.filterButtonText}>
+                  {summaryPeriod === 'today'
+                    ? 'Today'
+                    : summaryPeriod === 'week'
+                    ? 'This Week'
+                    : summaryPeriod === 'month'
+                    ? 'This Month'
+                    : 'All Time'} ▾
+                </Text>
               </Pressable>
               {showFilterSummary && (
                 <View style={styles.dropdownMenu}>
-              {(['today','week','month','total'] as const).map(p => (
-                    <Pressable key={p} style={[styles.filterMenuItem, summaryPeriod === p && styles.filterMenuItemActive]} onPress={() => { setSummaryPeriod(p); setShowFilterSummary(false); }}>
-                      <Text style={[styles.filterMenuItemText, summaryPeriod === p && styles.filterMenuItemTextActive]}>
-                    {p === 'today' ? 'Today' : p === 'week' ? 'This Week' : p === 'month' ? 'This Month' : 'All Time'}
+                  {(['today', 'week', 'month', 'total'] as const).map(p => (
+                    <Pressable
+                      key={p}
+                      style={[
+                        styles.filterMenuItem,
+                        summaryPeriod === p && styles.filterMenuItemActive
+                      ]}
+                      onPress={() => {
+                        setSummaryPeriod(p);
+                        setShowFilterSummary(false);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.filterMenuItemText,
+                          summaryPeriod === p && styles.filterMenuItemTextActive
+                        ]}
+                      >
+                        {p === 'today'
+                          ? 'Today'
+                          : p === 'week'
+                          ? 'This Week'
+                          : p === 'month'
+                          ? 'This Month'
+                          : 'All Time'}
                       </Text>
                     </Pressable>
                   ))}
@@ -125,31 +156,55 @@ export default function EarningsScreen() {
               )}
             </View>
           </View>
+
           <View style={styles.summaryContent}>
             <Text style={styles.summaryAmount}>
-              ₹{(summaryPeriod === 'today' ? earnings.today : summaryPeriod === 'week' ? earnings.week : summaryPeriod === 'month' ? earnings.month : earnings.total).toFixed(2)}
+              ₹
+              {(
+                summaryPeriod === 'today'
+                  ? earnings.today
+                  : summaryPeriod === 'week'
+                  ? earnings.week
+                  : summaryPeriod === 'month'
+                  ? earnings.month
+                  : earnings.total
+              ).toFixed(2)}
             </Text>
             <Text style={styles.summarySubtext}>
-              {summaryPeriod === 'today' ? 'Today' : summaryPeriod === 'week' ? 'This Week' : summaryPeriod === 'month' ? 'This Month' : 'All Time'} earnings
+              {summaryPeriod === 'today'
+                ? 'Today'
+                : summaryPeriod === 'week'
+                ? 'This Week'
+                : summaryPeriod === 'month'
+                ? 'This Month'
+                : 'All Time'}{' '}
+              earnings
             </Text>
           </View>
         </View>
 
+        {/* 🟡 Transaction History section commented out
         <View style={styles.historyCard}>
           <View style={styles.historyHeader}>
             <Text style={styles.historyTitle}>Transaction History</Text>
             <View style={styles.filterAnchor}>
-            <Pressable style={styles.filterButton} onPress={() => setShowFilterHistory(v => !v)}>
-              <Text style={styles.filterButtonText}>
-                {historyPeriod === 'today' ? 'Today' : historyPeriod === 'week' ? 'This Week' : historyPeriod === 'month' ? 'This Month' : 'All Time'} ▾
-              </Text>
+              <Pressable style={styles.filterButton} onPress={() => setShowFilterHistory(v => !v)}>
+                <Text style={styles.filterButtonText}>
+                  {historyPeriod === 'today'
+                    ? 'Today'
+                    : historyPeriod === 'week'
+                    ? 'This Week'
+                    : historyPeriod === 'month'
+                    ? 'This Month'
+                    : 'All Time'} ▾
+                </Text>
               </Pressable>
               {showFilterHistory && (
                 <View style={styles.dropdownMenu}>
-                {(['today','week','month','total'] as const).map(p => (
-                  <Pressable key={p} style={[styles.filterMenuItem, historyPeriod === p && styles.filterMenuItemActive]} onPress={() => { setHistoryPeriod(p); setShowFilterHistory(false); }}>
-                    <Text style={[styles.filterMenuItemText, historyPeriod === p && styles.filterMenuItemTextActive]}>
-                      {p === 'today' ? 'Today' : p === 'week' ? 'This Week' : p === 'month' ? 'This Month' : 'All Time'}
+                  {(['today','week','month','total'] as const).map(p => (
+                    <Pressable key={p} style={[styles.filterMenuItem, historyPeriod === p && styles.filterMenuItemActive]} onPress={() => { setHistoryPeriod(p); setShowFilterHistory(false); }}>
+                      <Text style={[styles.filterMenuItemText, historyPeriod === p && styles.filterMenuItemTextActive]}>
+                        {p === 'today' ? 'Today' : p === 'week' ? 'This Week' : p === 'month' ? 'This Month' : 'All Time'}
                       </Text>
                     </Pressable>
                   ))}
@@ -177,6 +232,7 @@ export default function EarningsScreen() {
             </View>
           )}
         </View>
+        */}
       </ScrollView>
     </View>
   );

@@ -10,18 +10,27 @@ const http = require("http").createServer(app);
 const { Server } = require("socket.io");
 const { setIO } = require("./WinkgetExpress/utils/socket");
 const PORT = process.env.SERVER_PORT || 5000;
-console.log('dabsv',PORT);
-const SERVER_IP = process.env.SERVER_IP || 'localhost';
+console.log("dabsv", PORT);
+const SERVER_IP = process.env.SERVER_IP || "localhost";
 
 // Configure CORS to allow credentials
-const corsOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001','*'];
-app.use(cors({
-  origin: corsOrigins,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  exposedHeaders: ['Set-Cookie']
-}));
+const corsOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(",")
+  : [
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "*",
+    ];
+app.use(
+  cors({
+    origin: corsOrigins,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    exposedHeaders: ["Set-Cookie"],
+  })
+);
 app.use(express.json());
 
 connectDB();
@@ -63,7 +72,10 @@ app.use("/api/auth", require("./WinkgetExpress/routes/auth"));
 app.use("/api/parcels", require("./WinkgetExpress/routes/parcelRoutes"));
 app.use("/api/transport", require("./WinkgetExpress/routes/transportRoutes"));
 app.use("/api/packers", require("./WinkgetExpress/routes/packersMoveRoutes"));
-app.use("/api/captain-matching", require("./WinkgetExpress/routes/captainMatching"));
+app.use(
+  "/api/captain-matching",
+  require("./WinkgetExpress/routes/captainMatching")
+);
 
 // Winkget Business APIs
 app.use("/api/business/auth", require("./WinkgetBusiness/routes/auth"));
@@ -77,9 +89,18 @@ app.use(
 );
 
 // Captain routing
-app.use("/api/v1/captain/auth", require("./WinkgetExpress/captain/routes/captain.auth.routes"));
-app.use("/api/v1/captain/trips", require("./WinkgetExpress/captain/routes/captain.trip.routes"));
-app.use("/api/v1/captain", require("./WinkgetExpress/captain/routes/captain.misc.routes"));
+app.use(
+  "/api/v1/captain/auth",
+  require("./WinkgetExpress/captain/routes/captain.auth.routes")
+);
+app.use(
+  "/api/v1/captain/trips",
+  require("./WinkgetExpress/captain/routes/captain.trip.routes")
+);
+app.use(
+  "/api/v1/captain",
+  require("./WinkgetExpress/captain/routes/captain.misc.routes")
+);
 
 app.use("/api/auth/agent", agentRoutes);
 app.use("/api/agents", require("./WinkgetExpress/routes/agents"));
@@ -88,12 +109,16 @@ app.use("/api/auth/admin", adminAuthRoutes);
 
 // express admin routing
 
-const io = new Server(http, { cors: { origin: process.env.SOCKET_CORS_ORIGIN || "*" } });
+const io = new Server(http, {
+  cors: { origin: process.env.SOCKET_CORS_ORIGIN || "*" },
+});
 setIO(io);
 
 // Initialize captain sockets
 try {
-  const { initCaptainSockets } = require("./WinkgetExpress/captain/sockets/captain.socket");
+  const {
+    initCaptainSockets,
+  } = require("./WinkgetExpress/captain/sockets/captain.socket");
   initCaptainSockets(io);
   console.log("Captain sockets initialized successfully");
 } catch (error) {
@@ -132,4 +157,6 @@ io.on("connection", (socket) => {
   });
 });
 
-http.listen(PORT, SERVER_IP, () => console.log(`Server running on ${SERVER_IP}:${PORT}`));
+http.listen(PORT, SERVER_IP, () =>
+  console.log(`Server running on ${SERVER_IP}:${PORT}`)
+);

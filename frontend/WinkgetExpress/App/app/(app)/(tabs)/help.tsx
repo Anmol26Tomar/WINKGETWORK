@@ -1,308 +1,353 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  ScrollView, 
+  Pressable, 
+  ActivityIndicator, 
+  SafeAreaView, // Import SafeAreaView
+  TextInput // Import TextInput
+} from 'react-native';
 import { useAuth } from '@/context/AuthContext';
-import { Colors } from '@/constants/colors';
+// import { Colors } from '@/constants/colors'; // No longer used
 import { captainTripApi } from '../lib/api';
+import { Feather } from '@expo/vector-icons'; // Import icons
+
+/* -------------------- THEME -------------------- */
+const THEME = {
+  primary: '#10B981',
+  accent: '#ECFDF5',
+  textDark: '#065F46',
+  text: '#1F2937',
+  textMuted: '#6B7280',
+  background: '#F9FAFB',
+  border: '#E5E7EB',
+  white: '#FFFFFF',
+  // Re-add other colors from your theme as needed
+  danger: '#DC2626',
+  blue: '#2563EB',
+  purple: '#7C3AED',
+  orange: '#F59E0B',
+};
+
+// Define icon mapping
+const faqIconMap: { [key: string]: React.ComponentProps<typeof Feather>['name'] } = {
+  'General FAQs': 'help-circle',
+  'App Issues': 'smartphone',
+  'Earnings & Payments': 'dollar-sign',
+  'Trip Management': 'map-pin',
+  'Profile & Documents': 'file-text',
+  'Contact Support': 'message-square',
+};
+
+const faqColorMap: { [key: string]: string } = {
+  'General FAQs': THEME.blue,
+  'App Issues': THEME.danger,
+  'Earnings & Payments': THEME.primary,
+  'Trip Management': THEME.orange,
+  'Profile & Documents': THEME.textDark,
+  'Contact Support': THEME.purple,
+};
+
 
 export default function HelpScreen() {
-  const { captain } = useAuth();
-  const [profileData, setProfileData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { captain } = useAuth();
+  const [profileData, setProfileData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const response = await captainTripApi.getProfile();
-        if (response?.data) {
-          setProfileData(response.data);
-        }
-      } catch (error) {
-        console.warn('Failed to fetch profile:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProfile();
-  }, []);
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await captainTripApi.getProfile();
+        if (response?.data) {
+          setProfileData(response.data);
+        }
+      } catch (error) {
+        console.warn('Failed to fetch profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
 
-  const faqCategories = [
-    {
-      icon: '❓',
-      title: 'General FAQs',
-      description: 'Basic information about Winkget Express',
-      color: '#86CB92',
-    },
-    {
-      icon: '📱',
-      title: 'App Issues',
-      description: 'Troubleshooting app problems',
-      color: '#F44336',
-    },
-    {
-      icon: '💰',
-      title: 'Earnings & Payments',
-      description: 'Payment, rates, and incentives',
-      color: '#4CAF50',
-    },
-    {
-      icon: '📦',
-      title: 'Trip Management',
-      description: 'Accepting, completing, and managing trips',
-      color: '#2196F3',
-    },
-    {
-      icon: '📄',
-      title: 'Profile & Documents',
-      description: 'Profile updates and document verification',
-      color: '#86CB92',
-    },
-    {
-      icon: '💬',
-      title: 'Contact Support',
-      description: 'Get help from our support team',
-      color: '#9C27B0',
-    },
-  ];
+  const faqCategories = [
+    {
+      title: 'General FAQs',
+      description: 'Basic information about Winkget Express',
+    },
+    {
+      title: 'App Issues',
+      description: 'Troubleshooting app problems',
+    },
+    {
+      title: 'Earnings & Payments',
+      description: 'Payment, rates, and incentives',
+    },
+    {
+      title: 'Trip Management',
+      description: 'Accepting, completing, and managing trips',
+    },
+    {
+      title: 'Profile & Documents',
+      description: 'Profile updates and document verification',
+    },
+    {
+      title: 'Contact Support',
+      description: 'Get help from our support team',
+    },
+  ];
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Help & Support</Text>
-        <Pressable style={styles.ticketButton}>
-          <Text style={styles.ticketIcon}>🎧</Text>
-          <Text style={styles.ticketText}>Ticket</Text>
-        </Pressable>
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={THEME.primary} />
       </View>
+    );
+  }
 
-      {/* User Profile Card */}
-      <View style={styles.profileCard}>
-        <View style={styles.profileAvatar}>
-          <Text style={styles.profileInitial}>{(profileData?.name || captain?.name || 'C')?.[0] || 'C'}</Text>
-        </View>
-        <View style={styles.profileInfo}>
-          <Text style={styles.profileName}>{profileData?.name || captain?.name || 'Captain'}</Text>
-          <Text style={styles.profileDetails}>
-            {(profileData?.vehicleType || captain?.vehicleType || 'UNKNOWN')?.toUpperCase()} • {profileData?.city || captain?.city || 'Unknown'}
-          </Text>
-          <View style={styles.profileContact}>
-            <Text style={styles.contactIcon}>📞</Text>
-            <Text style={styles.contactNumber}>{profileData?.phone || captain?.phone || 'N/A'}</Text>
-          </View>
-        </View>
-      </View>
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView>
+        <View style={styles.header}>
+          <Text style={styles.title}>Help & Support</Text>
+          <Pressable style={styles.ticketButton}>
+            <Feather name="message-square" size={16} color={THEME.white} />
+            <Text style={styles.ticketText}>My Tickets</Text>
+          </Pressable>
+        </View>
 
-      {/* Search Bar */}
-      <View style={styles.searchBar}>
-        <Text style={styles.searchIcon}>🔍</Text>
-        <Text style={styles.searchPlaceholder}>Search your queries</Text>
-      </View>
+        {/* User Profile Card */}
+        <View style={styles.profileCard}>
+          <View style={styles.profileAvatar}>
+            <Text style={styles.profileInitial}>{(profileData?.name || captain?.name || 'C')?.[0] || 'C'}</Text>
+          </View>
+          <View style={styles.profileInfo}>
+            <Text style={styles.profileName}>{profileData?.name || captain?.name || 'Captain'}</Text>
+            <Text style={styles.profileDetails}>
+              {(profileData?.vehicleType || 'UNKNOWN')?.toUpperCase()} • {profileData?.city || 'Unknown'}
+            </Text>
+            <View style={styles.profileContact}>
+              <Feather name="phone" size={14} color={THEME.textMuted} />
+              <Text style={styles.contactNumber}>{profileData?.phone || captain?.phone || 'N/A'}</Text>
+            </View>
+          </View>
+        </View>
 
-      {/* FAQs Section */}
-      <View style={styles.faqsSection}>
-        <Text style={styles.faqsTitle}>FAQs</Text>
-        <Text style={styles.faqsSubtitle}>Find answers to common questions</Text>
+        {/* Search Bar */}
+        <View style={styles.searchBar}>
+          <Feather name="search" size={20} color={THEME.textMuted} />
+          <TextInput 
+            style={styles.searchPlaceholder} 
+            placeholder="Search your queries"
+            placeholderTextColor={THEME.textMuted}
+          />
+        </View>
 
-        <ScrollView style={styles.faqsList}>
-          {faqCategories.map((faq, index) => (
-            <Pressable key={index} style={styles.faqCard}>
-              <View style={[styles.faqIconContainer, { backgroundColor: faq.color + '20' }]}>
-                <Text style={styles.faqIcon}>{faq.icon}</Text>
-              </View>
-              <View style={styles.faqContent}>
-                <Text style={styles.faqTitle}>{faq.title}</Text>
-                <Text style={styles.faqDescription}>{faq.description}</Text>
-              </View>
-              <Text style={styles.faqArrow}>›</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      </View>
-    </View>
-  );
+        {/* FAQs Section */}
+        <View style={styles.faqsSection}>
+          <Text style={styles.faqsTitle}>FAQs</Text>
+          <Text style={styles.faqsSubtitle}>Find answers to common questions</Text>
+
+          <View style={styles.faqsList}>
+            {faqCategories.map((faq, index) => {
+              const iconName = faqIconMap[faq.title] || 'help-circle';
+              const iconColor = faqColorMap[faq.title] || THEME.primary;
+              return (
+                <Pressable key={index} style={styles.faqCard}>
+                  <View style={[styles.faqIconContainer, { backgroundColor: iconColor + '1A' }]}>
+                    <Feather name={iconName} size={22} color={iconColor} />
+                  </View>
+                  <View style={styles.faqContent}>
+                    <Text style={styles.faqTitle}>{faq.title}</Text>
+                    <Text style={styles.faqDescription}>{faq.description}</Text>
+                  </View>
+                  <Feather name="chevron-right" size={22} color={THEME.textMuted} />
+                </Pressable>
+              )
+            })}
+            </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  container: {
+    flex: 1,
+    backgroundColor: THEME.background,
+  },
+  loadingContainer: {
     flex: 1,
-    backgroundColor: Colors.background,
-    paddingTop: 60,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    paddingTop: 0,
-    backgroundColor: Colors.background,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: Colors.text,
-  },
-  ticketButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  ticketIcon: {
-    fontSize: 16,
-    marginRight: 4,
-  },
-  ticketText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  profileCard: {
-    flexDirection: 'row',
-    backgroundColor: Colors.card,
-    margin: 20,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1.25,
-    borderColor: Colors.border,
-    shadowColor: Colors.shadow,
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  profileAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    backgroundColor: THEME.background,
   },
-  profileInitial: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  profileInfo: {
-    flex: 1,
-  },
-  profileName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.text,
-    marginBottom: 4,
-  },
-  profileDetails: {
-    fontSize: 14,
-    color: Colors.mutedText,
-    marginBottom: 8,
-  },
-  profileContact: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  contactIcon: {
-    fontSize: 16,
-    marginRight: 8,
-  },
-  contactNumber: {
-    fontSize: 14,
-    color: Colors.text,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.card,
-    marginHorizontal: 20,
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 20,
-    borderWidth: 1.25,
-    borderColor: Colors.border,
-    shadowColor: Colors.shadow,
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  searchIcon: {
-    fontSize: 20,
-    marginRight: 12,
-  },
-  searchPlaceholder: {
-    fontSize: 16,
-    color: Colors.mutedText,
-  },
-  faqsSection: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  faqsTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: Colors.text,
-    marginBottom: 4,
-  },
-  faqsSubtitle: {
-    fontSize: 14,
-    color: Colors.mutedText,
-    marginBottom: 16,
-  },
-  faqsList: {
-    flex: 1,
-  },
-  faqCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.card,
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 12,
-    borderWidth: 1.25,
-    borderColor: Colors.border,
-    shadowColor: Colors.shadow,
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  faqIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20, // Replaced hardcoded 60 with SafeArea
+    paddingBottom: 16,
+    backgroundColor: THEME.background,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '800', // Bolder
+    color: THEME.text,
+  },
+  ticketButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: THEME.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12, // Softer radius
+    gap: 8,
+  },
+  ticketText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: THEME.white,
+  },
+  profileCard: {
+    flexDirection: 'row',
+    backgroundColor: THEME.white,
+    marginHorizontal: 20,
+    marginTop: 0,
+    marginBottom: 24,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: THEME.border,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  profileAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: THEME.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  profileInitial: {
+    fontSize: 28,
+    fontWeight: '600',
+    color: THEME.white,
+  },
+  profileInfo: {
+    flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  faqIcon: {
-    fontSize: 24,
-  },
-  faqContent: {
+  },
+  profileName: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: THEME.text,
+    marginBottom: 4,
+  },
+  profileDetails: {
+    fontSize: 14,
+    color: THEME.textMuted,
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  profileContact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  contactNumber: {
+    fontSize: 14,
+    color: THEME.text,
+    fontWeight: '500',
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: THEME.white,
+    marginHorizontal: 20,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: THEME.border,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 3,
+    gap: 12,
+  },
+  searchPlaceholder: {
     flex: 1,
-  },
-  faqTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
-    marginBottom: 4,
-  },
-  faqDescription: {
-    fontSize: 14,
-    color: Colors.mutedText,
-  },
-  faqArrow: {
-    fontSize: 24,
-    color: Colors.mutedText,
-  },
+    paddingVertical: 16,
+    fontSize: 16,
+    color: THEME.textMuted,
+  },
+  faqsSection: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  faqsTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: THEME.text,
+    marginBottom: 4,
+  },
+  faqsSubtitle: {
+    fontSize: 16,
+    color: THEME.textMuted,
+    marginBottom: 20,
+  },
+  faqsList: {
+    flex: 1,
+  },
+  faqCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: THEME.white,
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: THEME.border,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  faqIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  faqIcon: { // This style is no longer used, kept for posterity
+    fontSize: 24,
+  },
+  faqContent: {
+    flex: 1,
+  },
+  faqTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: THEME.text,
+    marginBottom: 4,
+  },
+  faqDescription: {
+    fontSize: 14,
+    color: THEME.textMuted,
+  },
 });
