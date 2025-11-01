@@ -2,8 +2,10 @@ import { io, Socket } from 'socket.io-client';
 import * as SecureStore from 'expo-secure-store';
 import { API_CONFIG } from '../config/api';
 
-const API_BASE = process.env.EXPO_PUBLIC_API_BASE || API_CONFIG.BASE_URL;
+import { EXPO_PUBLIC_API_BASE} from '@env';
 
+
+const API_BASE = EXPO_PUBLIC_API_BASE || API_CONFIG.BASE_URL;
 // Get socket URL - preserve user's protocol choice
 const getSocketUrl = () => {
   if (API_BASE.startsWith('http://') || API_BASE.startsWith('https://')) {

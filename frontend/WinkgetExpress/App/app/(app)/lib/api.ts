@@ -2,7 +2,10 @@ import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { API_CONFIG } from '../config/api';
 
-const API_BASE = process.env.EXPO_PUBLIC_API_BASE || API_CONFIG.BASE_URL;
+import { EXPO_PUBLIC_API_BASE} from '@env';
+
+
+const API_BASE = EXPO_PUBLIC_API_BASE || API_CONFIG.BASE_URL;
 
 // Create axios instance for captain API
 export const captainApi = axios.create({
