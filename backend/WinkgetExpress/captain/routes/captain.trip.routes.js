@@ -1,6 +1,7 @@
 const express = require('express');
 const { protectCaptain } = require('../middleware/auth.middleware');
 const {
+  listAllTrips,
   listNearbyTrips,
   acceptTrip,
   reachedPickup,
@@ -13,7 +14,8 @@ const router = express.Router();
 
 // Apply authentication middleware to all routes
 router.use(protectCaptain);
-
+// Get/api/v1/captain/all-trips
+router.get('/all-trips',listAllTrips);
 // GET /api/v1/captain/trips/nearby-trips
 router.get('/nearby-trips', listNearbyTrips);
 

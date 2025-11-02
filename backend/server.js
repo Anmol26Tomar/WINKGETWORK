@@ -35,7 +35,7 @@ app.use(express.json());
 
 connectDB();
 
-const agentRoutes = require("./WinkgetExpress/routes/agent");
+const agentRoutes = require("./WinkgetExpress/captain/routes/captain.auth.routes");
 
 app.get("/health", (req, res) => res.json({ status: "ok" }));
 
@@ -104,7 +104,6 @@ app.use(
 
 app.use("/api/auth/agent", agentRoutes);
 app.use("/api/agents", require("./WinkgetExpress/routes/agents"));
-app.use("/api/agent", require("./WinkgetExpress/routes/agent"));
 app.use("/api/auth/admin", adminAuthRoutes);
 
 // express admin routing

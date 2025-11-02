@@ -6,11 +6,12 @@ import {
   ScrollView, 
   Pressable, 
   ActivityIndicator, 
-  SafeAreaView, // Import SafeAreaView
+   // Import SafeAreaView
   TextInput // Import TextInput
+
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/context/AuthContext';
-// import { Colors } from '@/constants/colors'; // No longer used
 import { captainTripApi } from '../lib/api';
 import { Feather } from '@expo/vector-icons'; // Import icons
 
@@ -23,8 +24,7 @@ const THEME = {
   textMuted: '#6B7280',
   background: '#F9FAFB',
   border: '#E5E7EB',
-  white: '#FFFFFF',
-  // Re-add other colors from your theme as needed
+  white: '#FFFFFF',
   danger: '#DC2626',
   blue: '#2563EB',
   purple: '#7C3AED',
@@ -190,13 +190,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 20, // Replaced hardcoded 60 with SafeArea
-    paddingBottom: 16,
+    // ✅ FIX: Replaced hardcoded paddingTop with vertical padding
+    paddingVertical: 16, 
     backgroundColor: THEME.background,
   },
   title: {
     fontSize: 28,
-    fontWeight: '800', // Bolder
+    fontWeight: '800',
     color: THEME.text,
   },
   ticketButton: {
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.primary,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 12, // Softer radius
+    borderRadius: 12,
     gap: 8,
   },
   ticketText: {
@@ -333,9 +333,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
-  },
-  faqIcon: { // This style is no longer used, kept for posterity
-    fontSize: 24,
   },
   faqContent: {
     flex: 1,

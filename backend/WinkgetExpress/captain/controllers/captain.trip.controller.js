@@ -4,6 +4,72 @@ const PackersMove = require('../../models/PackersMove');
 const { Trip } = require('../models/Trip.model');
 const { generateOtp, hashOtp, verifyOtp } = require('../utils/otp.helpers');
 
+const listAllTrips = async (req, res) => {
+  try {
+    const captainId = req.captain?._id;
+
+    if (!captainId) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Captain not authenticated' 
+      });
+    }
+
+    // --- 1. Define the simple filter ---
+    // Just filter by the captain's ID
+    const captainQuery = {
+      captainRef: captainId
+    };
+
+    // --- 2. Query All Models ---
+    // Fetch all trips from all collections that match the captain's ID
+    const [transportTrips, parcelTrips, packersTrips] = await Promise.all([
+      Transport.find(captainQuery).lean(), // .lean() for faster read-only queries
+      Parcel.find(captainQuery).lean(),
+      PackersMove.find(captainQuery).lean()
+    ]);
+
+    // --- 3. Format and Merge ---
+    // Standardize the output format for the app
+    const formatTrip = (trip, tripType) => ({
+      _id: trip._id,
+      type: tripType,
+      pickupLocation: trip.pickup,
+      dropoffLocation: trip.destination || trip.delivery, // Standardize field name
+      fare: trip.fareEstimate || trip.fare || 0,
+      status: trip.status,
+      createdAt: trip.createdAt,
+      passengerName: trip.passengerName || trip.receiverName || 'N/A', 
+    });
+
+    const allTrips = [
+      ...transportTrips.map(t => formatTrip(t, 'transport')),
+      ...parcelTrips.map(t => formatTrip(t, 'parcel')),
+      ...packersTrips.map(t => formatTrip(t, 'packers')),
+    ];
+
+    // --- 4. Sort by Date ---
+    // Sorting by newest first is good practice for a trip list
+    const sortedTrips = allTrips.sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    // --- 5. Send Response ---
+    res.json({
+      success: true,
+      total: sortedTrips.length,
+      data: sortedTrips, // Send the full list
+    });
+
+  } catch (error) {
+    console.error('List all trips error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Internal server error',
+      error: error.message 
+    });
+  }
+}
 const listNearbyTrips = async (req, res) => {
   try {
     const captain = req.captain;
@@ -625,6 +691,7 @@ const resendOtp = async (req, res) => {
 };
 
 module.exports = {
+  listAllTrips,
   listNearbyTrips,
   acceptTrip,
   reachedPickup,

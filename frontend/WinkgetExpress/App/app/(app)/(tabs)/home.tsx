@@ -12,7 +12,9 @@ import {
   Linking,
   Modal,
   TouchableOpacity,
-  TextInput, // <-- Added for OTP
+  TextInput,
+  AppState,
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -20,9 +22,10 @@ import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import * as Location from "expo-location";
 import * as SecureStore from "expo-secure-store";
 import { Feather } from "@expo/vector-icons";
+import * as Notifications from "expo-notifications";
 
 // Keep these imports pointing to your existing helpers
-import { Colors } from "@/constants/colors"; // Note: Colors.primary may be overridden by hardcoded styles
+import { Colors } from "@/constants/colors";
 import { captainTripApi, setCaptainApiToken } from "../lib/api";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -35,10 +38,21 @@ import {
 const { width, height } = Dimensions.get("window");
 
 // --- NEW GREEN THEME ---
-const newPrimaryColor = "#059669"; // Dark Emerald
+const newPrimaryColor = "#007AFF"; // Dark Emerald
 const newAccentColor = "#D1FAE5"; // Light Emerald
-const newGradient = ["#A7F3D0", "#6EE7B7"]; // Light to Mid Emerald
+const newGradient = ["#007AFF", "#007AFF"]; // Light to Mid Emerald
 const successColor = "#16A34A"; // Kept from before
+
+/* -------------------------
+   Notification Handler (NEW)
+   ------------------------ */
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
 /* -------------------------
    Bulletproof coordinate validation
@@ -82,11 +96,13 @@ export default function CaptainHome() {
   const [currentTrip, setCurrentTrip] = useState<any | null>(null); // This is now the "active trip"
   const [newTripToast, setNewTripToast] = useState<any | null>(null);
   const [activeTrips, setActiveTrips] = useState<number>(0);
-  const [otp, setOtp] = useState<string>(""); // <-- Added for OTP logic
+  const [otp, setOtp] = useState<string>("");
 
-  
-  // protect against concurrent refreshes
+  // refs
   const isRefreshingRef = useRef(false);
+  const appState = useRef(AppState.currentState);
+  const notificationListener = useRef<Notifications.Subscription>();
+  const responseListener = useRef<Notifications.Subscription>();
 
   /* -------------------------
      Fetch captain stats
@@ -147,13 +163,10 @@ export default function CaptainHome() {
       });
       console.log("[DEBUG] fetchNearbyTrips: raw response", response?.data);
 
-      // Filter out trips that are already active, completed, etc.
       const safeTrips = (response.data?.trips || [])
         .filter((trip: any) => {
           if (!trip || !trip.id || !trip.pickup) return false;
-          // Filter out trips that are NOT pending
           if (trip.status && trip.status !== "pending" && trip.status !== "pending_assignment") return false;
-          // Also filter out the current active trip, if it exists
           if (currentTrip && trip.id === currentTrip.id) return false;
           const pVal = validateCoordinate(trip.pickup.lat, trip.pickup.lng);
           return pVal.isValid;
@@ -163,7 +176,7 @@ export default function CaptainHome() {
           const deliveryValidation = validateCoordinate(trip.delivery?.lat, trip.delivery?.lng);
           return {
             ...trip,
-            status: trip.status || 'pending', // <-- Ensure status is set
+            status: trip.status || 'pending',
             pickup: { ...trip.pickup, lat: pickupValidation.latitude, lng: pickupValidation.longitude },
             delivery: { ...trip.delivery, lat: deliveryValidation.latitude, lng: deliveryValidation.longitude },
           };
@@ -190,7 +203,7 @@ export default function CaptainHome() {
       setAvailableTrips([]);
       setAvailableTripsCount(0);
     }
-  }, [currentLocation, selectedTrip, currentTrip]); // <-- Added currentTrip dependency
+  }, [currentLocation, selectedTrip, currentTrip]);
 
   /* -------------------------
      Pull to refresh
@@ -214,7 +227,6 @@ export default function CaptainHome() {
   /* -------------------------
      Open route in Google Maps
      ------------------------ */
-  // This function is now used for both pickup and destination
   const openInGoogleMaps = useCallback((trip: any, leg: 'pickup' | 'destination' = 'pickup') => {
     if (!trip || !trip.pickup || !trip.delivery) {
       console.warn("[WARN] openInGoogleMaps: invalid trip data", trip);
@@ -228,11 +240,11 @@ export default function CaptainHome() {
     const destLng = leg === 'pickup' ? trip.pickup.lng : trip.delivery.lng;
     const destAddress = leg === 'pickup' ? trip.pickup.address : trip.delivery.address;
 
-    const googleMapsUrl = `http://googleusercontent.com/maps/google.com/0{startLat},${startLng}/${destLat},${destLng}`;
+    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${startLat},${startLng}&destination=${destLat},${destLng}&travelmode=driving`;
     
     Alert.alert(
       `Maps to ${leg === 'pickup' ? 'Pickup' : 'Destination'}`,
-      `Maps to: ${destAddress || leg}`,
+      `Open navigation to: ${destAddress || leg}`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -246,24 +258,20 @@ export default function CaptainHome() {
         },
       ]
     );
-  }, [currentLocation]); // <-- Added currentLocation dependency
+  }, [currentLocation]);
 
   /* -------------------------
      Trip handlers
      ------------------------ */
   const handleTripPress = useCallback((trip: any) => {
-    // Ensure status is set, default to 'pending'
     setCurrentTrip({ ...trip, status: trip.status || 'pending' });
     setTripModalVisible(true);
   }, []);
 
   const handleTripAcceptance = useCallback((trip: any) => {
-    // This function is called *after* accepting, so navigate to pickup
     openInGoogleMaps(trip, 'pickup');
   }, [openInGoogleMaps]);
 
-  // ***** LOGIC CHANGE 1: handleAcceptTrip *****
-  // Now updates state instead of closing modal
   const handleAcceptTrip = useCallback(async (tripId: string) => {
     if (!currentTrip) return;
     try {
@@ -274,24 +282,20 @@ export default function CaptainHome() {
       
       await fetchCaptainStats();
       
-      // Update currentTrip state to 'accepted'
       setCurrentTrip(prev => ({ ...prev, status: 'accepted' }));
 
-      // remove accepted trip from available list
       setAvailableTrips(prev => prev.filter(t => t.id !== tripId));
       setAvailableTripsCount(prev => Math.max(0, prev - 1));
       
-      // Open maps for navigation to pickup
       handleTripAcceptance(currentTrip);
 
     } catch (error) {
       console.error("[ERROR] handleAcceptTrip:", error);
       Alert.alert("Error", "Could not accept trip. Please try again.");
-      throw error; // Re-throw to be caught by the modal's onPress
+      throw error;
     }
   }, [currentTrip, fetchCaptainStats, handleTripAcceptance]);
 
-  // ***** LOGIC CHANGE 2: handleReachedPickup *****
   const handleReachedPickup = useCallback(async (tripId: string) => {
     if (!currentTrip) return;
     try {
@@ -300,7 +304,6 @@ export default function CaptainHome() {
       await captainTripApi.reachedPickup(tripId, tripType);
       console.log("[DEBUG] handleReachedPickup: success", tripId);
 
-      // Update currentTrip state to 'reached_pickup'
       setCurrentTrip(prev => ({ ...prev, status: 'reached_pickup' }));
       Alert.alert("Success", "Arrived at pickup. Please collect OTP from customer to start the trip.");
 
@@ -311,27 +314,22 @@ export default function CaptainHome() {
     }
   }, [currentTrip]);
 
-  // ***** LOGIC CHANGE 3: handleStartTrip *****
   const handleStartTrip = useCallback(async (tripId: string) => {
     if (!currentTrip) return;
 
-    // --- OTP DUMMY VERIFICATION ---
-    // In a real app, you'd send this OTP to your backend for verification
     if (!otp || otp.length < 4) {
       Alert.alert("Invalid OTP", "Please enter a valid 4-digit OTP.");
-      return; // Stop execution
+      return;
     }
     console.log(`[DEBUG] Verifying OTP: ${otp} for trip ${tripId}`);
-    // --- End of dummy verification ---
 
     try {
       console.log("[DEBUG] handleStartTrip:", tripId);
       // Optional: API call to start trip
       // await captainTripApi.startTrip(tripId, { otp: otp }); 
 
-      // Update currentTrip state to 'in_transit'
       setCurrentTrip(prev => ({ ...prev, status: 'in_transit' }));
-      setOtp(""); // Clear OTP
+      setOtp("");
       Alert.alert("Trip Started", "You can now navigate to the destination.");
 
     } catch (error) {
@@ -339,15 +337,12 @@ export default function CaptainHome() {
       Alert.alert("Error", "Could not start trip. Please check OTP and try again.");
       throw error;
     }
-  }, [currentTrip, otp]); // <-- Added otp dependency
+  }, [currentTrip, otp]);
 
-  // ***** LOGIC CHANGE 4: handleNavigateToDestination *****
   const handleNavigateToDestination = useCallback((trip: any) => {
-    // This function is now called *after* starting, so navigate to destination
     openInGoogleMaps(trip, 'destination');
   }, [openInGoogleMaps]);
 
-  // ***** LOGIC CHANGE 5: handleCompleteTrip *****
   const handleCompleteTrip = useCallback(async (tripId: string) => {
     if (!currentTrip) return;
     try {
@@ -361,30 +356,24 @@ export default function CaptainHome() {
       console.log("[DEBUG] handleCompleteTrip: processed", tripId);
       Alert.alert("Trip Completed!", "Great job!");
       
-      // Refresh stats
       await fetchCaptainStats();
       
-      // FINALLY: Close modal and clear the active trip
       setTripModalVisible(false);
       setCurrentTrip(null);
 
     } catch (error: any) {
       console.log("[WARN] handleCompleteTrip fallback:", error);
       Alert.alert("Error", "Could not complete trip. Please try again.");
-      // Don't close modal, let user retry
     }
   }, [currentTrip, fetchCaptainStats]);
 
-  // ***** LOGIC CHANGE 6: handleCloseTripModal *****
   const handleCloseTripModal = useCallback(() => {
     setTripModalVisible(false);
-    // Do not set currentTrip to null if it's in progress
-    // Only set to null if it's 'pending'
     if (currentTrip?.status === 'pending' || !currentTrip?.status) {
       setCurrentTrip(null);
     }
-    setOtp(""); // Clear OTP on close
-  }, [currentTrip]); // <-- Added currentTrip dependency
+    setOtp("");
+  }, [currentTrip]);
 
   /* -------------------------
      Online toggle
@@ -461,9 +450,6 @@ export default function CaptainHome() {
       await requestLocationPermission();
       await fetchCaptainStats();
 
-      // TODO: Check for an active, unfinished trip from the server
-      // This is a complex step, but for now we assume no active trips on load
-
       if (mounted) {
         setLoading(false);
       }
@@ -508,7 +494,7 @@ export default function CaptainHome() {
         socketInstance = await connectSocket(token); 
         console.log("[DEBUG] socket setup: connected", !!socketInstance);
 
-        if (!mounted) return;
+        if (!mounted || !socketInstance) return; // Guard against async race condition
 
         try {
           socketInstance.off?.("trip:assigned");
@@ -519,7 +505,6 @@ export default function CaptainHome() {
         setupSocketListeners(socketInstance, {
           onTripAssigned: (trip: any) => {
             console.log("[SOCKET] onTripAssigned:", trip?.id);
-            // Don't add if it's the trip we already accepted
             if (currentTrip && currentTrip.id === trip.id) return;
 
             setAvailableTrips(prev => {
@@ -528,15 +513,16 @@ export default function CaptainHome() {
               return [{...trip, status: 'pending'}, ...prev];
             });
             setAvailableTripsCount(prev => prev + 1);
+            
             setNewTripToast(trip);
             setTimeout(() => setNewTripToast(null), 5000);
+
             fetchCaptainStats().catch(e => console.warn("[WARN] fetchCaptainStats after onTripAssigned failed", e));
           },
           onTripCancelled: (data: any) => {
             console.log("[SOCKET] onTripCancelled:", data);
             const tripId = data?.tripId;
             if (!tripId) return;
-            // Check if it's our current trip that got cancelled
             if (currentTrip && currentTrip.id === tripId) {
               Alert.alert("Trip Cancelled", "The user has cancelled this trip.");
               setTripModalVisible(false);
@@ -568,17 +554,17 @@ export default function CaptainHome() {
     return () => {
       mounted = false;
       try {
-         const s = getSocket();
-        if (s) {
-          s.off?.("trip:assigned");
-          s.off?.("new-trip");
-          s.off?.("stats:updated");
+        if (socketInstance) {
+          console.log("[DEBUG] socket cleanup: removing listeners");
+          socketInstance.off?.("trip:assigned");
+          socketInstance.off?.("new-trip");
+          socketInstance.off?.("stats:updated");
         }
       } catch (e) {
         console.warn("[WARN] cleanup sockets failed", e);
       }
     };
-  }, [token, currentLocation, fetchCaptainStats, currentTrip]); // <-- Added currentTrip
+  }, [token, currentLocation, fetchCaptainStats, currentTrip]);
 
   /* -------------------------
      Polling fallback while online
@@ -604,6 +590,97 @@ export default function CaptainHome() {
   }, [currentLocation, isOnline]);
 
   /* -------------------------
+     NEW: AppState listener
+     ------------------------ */
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", async (nextAppState) => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === "active"
+      ) {
+        console.log("[DEBUG] App has come to the foreground!");
+        if (isOnline) {
+          await onRefresh();
+        }
+      }
+      appState.current = nextAppState;
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [isOnline, onRefresh]);
+
+  /* -------------------------
+     NEW: Push Notification setup
+     ------------------------ */
+  useEffect(() => {
+    async function registerForPushNotificationsAsync() {
+      let token;
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync('default', {
+          name: 'default',
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#FF231F7C',
+        });
+      }
+
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== 'granted') {
+        console.warn('[WARN] Failed to get push token for push notification!');
+        return;
+      }
+      
+      try {
+        token = (await Notifications.getExpoPushTokenAsync()).data;
+        console.log('[DEBUG] Expo Push Token:', token);
+        // =================================================================
+        // !! IMPORTANT !!
+        // Send this 'token' to your backend server.
+        // Example: await captainTripApi.updatePushToken(token);
+        // =================================================================
+      } catch (e) {
+        console.error("[ERROR] Getting push token failed:", e);
+      }
+      return token;
+    }
+
+    registerForPushNotificationsAsync();
+
+    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+      console.log('[DEBUG] Notification Received:', notification);
+    });
+
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+      console.log('[DEBUG] Notification Tapped:', response);
+      const tripData = response.notification.request.content.data;
+      if (tripData && tripData.id) {
+        // handleTripPress(tripData);
+      } else {
+        onRefresh();
+      }
+    });
+
+    // *** THIS IS THE FIX ***
+    return () => {
+      if (notificationListener.current) {
+        // Call .remove() on the subscription object itself
+        notificationListener.current.remove();
+      }
+      if (responseListener.current) {
+        // Call .remove() on the subscription object itself
+        responseListener.current.remove();
+      }
+    };
+  }, [onRefresh]); // Rerun if onRefresh changes
+
+  /* -------------------------
      Map region (bulletproof)
      ------------------------ */
   const mapRegion = useMemo(() => {
@@ -624,7 +701,7 @@ export default function CaptainHome() {
         coordinate={{ latitude: pickupValidation.latitude, longitude: pickupValidation.longitude }}
         title={`${(trip.type || "TRIP").toString().toUpperCase()} Trip`}
         description={`₹${trip.fareEstimate || 0} - ${trip.vehicleType || "vehicle"}`}
-        pinColor="#4CAF50" // This is already a nice green, let's keep it
+        pinColor="#4CAF50"
         onPress={onPress}
       />
     );
@@ -636,18 +713,12 @@ export default function CaptainHome() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        {/* THEME: Use new green color */}
         <ActivityIndicator size="large" color={newPrimaryColor} />
         <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
   }
 
-  /* -------------------------
-     UI state data for RideRequestCard: show most recent available trip
-     ------------------------ */
-  // ***** LOGIC CHANGE 7: mostRecentTrip *****
-  // This should NOT show the active trip
   const mostRecentTrip = availableTrips?.[0] ?? null;
 
   /* -------------------------
@@ -655,16 +726,14 @@ export default function CaptainHome() {
      ------------------------ */
   return (
     <View style={styles.container}>
-      {/* THEME: Gradient updated to green */}
       <LinearGradient colors={newGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.headerGradient}>
         <View style={styles.headerTop}>
           <View style={styles.leftHeader}>
             <View style={styles.avatarOuter}>
               <View style={styles.avatarInner}>
                 <Text style={styles.avatarLetter}>
-                  {/* HEADER: Show first letter of name */}
-                  {captain?.name ? captain.name[0].toUpperCase() : "C"}
-                </Text>
+                  {captain?.name ? captain.name[0].toUpperCase() : "C"}
+                </Text>
               </View>
             </View>
             <Text style={styles.captainLabel}>Captain</Text>
@@ -683,20 +752,18 @@ export default function CaptainHome() {
         </View>
 
         <View>
-          {/* HEADER: Show captain's name */}
           <Text style={styles.greeting}>Hey {captain?.name || "Captain"} ✨</Text>
-          {/* HEADER: Show vehicle type and city */}
           <Text style={styles.greetingSub}>
-            {(captain?.vehicleType || "Vehicle").toUpperCase()} • {city || "Fetching Location..."}
-          </Text>
+            {(captain?.vehicleType || "Vehicle").toUpperCase()} • {city || "Fetching Location..."}
+          </Text>
         </View>
       </LinearGradient>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}
-      
+      
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={newPrimaryColor} />}>
         
-        {/* --- Earnings card --- */}
+        {/* --- Earnings card --- */}
         <View style={styles.card}>
           <View style={styles.rowBetween}>
             <View style={{ flex: 1 }}>
@@ -705,15 +772,14 @@ export default function CaptainHome() {
               <Text style={styles.tinyMuted}> {todayTrips} rides · active</Text>
             </View>
             <View style={styles.iconBox}>
-              {/* THEME: Use new green color */}
               <Feather name="wallet" size={22} color={newPrimaryColor} />
             </View>
           </View>
           <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.outlineBtn}>
+            <TouchableOpacity style={styles.outlineBtn} onPress={() => router.push('/(app)/earnings')}>
               <Text style={styles.outlineBtnText}>View Payouts</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.primaryBtn}>
+            <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push('/(app)/earnings')}>
               <Text style={styles.primaryBtnText}>Earning Details</Text>
             </TouchableOpacity>
           </View>
@@ -729,7 +795,6 @@ export default function CaptainHome() {
             <TouchableOpacity
               onPress={() => handleOnlineToggle(!isOnline)}
               activeOpacity={0.8}
-              // THEME: Use new green color for toggle
               style={[styles.toggle, { backgroundColor: isOnline ? newPrimaryColor : "#D1D5DB" }]}
             >
               <View style={[styles.toggleCircle, { transform: [{ translateX: isOnline ? 22 : 2 }] }]} />
@@ -737,14 +802,13 @@ export default function CaptainHome() {
           </View>
         </View>
 
-        {/* ***** RIDE REQUEST CARD LOGIC (THEME UPDATED) ***** */}
-        {/* THEME: Use new green color for new trip, success color for active trip */}
+        {/* --- RIDE REQUEST CARD --- */}
         <View style={[styles.rideCard, { backgroundColor: mostRecentTrip ? newPrimaryColor : (currentTrip ? successColor : "#f3f4f6") }]}>
           {/* Case 1: Active Trip in Progress */}
           {currentTrip && currentTrip.status !== 'pending' ? (
             <>
               <Text style={styles.rideTag}>Active Trip In Progress</Text>
-              <Text style={styles.rideTitle}>
+              <Text style={styles.rideTitle} numberOfLines={2}>
                 {(currentTrip.pickup?.address?.split("•")?.[0] || "Pickup")} → {(currentTrip.delivery?.address?.split("•")?.[0] || "Destination")}
               </Text>
               <View style={styles.priceRow}>
@@ -754,7 +818,7 @@ export default function CaptainHome() {
                 </View>
                 <TouchableOpacity
                   style={[styles.actionWhite, { flex: 0, paddingHorizontal: 20 }]}
-                  onPress={() => setTripModalVisible(true)} // Re-open the modal
+                  onPress={() => setTripModalVisible(true)}
                 >
                   <Text style={styles.acceptText}>View Status</Text>
                 </TouchableOpacity>
@@ -764,13 +828,12 @@ export default function CaptainHome() {
           ) : mostRecentTrip ? (
             <>
               <Text style={styles.rideTag}>Incoming Ride Request</Text>
-              <Text style={styles.rideTitle}>
+              <Text style={styles.rideTitle} numberOfLines={2}>
                 {(mostRecentTrip.pickup?.address?.split("•")?.[0] || "Pickup")} → {(mostRecentTrip.delivery?.address?.split("•")?.[0] || "Destination")}
-            _ </Text>
+              </Text>
 
               <View style={styles.row}>
                 <View style={styles.infoInline}>
-                  {/* THEME: Use new accent color */}
                   <Feather name="map-pin" size={14} color={newAccentColor} />
                   <Text style={styles.infoText}>
                     {mostRecentTrip.distanceKm 
@@ -779,7 +842,6 @@ export default function CaptainHome() {
                   </Text>
                 </View>
                 <View style={styles.infoInline}>
-                  {/* THEME: Use new accent color */}
                   <Feather name="clock" size={14} color={newAccentColor} />
                   <Text style={styles.infoText}>ETA {mostRecentTrip.eta || "6"} min</Text>
                 </View>
@@ -800,7 +862,6 @@ export default function CaptainHome() {
                 <TouchableOpacity
                   style={[styles.actionWhite]}
                   onPress={() => {
-                    // Open modal with this trip
                       handleTripPress(mostRecentTrip);
                   }}
                 >
@@ -824,7 +885,6 @@ export default function CaptainHome() {
               <Text style={styles.gridLabel}>Rating</Text>
               <View style={styles.rowCenter}>
                 <Text style={styles.gridValue}>{rating || 0}</Text>
-                {/* Star color should stay yellow */}
                 <Feather name="star" size={18} color="#FBBF24" />
               </View>
             </View>
@@ -847,14 +907,11 @@ export default function CaptainHome() {
         <View style={styles.mapContainer}>
           <MapView provider={PROVIDER_GOOGLE} style={styles.map} region={mapRegion} showsUserLocation showsMyLocationButton={true}>
             {currentLocation && (
-              // THEME: Use new green color for captain's pin
               <Marker coordinate={{ latitude: currentLocation.lat, longitude: currentLocation.lng }} title="Your Location" pinColor={newPrimaryColor} />
             )}
-            {/* Show active trip pickup marker if it exists */}
             {currentTrip && currentTrip.status !== 'pending' && (
               <TripMarker key={currentTrip.id} trip={currentTrip} onPress={() => handleNavigateToDestination(currentTrip)} />
             )}
-            {/* Show available trip markers */}
             {availableTrips.map((t) => (
               <TripMarker key={t.id} trip={t} onPress={() => handleTripPress(t)} />
             ))}
@@ -888,7 +945,7 @@ export default function CaptainHome() {
             <Pressable key={trip.id} style={styles.tripListItem} onPress={() => handleTripPress(trip)}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.tripType}>{(trip.type || "TRIP").toUpperCase()}</Text>
-                <Text style={styles.tripFromTo}>{trip.pickup?.address || "Pickup"} → {trip.delivery?.address || "Delivery"}</Text>
+                <Text style={styles.tripFromTo} numberOfLines={2}>{trip.pickup?.address || "Pickup"} → {trip.delivery?.address || "Delivery"}</Text>
                 <Text style={styles.tripMeta}>₹{trip.fareEstimate || 0} • {trip.distanceKm ? `${trip.distanceKm} km` : "— km"}</Text>
               </View>
               <Feather name="chevron-right" size={18} color="#9CA3AF" />
@@ -903,30 +960,17 @@ export default function CaptainHome() {
         </View>
       </ScrollView>
 
-      
-      {/* --- Bottom navigation (THEME UPDATED) --- */}
-      <View style={styles.bottomNav}>
-        <View style={styles.bottomInner}>
-          <NavButton id="map" label="Map" active={false} onPress={() => {}} />
-          <NavButton id="trips" label="Trips" active={true} onPress={() => {}} />
-          <NavButton id="earnings" label="Earnings" active={false} onPress={() => {}} />
-          <NavButton id="support" label="Support" active={false} onPress={() => {}} />
-        </View>
-      </View>
-
-      {/* ***** MODAL LOGIC FULLY REBUILT (THEME UPDATED) ***** */}
+      {/* --- Trip Modal --- */}
       <Modal visible={tripModalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <ScrollView>
-              {/* --- Modal Header --- */}
               <Text style={styles.modalTitle}>
                 {currentTrip?.status === 'pending' || !currentTrip?.status ? "New Trip Request" : "Active Trip"}
               </Text>
               
               {currentTrip ? (
                 <>
-                  {/* --- Trip Details (always shown) --- */}
                   <Text style={styles.modalLabel}>From</Text>
                   <Text style={styles.modalText}>{currentTrip.pickup?.address || "Pickup address"}</Text>
 
@@ -936,16 +980,13 @@ export default function CaptainHome() {
                   <Text style={styles.modalLabel}>Fare</Text>
                   <Text style={styles.modalText}>₹{currentTrip.fareEstimate || 0}</Text>
 
-                  <View style={{ height: 12, borderBottomWidth: 1, borderColor: '#E5E7EB', marginVertical: 20 }} />
+                  <View style={{ height: 1, backgroundColor: '#E5E7EB', marginVertical: 20 }} />
 
-                  {/* --- CONDITIONAL BUTTONS (STATE MACHINE) --- */}
-
-                  {/* ===== STATE 1: PENDING (Show Accept) ===== */}
+                  {/* ===== STATE 1: PENDING ===== */}
                   {(currentTrip.status === 'pending' || !currentTrip.status) && (
                     <TouchableOpacity style={styles.modalBtnPrimary} onPress={async () => {
                       try {
                         await handleAcceptTrip(currentTrip.id);
-                        // DO NOT close modal here, handleAcceptTrip updates state
                       } catch (e) {
                         console.log("Accept failed, modal remains open");
                       }
@@ -954,7 +995,7 @@ export default function CaptainHome() {
                     </TouchableOpacity>
                   )}
 
-                  {/* ===== STATE 2: ACCEPTED (Show Reached Pickup) ===== */}
+                  {/* ===== STATE 2: ACCEPTED ===== */}
                   {currentTrip.status === 'accepted' && (
                     <TouchableOpacity style={styles.modalBtnPrimary} onPress={async () => {
                       try {
@@ -967,17 +1008,18 @@ export default function CaptainHome() {
                     </TouchableOpacity>
                   )}
 
-                  {/* ===== STATE 3: REACHED PICKUP (Show OTP + Start Trip) ===== */}
+                  {/* ===== STATE 3: REACHED PICKUP ===== */}
                   {currentTrip.status === 'reached_pickup' && (
                     <>
                       <Text style={styles.modalLabel}>Enter 4-Digit OTP</Text>
                       <TextInput
-                       style={styles.otpInput}
+                        style={styles.otpInput}
                         value={otp}
                         onChangeText={setOtp}
                         keyboardType="number-pad"
                         maxLength={4}
                         placeholder="1234"
+                        placeholderTextColor="#9CA3AF"
                       />
                       <TouchableOpacity style={styles.modalBtnPrimary} onPress={async () => {
                         try {
@@ -987,29 +1029,28 @@ export default function CaptainHome() {
                         }
                       }}>
                         <Text style={styles.modalBtnTextPrimary}>Start Trip</Text>
-                    </TouchableOpacity>
-  nbsp;               </>
+                      </TouchableOpacity>
+                    </>
                   )}
 
-                  {/* ===== STATE 4: IN TRANSIT (Show Navigate + Complete) ===== */}
+                  {/* ===== STATE 4: IN TRANSIT ===== */}
                   {currentTrip.status === 'in_transit' && (
                     <>
                       <TouchableOpacity style={styles.modalBtnPrimary} onPress={() => {
-Note:                       handleNavigateToDestination(currentTrip);
+                        handleNavigateToDestination(currentTrip);
                       }}>
                         <Text style={styles.modalBtnTextPrimary}>Navigate to Destination</Text>
-                    </TouchableOpacity>
+                      </TouchableOpacity>
 
-                        {/* THEME: Use success color for complete button */}
                       <TouchableOpacity style={[styles.modalBtnPrimary, { backgroundColor: successColor, marginTop: 12 }]} onPress={async () => {
                         try {
                           await handleCompleteTrip(currentTrip.id);
-                     } catch (e) {
+                      } catch (e) {
                           console.log("Complete trip failed");
                         }
                       }}>
                         <Text style={styles.modalBtnTextPrimary}>Complete Trip</Text>
-                    </TouchableOpacity>
+                      </TouchableOpacity>
                     </>
                   )}
 
@@ -1026,7 +1067,7 @@ Note:                       handleNavigateToDestination(currentTrip);
         </View>
       </Modal>
 
-I       {/* --- New trip toast --- */}
+      {/* --- New trip toast (This is your in-app "box" notification) --- */}
       {newTripToast && (
         <Pressable style={styles.toast} onPress={() => { handleTripPress(newTripToast); setNewTripToast(null); }}>
           <Text style={styles.toastText}>New Trip • ₹{Math.round(newTripToast.fareEstimate || 0)} • Tap to view</Text>
@@ -1037,38 +1078,26 @@ I       {/* --- New trip toast --- */}
 }
 
 /* -------------------------
-   Small inline components
-   ------------------------ */
-// THEME: Updated NavButton active color
-function NavButton({ id, label, active, onPress }: { id: string; label: string; active: boolean; onPress: () => void }) {
-  return (
-    <Pressable style={styles.navBtn} onPress={onPress}>
-      <Feather name={id === "map" ? "map-pin" : id === "trips" ? "list" : id === "earnings" ? "wallet" : "life-buoy"} size={20} color={active ? newPrimaryColor : "#9CA3AF"} />
-      <Text style={[styles.navLabel, { color: active ? newPrimaryColor : "#9CA3AF" }]}>{label}</Text>
-    </Pressable>
-  );
-}
-
-
-/* -------------------------
    Styles (THEME UPDATED)
    ------------------------ */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB', // Use a slightly off-white bg
+    backgroundColor: '#F9FAFB',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#F9FAFB',
   },
   loadingText: {
     marginTop: 10,
-    color: newPrimaryColor, // THEME
+    color: newPrimaryColor,
+    fontSize: 16,
   },
   headerGradient: {
-    paddingTop: 60, 
+    paddingTop: 60,
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
@@ -1101,13 +1130,13 @@ const styles = StyleSheet.create({
   avatarLetter: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: newPrimaryColor, // THEME
+    color: newPrimaryColor,
   },
   captainLabel: {
     marginLeft: 8,
     fontSize: 16,
     fontWeight: '600',
-    color: '#064E3B', // Darker green for contrast on light gradient
+    color: '#064E3B',
   },
   rightHeader: {
     flexDirection: 'row',
@@ -1121,7 +1150,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -5,
     right: -5,
-    backgroundColor: '#EF4444', // Keep red for notifications
+    backgroundColor: '#EF4444',
     borderRadius: 8,
     width: 16,
     height: 16,
@@ -1144,16 +1173,16 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#064E3B', // THEME: Darker green
+    color: '#064E3B',
   },
   greetingSub: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#047857', // THEME: Mid green
+    color: '#047857',
     marginTop: 4,
   },
   scrollContent: {
-    paddingBottom: 100, // Space for bottom nav
+    paddingBottom: 100,
   },
   card: {
     backgroundColor: '#FFFFFF',
@@ -1190,7 +1219,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: newAccentColor, // THEME
+    backgroundColor: newAccentColor,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1216,7 +1245,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: newPrimaryColor, // THEME
+    backgroundColor: newPrimaryColor,
     alignItems: 'center',
   },
   primaryBtnText: {
@@ -1232,7 +1261,7 @@ const styles = StyleSheet.create({
   muted: {
     fontSize: 14,
     color: '#6B7280',
-   marginTop: 2,
+    marginTop: 2,
   },
   toggle: {
     width: 48,
@@ -1246,6 +1275,11 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1,
+    elevation: 2,
   },
   rideCard: {
     borderRadius: 12,
@@ -1261,7 +1295,7 @@ const styles = StyleSheet.create({
   rideTag: {
     fontSize: 12,
     fontWeight: '600',
-    color: newAccentColor, // THEME
+    color: newAccentColor,
     marginBottom: 8,
   },
   rideTitle: {
@@ -1299,7 +1333,7 @@ const styles = StyleSheet.create({
   },
   rideId: {
     fontSize: 12,
-    color: newAccentColor, // THEME
+    color: newAccentColor,
     marginTop: -4,
   },
   actionWhite: {
@@ -1312,12 +1346,12 @@ const styles = StyleSheet.create({
   callText: {
     fontSize: 14,
     fontWeight: '600',
-    color: newPrimaryColor, // THEME
+    color: newPrimaryColor,
   },
   acceptText: {
     fontSize: 14,
     fontWeight: '600',
-    color: newPrimaryColor, // THEME
+    color: newPrimaryColor,
   },
   noTripTitle: {
     fontSize: 16,
@@ -1351,7 +1385,7 @@ const styles = StyleSheet.create({
   gridValue: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1F2937',
+   color: '#1F2937',
   },
   rowCenter: {
     flexDirection: 'row',
@@ -1360,7 +1394,7 @@ const styles = StyleSheet.create({
   },
   gridTopBorder: {
     borderTopWidth: 1,
-   borderTopColor: '#E5E7EB',
+    borderTopColor: '#E5E7EB',
   },
   mapContainer: {
     height: 250,
@@ -1369,6 +1403,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     position: 'relative',
+    backgroundColor: '#E5E7EB',
   },
   map: {
     ...StyleSheet.absoluteFillObject,
@@ -1378,7 +1413,7 @@ const styles = StyleSheet.create({
     bottom: 12,
     left: 0,
     right: 0,
- },
+  },
   tripChip: {
     backgroundColor: 'rgba(255,255,255,0.9)',
     borderRadius: 16,
@@ -1392,7 +1427,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   tripChipActive: {
-    backgroundColor: newPrimaryColor, // THEME
+    backgroundColor: newPrimaryColor,
   },
   tripChipText: {
     fontSize: 12,
@@ -1404,7 +1439,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1F2937',
     marginTop: 2,
-  },
+},
   tripsContainer: {
     paddingHorizontal: 16,
     marginTop: 16,
@@ -1423,13 +1458,13 @@ const styles = StyleSheet.create({
   refreshBtn: {
     paddingVertical: 6,
     paddingHorizontal: 12,
-    backgroundColor: newAccentColor, // THEME
+    backgroundColor: newAccentColor,
     borderRadius: 8,
   },
   refreshTxt: {
     fontSize: 12,
     fontWeight: '600',
-    color: newPrimaryColor, // THEME
+    color: newPrimaryColor,
   },
   tripListItem: {
     backgroundColor: '#FFFFFF',
@@ -1442,12 +1477,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
-    elevation: 2,
+   elevation: 2,
   },
   tripType: {
     fontSize: 12,
     fontWeight: '600',
-    color: newPrimaryColor, // THEME
+    color: newPrimaryColor,
     marginBottom: 4,
   },
   tripFromTo: {
@@ -1461,8 +1496,8 @@ const styles = StyleSheet.create({
     color: '#4B5563',
     marginTop: 6,
   },
-  noTripsBox: {
-    backgroundColor: '#FFFFFF', // Changed from F9FAFB for consistency
+ noTripsBox: {
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 24,
     alignItems: 'center',
@@ -1478,31 +1513,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: 'center',
   },
-  bottomNav: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-   backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-  },
-  bottomInner: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    height: 60, // Adjust as needed
-    paddingBottom: 10, // For home indicator
-    paddingTop: 8,
-  },
-  navBtn: {
-    alignItems: 'center',
-    gap: 4,
-  },
-  navLabel: {
-    fontSize: 12,
-   fontWeight: '500',
-  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -1513,7 +1523,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 20,
-   maxHeight: '75%',
+    paddingBottom: 40,
+    maxHeight: '80%',
   },
   modalTitle: {
     fontSize: 20,
@@ -1533,7 +1544,7 @@ const styles = StyleSheet.create({
   },
   otpInput: {
     fontSize: 20,
-   fontWeight: 'bold',
+    fontWeight: 'bold',
     color: '#1F2937',
     borderBottomWidth: 2,
     borderColor: '#D1D5DB',
@@ -1543,12 +1554,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   modalBtnPrimary: {
-    backgroundColor: newPrimaryColor, // THEME
+    backgroundColor: newPrimaryColor,
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
-    marginTop: 12, // Reduced margin
-  },
+    marginTop: 12,
+},
   modalBtnTextPrimary: {
     color: '#FFFFFF',
     fontSize: 16,
@@ -1566,14 +1577,14 @@ const styles = StyleSheet.create({
   modalBtnTextOutline: {
     color: '#374151',
     fontSize: 16,
-   fontWeight: '600',
+    fontWeight: '600',
   },
   toast: {
     position: 'absolute',
-    top: 60, // Adjust based on safe area
+    top: 60,
     left: 16,
-   right: 16,
-    backgroundColor: '#1F2937', // Kept dark for contrast
+    right: 16,
+    backgroundColor: '#1F2937',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
@@ -1587,7 +1598,7 @@ const styles = StyleSheet.create({
   toastText: {
     color: '#FFFFFF',
     fontSize: 14,
-   fontWeight: '600',
+    fontWeight: '600',
     textAlign: 'center',
   },
 });

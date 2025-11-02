@@ -1,9 +1,9 @@
 // Color palette for the app
 export const Colors = {
     // Brand palette
-    background: '#E1F2FE',      // Page background
-    text: '#001A23',            // Primary text
-    primary: 'rgb(15, 109, 56) ',         // Primary buttons, active elements
+    background: '#F4F7FC',      // Page background
+    text: '#1A1A1A',            // Primary text
+    primary: '#007AFF',         // Primary buttons, active elements
     danger: '#b91c1c',          // Errors, alerts
     card: '#EDF6F9',            // Cards and boxes
     border: '#E9FFF9',          // Soft border color
@@ -19,13 +19,13 @@ export const Colors = {
   
     shadow: 'rgba(0, 0, 0, 0.08)',
   };
-  
+
   export const Spacing = {
-    xs: 6,
-    sm: 10,
-    md: 14,
-    lg: 18,
-    xl: 24,
+    xs: 8,
+    sm: 12,
+    md: 16,
+    lg: 20,
+    xl: 26,
     xxl: 32,
   };
   

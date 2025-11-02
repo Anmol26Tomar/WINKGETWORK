@@ -9,13 +9,13 @@ import {
   ActivityIndicator, 
   Image, 
   Modal,
-  SafeAreaView // Import SafeAreaView
+  // Import SafeAreaView
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'expo-router';
 import { captainTripApi, captainTripApiUploadDocument, clearCaptainApiToken } from '../lib/api';
-// import { Colors } from '@/constants/colors'; // No longer used
 import * as SecureStore from 'expo-secure-store';
 import { Feather } from '@expo/vector-icons'; // Import icons
 
@@ -193,7 +193,7 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Personal Information</Text>
           <View style={styles.card}>
-            <View style={styles.infoRow}>
+            <View style={[styles.infoRow, styles.infoRowDivider]}>
               <Feather name="phone" size={20} color={THEME.textMuted} style={styles.infoIcon} />
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Phone</Text>
@@ -275,7 +275,7 @@ export default function ProfileScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <Pressable style={styles.modalClose} onPress={() => setPreviewUrl(null)}>
-              <Feather name="x" size={20} color={THEME.white} />
+              <Feather name="x" size={20} color={THEME.text} />
             </Pressable>
             {previewUrl && (
               <Image source={{ uri: previewUrl }} style={styles.previewImage} resizeMode="contain" />
@@ -297,9 +297,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 20, // Replaced hardcoded 60 with SafeArea
-    paddingBottom: 16,
+    // ✅ FIX: Replaced hardcoded paddingTop with vertical padding
+    paddingVertical: 16,
     backgroundColor: THEME.background,
+    borderBottomWidth: 1,
+    borderBottomColor: THEME.border,
   },
   headerLeft: {
     flex: 1,
@@ -331,11 +333,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: THEME.white,
   },
-  ratingLabel: { 
-    // This style is no longer used, kept for posterity
-  },
   content: {
     flex: 1,
+    paddingTop: 8, // Add space between header and content
   },
   section: {
     marginBottom: 24,
@@ -363,16 +363,16 @@ const styles = StyleSheet.create({
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    // Remove bottom margin from here
+    // Add dividers in the JSX instead
   },
-  infoRowDivider: { // Use this style on all but the last infoRow
-    borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
+  infoRowDivider: {
     paddingBottom: 16,
     marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: THEME.border,
   },
   infoIcon: {
-    width: 32, // Give icon a fixed width
+    width: 32, // Give icon a fixed width for alignment
     marginRight: 16,
   },
   infoContent: {
@@ -441,15 +441,15 @@ const styles = StyleSheet.create({
   },
   documentName: {
     fontSize: 15,
-    fontWeight: '600',
-    color: THEME.text,
+    fontWeight: '600',
+    color: THEME.text,
     marginBottom: 2,
   },
   documentDesc: {
     fontSize: 12,
     color: THEME.textMuted,
   },
- uploadedBadge: {
+  uploadedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
@@ -486,8 +486,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: THEME.border,
-  },
-  modalCloseText: { // No longer used, kept for posterity
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 5,
   },
   previewImage: {
     width: '100%',
@@ -496,11 +499,11 @@ const styles = StyleSheet.create({
   },
   uploadButton: {
     backgroundColor: THEME.primary,
-    paddingHorizontal: 16,
+   paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
   },
- uploadText: {
+  uploadText: {
     fontSize: 14,
     fontWeight: '600',
     color: THEME.white,
@@ -542,7 +545,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: THEME.background,
-},
+   },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
