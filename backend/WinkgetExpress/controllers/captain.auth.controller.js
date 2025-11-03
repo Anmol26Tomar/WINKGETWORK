@@ -1,10 +1,11 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { Captain } = require('../models/Captain.model');
+const { Agent } = require('../models/Agent.js');
 const { generateOtp, hashOtp, verifyOtp } = require('../utils/otp.helpers');
 const { getValidServicesForVehicle, validateServicesForVehicle } = require('../utils/captain.validators');
 
 const signupCaptain = async (req, res) => {
+  let agentId = null; // Track if agent was saved to rollback on error
   try {
     console.log('Signup request received:', req.body);
     const { fullName, phone, password, vehicleType, vehicleSubType, servicesOffered, city } = req.body;
@@ -21,22 +22,22 @@ const signupCaptain = async (req, res) => {
       });
     }
 
-    // Check if captain already exists
-    const existingCaptain = await Captain.findOne({ phone });
-    if (existingCaptain) {
-      return res.status(400).json({ message: 'Captain with this phone number already exists' });
+    // Check if agent already exists
+    const existingAgent = await Agent.findOne({ phone });
+    if (existingAgent) {
+      return res.status(400).json({ message: 'Agent with this phone number already exists' });
     }
 
     // Hash password
     const passwordHash = await bcrypt.hash(password, 12);
 
     // Generate unique email from phone to avoid null email conflicts
-    const email = `captain_${phone}@winkget.com`;
+    const email = `agent_${phone}@winkget.com`;
     const licenseNumber = `LIC${phone}`;
     const vehicleNumber = `VH${phone}`;
 
-    // Create captain
-    const captain = new Captain({
+    // Create agent
+    const agent = new Agent({
       name:fullName,
       email,
       licenseNumber,
@@ -49,37 +50,49 @@ const signupCaptain = async (req, res) => {
       servicesOffered,
       location: {
         type: 'Point',
-        coordinates: [0, 0] // Default location, will be updated when captain goes online
+        coordinates: [0, 0] // Default location, will be updated when agent goes online
       }
     });
 
-    await captain.save();
+    await agent.save();
+    agentId = agent._id; // Mark that agent was saved
 
     // Generate JWT token
     const token = jwt.sign(
-      { captainId: captain._id, role: 'captain' },
+      { agentId: agent._id, role: 'agent' },
       process.env.JWT_SECRET || 'fallback-secret',
       { expiresIn: '7d' }
     );
 
     res.status(201).json({
-      message: 'Captain registered successfully',
+      message: 'Agent registered successfully',
       token,
-      captain: {
-        id: captain._id,
-        name: captain.name,
-        city: captain.city,
-        phone: captain.phone,
-        vehicleType: captain.vehicleType,
-        vehicleSubType: captain.vehicleSubType,
-        servicesOffered: captain.servicesOffered,
-        isApproved: captain.isApproved
+      agent: {
+        id: agent._id,
+        name: agent.name,
+        city: agent.city,
+        phone: agent.phone,
+        vehicleType: agent.vehicleType,
+        vehicleSubType: agent.vehicleSubType,
+        servicesOffered: agent.servicesOffered,
+        isApproved: agent.isApproved
       }
     });
   } catch (error) {
     console.error('Signup error:', error);
     console.error('Error details:', error.message);
     console.error('Error stack:', error.stack);
+    
+    // Rollback: Delete agent if it was created
+    if (agentId) {
+      try {
+        await Agent.findByIdAndDelete(agentId);
+        console.log(`[ROLLBACK] Deleted agent ${agentId} due to signup error`);
+      } catch (deleteError) {
+        console.error('[ROLLBACK] Failed to delete agent after signup error:', deleteError);
+      }
+    }
+    
     res.status(500).json({ message: 'Internal server error', error: error.message });
   }
 };
@@ -92,16 +105,16 @@ const requestOtp = async (req, res) => {
       return res.status(400).json({ message: 'Phone number is required' });
     }
 
-    const captain = await Captain.findOne({ phone });
-    if (!captain) {
-      return res.status(404).json({ message: 'Captain not found' });
+    const agent = await Agent.findOne({ phone });
+    if (!agent) {
+      return res.status(404).json({ message: 'Agent not found' });
     }
 
     // Generate OTP
     const otp = generateOtp();
     const otpHash = hashOtp(otp);
 
-    // Store OTP hash in captain document (you might want to add an otpHash field)
+    // Store OTP hash in agent document (you might want to add an otpHash field)
     // For now, we'll simulate sending the OTP
     console.log(`OTP for ${phone}: ${otp}`);
 
@@ -120,9 +133,9 @@ const verifyOtpAndLogin = async (req, res) => {
       return res.status(400).json({ message: 'Phone and OTP are required' });
     }
 
-    const captain = await Captain.findOne({ phone });
-    if (!captain) {
-      return res.status(404).json({ message: 'Captain not found' });
+    const agent = await Agent.findOne({ phone });
+    if (!agent) {
+      return res.status(404).json({ message: 'Agent not found' });
     }
 
     // For now, we'll simulate OTP verification
@@ -133,7 +146,7 @@ const verifyOtpAndLogin = async (req, res) => {
 
     // Generate JWT token
     const token = jwt.sign(
-      { captainId: captain._id, role: 'captain' },
+      { agentId: agent._id, role: 'agent' },
       process.env.JWT_SECRET || 'fallback-secret',
       { expiresIn: '7d' }
     );
@@ -141,15 +154,15 @@ const verifyOtpAndLogin = async (req, res) => {
     res.json({
       message: 'Login successful',
       token,
-      captain: {
-        id: captain._id,
-        name: captain.name,
-        city: captain.city,
-        phone: captain.phone,
-        vehicleType: captain.vehicleType,
-        vehicleSubType: captain.vehicleSubType,
-        servicesOffered: captain.servicesOffered,
-        isActive: captain.isActive
+      agent: {
+        id: agent._id,
+        name: agent.name,
+        city: agent.city,
+        phone: agent.phone,
+        vehicleType: agent.vehicleType,
+        vehicleSubType: agent.vehicleSubType,
+        servicesOffered: agent.servicesOffered,
+        isActive: agent.isActive
       }
     });
   } catch (error) {
@@ -166,19 +179,19 @@ const loginWithPassword = async (req, res) => {
       return res.status(400).json({ message: 'Phone and password are required' });
     }
 
-    const captain = await Captain.findOne({ phone });
-    if (!captain) {
+    const agent = await Agent.findOne({ phone });
+    if (!agent) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    const isValidPassword = await bcrypt.compare(password, captain.passwordHash);
+    const isValidPassword = await bcrypt.compare(password, agent.passwordHash);
     if (!isValidPassword) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
     // Generate JWT token
     const token = jwt.sign(
-      { captainId: captain._id, role: 'captain' },
+      { agentId:agent._id, role: 'agent' },
       process.env.JWT_SECRET || 'fallback-secret',
       { expiresIn: '7d' }
     );
@@ -186,15 +199,15 @@ const loginWithPassword = async (req, res) => {
     res.json({
       message: 'Login successful',
       token,
-      captain: {
-        id: captain._id,
-        name: captain.name,
-        city: captain.city,
-        phone: captain.phone,
-        vehicleType: captain.vehicleType,
-        vehicleSubType: captain.vehicleSubType,
-        servicesOffered: captain.servicesOffered,
-        isActive: captain.isActive
+      agent: {
+        id: agent._id,
+        name: agent.name,
+        city: agent.city,
+        phone: agent.phone,
+        vehicleType: agent.vehicleType,
+        vehicleSubType: agent.vehicleSubType,
+        servicesOffered: agent.servicesOffered,
+        isActive: agent.isActive
       }
     });
   } catch (error) {
@@ -205,26 +218,26 @@ const loginWithPassword = async (req, res) => {
 
 const getProfile = async (req, res) => {
   try {
-    const captain = req.captain;
+    const agent = req.agent;
     
     res.json({
-      id: captain._id,
-      name: captain.name,
-      city: captain.city,
-      phone: captain.phone,
-      vehicleType: captain.vehicleType,
-      vehicleSubType: captain.vehicleSubType,
-      servicesOffered: captain.servicesOffered,
-      isActive: captain.isActive,
-      isApproved: captain.isApproved,
-      rating: captain.rating,
-      totalTrips: captain.totalTrips,
+      id:agent._id,
+      name:agent.name,
+      city:agent.city,
+      phone:agent.phone,
+      vehicleType:agent.vehicleType,
+      vehicleSubType:agent.vehicleSubType,
+      servicesOffered:agent.servicesOffered,
+      isActive:agent.isActive,
+      isApproved:agent.isApproved,
+      rating:agent.rating,
+      totalTrips:agent.totalTrips,
       // document URLs
-      drivingLicenseUrl: captain.drivingLicenseUrl || null,
-      aadharCardUrl: captain.aadharCardUrl || null,
-      vehicleRegistrationUrl: captain.vehicleRegistrationUrl || null,
-      insuranceUrl: captain.insuranceUrl || null,
-      driverVehiclePhotoUrl: captain.driverVehiclePhotoUrl || null
+      drivingLicenseUrl:agent.drivingLicenseUrl || null,
+      aadharCardUrl:agent.aadharCardUrl || null,
+      vehicleRegistrationUrl:agent.vehicleRegistrationUrl || null,
+      insuranceUrl:agent.insuranceUrl || null,
+      driverVehiclePhotoUrl:agent.driverVehiclePhotoUrl || null
     });
   } catch (error) {
     console.error('Get profile error:', error);

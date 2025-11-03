@@ -7,11 +7,11 @@ import {
   ActivityIndicator,
   Pressable,
   RefreshControl,
- // Use SafeAreaView for mobile
+  // Use SafeAreaView for mobile
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 // Use lucide-react-native for mobile icons
-import { MapPin, Circle, CalendarDays, Wallet } from 'lucide-react-native';
+import { MapPin, Circle, CalendarDays } from 'lucide-react-native';
 // Restore original imports
 import { useAuth } from '@/context/AuthContext';
 import { captainTripApi } from '../lib/api';
@@ -22,14 +22,14 @@ type Period = 'today' | 'week' | 'month' | 'year' | 'total';
 
 // --- New Color Theme ---
 const Colors = {
-  primary: '#10B981',    // green
-  accent: '#ECFDF5',      // light green
-  textDark: '#065F46',    // dark green
-  text: '#1F2937',        // dark text
-  mutedText: '#6B7280',   // grey text
-  background: '#F9FAFB',  // light bg
-  border: '#E5E7EB',      // grey border
-  card: '#FFFFFF',        // white
+  primary: '#10B981', // green
+  accent: '#ECFDF5', // light green
+  textDark: '#065F46', // dark green
+  text: '#1F2937', // dark text
+  mutedText: '#6B7280', // grey text
+  background: '#F9FAFB', // light bg
+  border: '#E5E7EB', // grey border
+  card: '#FFFFFF', // white
   danger: '#DC2626',
   blue: '#2563EB',
   purple: '#7C3AED',
@@ -38,7 +38,6 @@ const Colors = {
   textOnPrimary: '#FFFFFF', // White text on green bg
 };
 // --- End New Color Theme ---
-
 
 // Define a basic interface for a Trip
 interface Trip {
@@ -68,9 +67,9 @@ export default function EarningsScreen() {
   });
   const [walletBalance, setWalletBalance] = useState(0);
   const [transfersLeft, setTransfersLeft] = useState(3);
-  
+
   const [trips, setTrips] = useState<Trip[]>([]);
-  
+
   const [filterPeriod, setFilterPeriod] = useState<Period>('week');
   const [showFilter, setShowFilter] = useState(false);
 
@@ -106,10 +105,10 @@ export default function EarningsScreen() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      
+
       const [balanceResponse, tripsResponse] = await Promise.all([
         captainTripApi.getWalletBalance(),
-        captainTripApi.getAllTrips()
+        captainTripApi.getAllTrips(),
       ]);
 
       const calculatedEarnings = {
@@ -120,19 +119,24 @@ export default function EarningsScreen() {
         total: 0,
       };
 
-      if (tripsResponse.data && tripsResponse.data.data && Array.isArray(tripsResponse.data.data)) {
+      if (
+        tripsResponse.data &&
+        tripsResponse.data.data &&
+        Array.isArray(tripsResponse.data.data)
+      ) {
         const actualTrips = tripsResponse.data.data;
         setTrips(actualTrips); // Save trips for the list
-        
+
         const startOfToday = getStartDate('today');
         const startOfWeek = getStartDate('week');
         const startOfMonth = getStartDate('month');
         const startOfYear = getStartDate('year');
-        
+
         const completedTrips = actualTrips.filter(
-          (trip: Trip) => trip.status === 'delivered' || trip.status === 'COMPLETED'
+          (trip: Trip) =>
+            trip.status === 'delivered' || trip.status === 'COMPLETED'
         );
-        
+
         for (const trip of completedTrips) {
           const tripDate = new Date(trip.createdAt);
           const fare = trip.fare || 0;
@@ -160,7 +164,6 @@ export default function EarningsScreen() {
         setWalletBalance(balanceData.balance || 0);
         setTransfersLeft(balanceData.transfersLeft || 0);
       }
-
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       setEarnings({ today: 0, week: 0, month: 0, year: 0, total: 0 });
@@ -182,27 +185,35 @@ export default function EarningsScreen() {
     if (!trips || trips.length === 0) return [];
     const startDate = getStartDate(filterPeriod);
     const now = new Date();
-    const isCompleted = (status: string) => status === 'delivered' || status === 'COMPLETED';
+    const isCompleted = (status: string) =>
+      status === 'delivered' || status === 'COMPLETED';
     if (filterPeriod === 'total') {
-      return trips.filter(trip => isCompleted(trip.status));
+      return trips.filter((trip) => isCompleted(trip.status));
     }
     return trips.filter((trip: Trip) => {
       const tripDate = new Date(trip.createdAt);
-      return tripDate >= startDate && tripDate <= now && isCompleted(trip.status);
+      return (
+        tripDate >= startDate && tripDate <= now && isCompleted(trip.status)
+      );
     });
   }, [trips, filterPeriod]);
 
   // Helper to format labels
   const getPeriodLabel = (period: Period): string => {
     switch (period) {
-      case 'today': return 'Today';
-      case 'week': return 'This Week';
-      case 'month': return 'This Month';
-      case 'year': return 'This Year';
-      case 'total': return 'All Time';
+      case 'today':
+        return 'Today';
+      case 'week':
+        return 'This Week';
+      case 'month':
+        return 'This Month';
+      case 'year':
+        return 'This Year';
+      case 'total':
+        return 'All Time';
     }
   };
-  
+
   // Helper to format date strings (shortened version for new design)
   const formatTripDate = (dateString: string) => {
     try {
@@ -229,51 +240,62 @@ export default function EarningsScreen() {
   const filterOptions: Period[] = ['today', 'week', 'month', 'year', 'total'];
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Earnings</Text>
-        <Text style={styles.subtitle}>Track your income and trip history</Text>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Blue Banner Header */}
+      <View style={styles.blueBanner}>
+        <Text style={styles.bannerTitle}>Earnings</Text>
+        <Text style={styles.bannerSubtitle}>Track your income and trip history</Text>
       </View>
 
       <ScrollView
         style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} colors={[Colors.primary]} />
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={onRefresh}
+            colors={[Colors.primary]}
+          />
         }
       >
         {/* --- Top Stats Grid --- */}
         <View style={styles.topStatsGrid}>
-          <View style={[styles.statCard, { borderLeftColor: Colors.blue }]}>
-            <Wallet size={28} color={Colors.blue} style={styles.statCardIcon} />
-            <Text style={styles.statCardTitle}>Wallet Balance</Text>
-            <Text style={[styles.statCardAmount, { color: Colors.blue }]}>
-              ₹{walletBalance.toFixed(2)}
-            </Text>
-          </View>
-          <View style={[styles.statCard, { borderLeftColor: Colors.purple }]}>
-            <Text style={styles.statCardEmojiIcon}>📈</Text>
-            <Text style={styles.statCardTitle}>Total Earnings</Text>
-            <Text style={[styles.statCardAmount, { color: Colors.purple }]}>
-              ₹{earnings.total.toFixed(2)}
-            </Text>
+          {/* Removed Wallet Card, this is now the only card */}
+          <View style={[styles.statCard, { borderLeftColor: Colors.blue, backgroundColor: Colors.blue + '0D' }]}>
+            <View style={styles.statCardRow}>
+              <Text style={styles.statCardEmojiIcon}>📈</Text>
+              <View style={styles.statCardContent}>
+                <Text style={styles.statCardTitle}>Total All-Time Earnings</Text>
+                <Text style={[styles.statCardAmount, { color: Colors.blue }]}>
+                  ₹{earnings.total.toFixed(2)}
+                </Text>
+              </View>
+            </View>
           </View>
         </View>
 
         {/* --- Earnings Summary Card (Filtered) --- */}
-        <View style={[styles.summaryCard, showFilter && styles.summaryCardOpen]}>
+        <View
+          style={[
+            styles.summaryCard,
+            { borderLeftColor: Colors.blue }, // Changed to blue like home page
+            showFilter && styles.summaryCardOpen,
+          ]}
+        >
           <View style={styles.summaryHeader}>
             <Text style={styles.summaryTitle}>{periodLabel} Earnings</Text>
             <View style={styles.filterAnchor}>
-              <Pressable style={styles.filterButton} onPress={() => setShowFilter(v => !v)}>
+              <Pressable
+                style={styles.filterButton}
+                onPress={() => setShowFilter((v) => !v)}
+              >
                 <Text style={styles.filterButtonText}>
                   {periodLabel} ▾
                 </Text>
               </Pressable>
               {showFilter && (
                 <View style={styles.dropdownMenu}>
-                  {filterOptions.map(p => (
+                  {filterOptions.map((p) => (
                     <Pressable
                       key={p}
                       style={[
@@ -288,7 +310,8 @@ export default function EarningsScreen() {
                       <Text
                         style={[
                           styles.filterMenuItemText,
-                          filterPeriod === p && styles.filterMenuItemTextActive,
+                          filterPeriod === p &&
+                            styles.filterMenuItemTextActive,
                         ]}
                       >
                         {getPeriodLabel(p)}
@@ -300,7 +323,7 @@ export default function EarningsScreen() {
             </View>
           </View>
           <View style={styles.summaryContent}>
-            <Text style={styles.summaryAmount}>
+            <Text style={[styles.summaryAmount, { color: Colors.blue }]}>
               ₹{displayedEarning}
             </Text>
             <Text style={styles.summarySubtext}>
@@ -308,7 +331,7 @@ export default function EarningsScreen() {
             </Text>
           </View>
         </View>
-        
+
         {/* --- NEW Trip History Section --- */}
         <View style={styles.historyHeader}>
           <Text style={styles.historyTitle}>Trip History ({periodLabel})</Text>
@@ -317,48 +340,59 @@ export default function EarningsScreen() {
 
         {filteredTrips.length === 0 ? (
           <View style={styles.emptyState}>
-            <AlertBox 
-              title="No Trips Found" 
-              message={`You haven't completed any trips in this period. Try changing the filter to a wider range.`} 
-              variant="info" 
+            <AlertBox
+              title="No Trips Found"
+              message={"You haven't completed any trips in this period. Try changing the filter to a wider range."}
+              variant="info"
             />
           </View>
         ) : (
           <View style={styles.tripListContainer}>
             {filteredTrips.map((trip: Trip) => (
               <Pressable key={trip._id} style={styles.tripItem}>
-                {/* 1. Timeline Gutter */}
-                <View style={styles.tripTimelineGutter}>
-                  <Circle size={18} color={Colors.primary} fill={Colors.primary} />
-                  <View style={styles.tripTimelineConnector} />
-                  <MapPin size={18} color={Colors.mutedText} />
-                </View>
-
-                {/* 2. Main Content */}
-                <View style={styles.tripContent}>
-                  <Text style={styles.tripAddress} numberOfLines={1}>
-                    {trip.pickupLocation?.address || 'Unknown Pickup'}
+                {/* 1. Header (Fare & Date) */}
+                <View style={styles.tripHeader}>
+                  <Text style={styles.tripFare}>
+                    ₹{(trip.fare || 0).toFixed(2)}
                   </Text>
-                  <Text style={[styles.tripAddress, styles.tripAddressDropoff]} numberOfLines={1}>
-                    {trip.dropoffLocation?.address || 'Unknown Dropoff'}
-                  </Text>
-                </View>
-
-                {/* 3. Fare & Date Gutter */}
-                <View style={styles.tripFareGutter}>
-                  <Text style={styles.tripFare}>+₹{(trip.fare || 0).toFixed(2)}</Text>
                   <View style={styles.tripDateContainer}>
                     <CalendarDays size={14} color={Colors.mutedText} />
-                    <Text style={styles.tripDate}>{formatTripDate(trip.createdAt)}</Text>
+                    <Text style={styles.tripDate}>
+                      {formatTripDate(trip.createdAt)}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* 2. Body (Timeline & Address) */}
+                <View style={styles.tripBody}>
+                  <View style={styles.tripTimelineGutter}>
+                    <Circle
+                      size={16}
+                      color={Colors.blue}
+                      fill={Colors.blue}
+                    />
+                    <View style={styles.tripTimelineConnector} />
+                    <MapPin size={16} color={Colors.mutedText} strokeWidth={2.5} />
+                  </View>
+                  <View style={styles.tripContent}>
+                    <Text style={styles.tripAddress} numberOfLines={1}>
+                      {trip.pickupLocation?.address || 'Unknown Pickup'}
+                    </Text>
+                    <Text
+                      style={[styles.tripAddress, styles.tripAddressDropoff]}
+                      numberOfLines={1}
+                    >
+                      {trip.dropoffLocation?.address || 'Unknown Dropoff'}
+                    </Text>
                   </View>
                 </View>
               </Pressable>
             ))}
           </View>
         )}
-        
+
         {/* Bottom padding for scroll */}
-        <View style={{ height: 40 }} /> 
+        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -368,73 +402,79 @@ export default function EarningsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding:8,
-    paddingTop:8,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.blue,
   },
   scrollContainer: {
     flex: 1,
-  },
-  header: {
-    paddingTop: 20, // Use safeareaview, so less padding needed
-    paddingHorizontal: 20,
-    paddingBottom: 16,
     backgroundColor: Colors.background,
   },
-  title: {
-    fontSize: 36, // Larger text
-    fontWeight: 'bold',
-    color: Colors.text,
+  blueBanner: {
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    backgroundColor: Colors.blue,
+    minHeight: 120,
+  },
+  bannerTitle: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#FFFFFF',
     marginBottom: 4,
   },
-  subtitle: {
-    fontSize: 18, // Larger text
-    color: Colors.mutedText,
+  bannerSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
-  
+
   // --- Top Stats Grid ---
   topStatsGrid: {
-    flexDirection: 'row',
     marginHorizontal: 20,
-    marginBottom: 16,
-    gap: 16,
+    marginTop: 24,
+    marginBottom: 24, // Increased spacing
   },
   statCard: {
-    flex: 1,
+    // This card is now full-width, no flex: 1 needed
     backgroundColor: Colors.card,
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: Colors.border,
     shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 8, // "Popped up"
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 3,
     borderLeftWidth: 5,
   },
   statCardIcon: {
     marginBottom: 8,
   },
+  statCardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
   statCardEmojiIcon: {
-    fontSize: 28, // Emoji icon
-    marginBottom: 8,
+    fontSize: 32, // Emoji icon
+  },
+  statCardContent: {
+    flex: 1,
   },
   statCardTitle: {
-    fontSize: 15, // Larger text
+    fontSize: 15,
     color: Colors.mutedText,
     fontWeight: '500',
     marginBottom: 4,
   },
   statCardAmount: {
-    fontSize: 28, // Larger text
+    fontSize: 28,
     fontWeight: 'bold',
   },
 
   // --- Filterable Summary Card ---
   filterAnchor: {
     position: 'relative',
-    zIndex: 101, 
+    zIndex: 101,
   },
   filterButton: {
     backgroundColor: Colors.background,
@@ -445,9 +485,9 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   filterButtonText: {
-    color: Colors.primary,
+    color: Colors.textDark, // Changed to darker text
     fontWeight: '600',
-    fontSize: 15, // Larger text
+    fontSize: 15,
   },
   dropdownMenu: {
     position: 'absolute',
@@ -473,31 +513,30 @@ const styles = StyleSheet.create({
   },
   filterMenuItemText: {
     color: Colors.mutedText,
-    fontSize: 15, // Larger text
+    fontSize: 15,
     fontWeight: '600',
   },
   filterMenuItemTextActive: {
-    color: Colors.primary,
+    color: Colors.primary, // Keep this green
     fontWeight: '700',
   },
   summaryCard: {
     backgroundColor: Colors.card,
     marginHorizontal: 20,
-    marginTop: 4, 
-    marginBottom: 24,
-    padding: 20,
+    marginBottom: 24, // Consistent spacing
+    padding: 12,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: Colors.border,
     shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 10, // "Popped up"
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 3,
     zIndex: 2,
-    minHeight: 160,
+    minHeight: 90,
     borderLeftWidth: 5,
-    borderLeftColor: Colors.primary,
+    // borderLeftColor set dynamically
   },
   summaryCardOpen: {
     paddingBottom: 20,
@@ -509,14 +548,14 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   summaryTitle: {
-    fontSize: 20, // Larger text
+    fontSize: 20,
     color: Colors.text,
     fontWeight: '700',
   },
   summaryAmount: {
-    fontSize: 48, // Larger text
+    fontSize: 32,
     fontWeight: 'bold',
-    color: Colors.primary,
+    // color set dynamically (to blue)
   },
   summaryContent: {
     flex: 1,
@@ -526,7 +565,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   summarySubtext: {
-    fontSize: 16, // Larger text
+    fontSize: 16,
     color: Colors.mutedText,
     marginTop: 4,
     fontWeight: '500',
@@ -542,12 +581,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   historyTitle: {
-    fontSize: 22, // Larger text
+    fontSize: 22,
     fontWeight: 'bold',
     color: Colors.text,
   },
   historyCount: {
-    fontSize: 15, // Larger text
+    fontSize: 15,
     color: Colors.mutedText,
     fontWeight: '500',
   },
@@ -560,70 +599,75 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 40,
   },
+  // --- Improved Trip Item ---
   tripItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start', // Align items to the top for timeline
     backgroundColor: Colors.card,
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+    padding: 16, // More padding
+    borderRadius: 16, // More rounded
     marginBottom: 12,
     borderWidth: 1,
     borderColor: Colors.border,
     shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 4, // "Popped up"
+    shadowOffset: { width: 0, height: 2 }, // Softer shadow
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 3, // Softer elevation
+  },
+  tripHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16, // Space between header and body
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    paddingBottom: 12,
+  },
+  tripBody: {
+    flexDirection: 'row',
   },
   tripTimelineGutter: {
     alignItems: 'center',
-    paddingHorizontal: 8,
+    marginRight: 12, // Use margin for spacing
   },
   tripTimelineConnector: {
     flex: 1,
     width: 2,
-    backgroundColor: Colors.border, // Use solid color
+    backgroundColor: Colors.border,
     marginVertical: 4,
+    minHeight: 20, // Ensure connector has height
   },
   tripContent: {
     flex: 1,
-    paddingHorizontal: 8,
-    marginTop: -2, // Align text with top icon
+    paddingTop: 0, // Align with top icon
   },
   tripAddress: {
-    fontSize: 16, // Larger text
+    fontSize: 15, // Slightly smaller for balance
     fontWeight: '600',
     color: Colors.text,
     marginBottom: 2,
   },
   tripAddressDropoff: {
-    fontSize: 15, // Larger text
+    fontSize: 15,
     fontWeight: '500',
     color: Colors.mutedText,
-    marginTop: 16, // Space for the connector
-  },
-  tripFareGutter: {
-    alignItems: 'flex-end',
-    paddingLeft: 8,
+    marginTop: 18, // Space for the connector
   },
   tripFare: {
-    fontSize: 18, // Larger text
+    fontSize: 18,
     fontWeight: 'bold',
     color: Colors.primary,
-    marginBottom: 4,
   },
   tripDateContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6, // Use gap
   },
   tripDate: {
-    fontSize: 13, // Larger text
+    fontSize: 14, // Slightly larger date
     color: Colors.mutedText,
     fontWeight: '500',
   },
-  // --- End of NEW Trip History Styles ---
+  // --- End of Improved Trip Item ---
 
   loadingContainer: {
     flex: 1,

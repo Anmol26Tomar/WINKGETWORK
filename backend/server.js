@@ -35,7 +35,7 @@ app.use(express.json());
 
 connectDB();
 
-const agentRoutes = require("./WinkgetExpress/captain/routes/captain.auth.routes");
+const agentRoutes = require("./WinkgetExpress/routes/captain.auth.routes");
 
 app.get("/health", (req, res) => res.json({ status: "ok" }));
 
@@ -91,15 +91,15 @@ app.use(
 // Captain routing
 app.use(
   "/api/v1/captain/auth",
-  require("./WinkgetExpress/captain/routes/captain.auth.routes")
+  require("./WinkgetExpress/routes/captain.auth.routes")
 );
 app.use(
   "/api/v1/captain/trips",
-  require("./WinkgetExpress/captain/routes/captain.trip.routes")
+  require("./WinkgetExpress/routes/captain.trip.routes")
 );
 app.use(
   "/api/v1/captain",
-  require("./WinkgetExpress/captain/routes/captain.misc.routes")
+  require("./WinkgetExpress/routes/captain.misc.routes")
 );
 
 app.use("/api/auth/agent", agentRoutes);
@@ -117,7 +117,7 @@ setIO(io);
 try {
   const {
     initCaptainSockets,
-  } = require("./WinkgetExpress/captain/sockets/captain.socket");
+  } = require("./WinkgetExpress/sockets/captain.socket");
   initCaptainSockets(io);
   console.log("Captain sockets initialized successfully");
 } catch (error) {

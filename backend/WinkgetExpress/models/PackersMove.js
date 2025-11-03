@@ -31,7 +31,10 @@ const packersMoveSchema = new mongoose.Schema(
     serviceType: { type: String, default: 'Packers & Movers' },
     status: { type: String, enum: ['pending', 'accepted', 'in_transit', 'delivered', 'cancelled'], default: 'pending' },
     accepted: { type: Boolean, default: false },
-    captainRef: { type: mongoose.Schema.Types.ObjectId, ref: 'Agent', default: null },
+    agentRef: { type: mongoose.Schema.Types.ObjectId, ref: 'Agent', default: null },
+    captainRef: { type: mongoose.Schema.Types.ObjectId, ref: 'Agent', default: null }, // Keep for backward compatibility
+    otpPickupHash: { type: String, default: null },
+    otpDropHash: { type: String, default: null },
   },
   { timestamps: { createdAt: true, updatedAt: true } }
 );

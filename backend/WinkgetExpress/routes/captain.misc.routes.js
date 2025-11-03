@@ -1,6 +1,6 @@
 const express = require('express');
 const { protectCaptain } = require('../middleware/auth.middleware');
-const { getStats, getEarnings, getTransactions, getWalletBalance } = require('../controllers/captain.dashboard.controller');
+const { getStats, getEarnings, getTransactions, getWalletBalance, getAllTrips } = require('../controllers/captain.dashboard.controller');
 const { uploadDocument } = require('../controllers/captain.docs.controller');
 const { getProfile } = require('../controllers/captain.auth.controller');
 
@@ -13,6 +13,9 @@ router.get('/earnings', getEarnings);
 router.get('/transactions', getTransactions);
 router.get('/wallet/balance', getWalletBalance);
 router.get('/profile', getProfile);
+
+// Get all completed trips for earnings page
+router.get('/trips/all-trips', getAllTrips);
 
 // Documents upload (expects { file: base64/dataURI })
 router.post('/documents/:type', uploadDocument);

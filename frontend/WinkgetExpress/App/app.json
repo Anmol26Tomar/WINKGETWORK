@@ -30,7 +30,7 @@
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
       ],
-      "package": "captain_123.cap"
+      "package": "com.winkgetexpress.agent"
     },
     "web": {
       "output": "static",

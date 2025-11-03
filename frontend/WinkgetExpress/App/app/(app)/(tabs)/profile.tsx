@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  Pressable, 
-  Alert, 
-  ActivityIndicator, 
-  Image, 
-  Modal,
-  // Import SafeAreaView
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  Alert,
+  ActivityIndicator,
+  Image,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -17,7 +16,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'expo-router';
 import { captainTripApi, captainTripApiUploadDocument, clearCaptainApiToken } from '../lib/api';
 import * as SecureStore from 'expo-secure-store';
-import { Feather } from '@expo/vector-icons'; // Import icons
+import { Feather } from '@expo/vector-icons';
 
 /* -------------------- THEME -------------------- */
 const THEME = {
@@ -28,22 +27,35 @@ const THEME = {
   textMuted: '#6B7280',
   background: '#F9FAFB',
   border: '#E5E7EB',
+  borderActive: '#10B9814D', 
   white: '#FFFFFF',
   danger: '#DC2626',
-  dangerLight: '#FEE2E2',
-  warning: '#F59E0B',
-  warningLight: '#FFFBEB',
-  success: '#10B981',
-  successLight: '#ECFDF5',
+  dangerLight: '#FEE2E2',
+  warning: '#F59E0B',
+  warningLight: '#FFFBEB',
+  success: '#10B981',
+  successLight: '#ECFDF5',
+  blue: '#2563EB',
+  purple: '#7C3AED',
+  orange: '#F59E0B',
 };
 
 // Define icon mapping
 const docIconMap: { [key: string]: React.ComponentProps<typeof Feather>['name'] } = {
-  driving_license: 'credit-card',
-  aadhar_card: 'user',
-  vehicle_registration: 'file-text',
-  insurance: 'shield',
-  driver_vehicle_photo: 'camera',
+  driving_license: 'credit-card',
+  aadhar_card: 'user',
+  vehicle_registration: 'file-text',
+  insurance: 'shield',
+  driver_vehicle_photo: 'camera',
+};
+
+// Define color mapping for document icons
+const docColorMap: { [key: string]: string } = {
+  driving_license: THEME.blue,
+  aadhar_card: THEME.purple,
+  vehicle_registration: THEME.orange,
+  insurance: THEME.danger,
+  driver_vehicle_photo: THEME.textDark,
 };
 
 export default function ProfileScreen() {
@@ -51,6 +63,8 @@ export default function ProfileScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState({
+    name: '',
+    vehicleType: '',
     city: '',
     phone: '',
     rating: 0
@@ -64,7 +78,6 @@ export default function ProfileScreen() {
   });
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  // (All your logic functions are unchanged)
   useEffect(() => {
     fetchProfileData();
   }, []);
@@ -76,6 +89,8 @@ export default function ProfileScreen() {
       const stats = await captainTripApi.getCaptainStats();
       if (response.data) {
         setProfileData({
+          name: response.data.name || captain?.name || 'N/A',
+          vehicleType: response.data.vehicleType || captain?.vehicleType || 'N/A',
           city: response.data.city || captain?.city || 'N/A',
           phone: response.data.phone || captain?.phone || 'N/A',
           rating: (stats?.data?.rating ?? response.data.rating ?? 0)
@@ -91,6 +106,8 @@ export default function ProfileScreen() {
     } catch (error) {
       console.error('Error fetching profile:', error);
       setProfileData({
+        name: captain?.name || 'N/A',
+        vehicleType: captain?.vehicleType || 'N/A',
         city: captain?.city || 'N/A',
         phone: captain?.phone || 'N/A',
         rating: 0
@@ -99,7 +116,7 @@ export default function ProfileScreen() {
         try {
           const r2 = await captainTripApi.getProfile();
           if (r2?.data?.city) setProfileData(prev => ({ ...prev, city: r2.data.city }));
-        } catch {}
+        } catch { }
       }, 500);
     } finally {
       setLoading(false);
@@ -120,7 +137,10 @@ export default function ProfileScreen() {
       });
       if (result.canceled || !result.assets?.[0]?.base64) return;
       const asset = result.assets[0];
+
+      // ✅ FIXED: Added template literal (backticks ``) to create a valid string
       const dataUri = `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`;
+
       const res = await captainTripApiUploadDocument(type, dataUri);
       if (res?.data?.url) {
         setDocUrls(prev => ({ ...prev, [type]: res.data.url }));
@@ -147,7 +167,7 @@ export default function ProfileScreen() {
           } catch (e) {
             console.warn('Error clearing SecureStore:', e);
           }
-          
+
           await logout();
           router.replace('/(app)/(auth)');
         },
@@ -155,14 +175,14 @@ export default function ProfileScreen() {
     ]);
   };
 
-  // Document data structure for mapping
-  const documents = [
-    { key: 'driving_license', name: 'Driving License', desc: 'Valid driving license' },
-    { key: 'aadhar_card', name: 'Aadhar Card', desc: 'Government ID' },
-    { key: 'vehicle_registration', name: 'Vehicle Registration', desc: 'RC document' },
-    { key: 'insurance', name: 'Insurance', desc: 'Valid vehicle insurance' },
-    { key: 'driver_vehicle_photo', name: 'Driver with Vehicle', desc: 'Clear photo of you with vehicle' },
-  ];
+  // Document data structure for mapping
+  const documents = [
+    { key: 'driving_license', name: 'Driving License', desc: 'Valid driving license' },
+    { key: 'aadhar_card', name: 'Aadhar Card', desc: 'Government ID' },
+    { key: 'vehicle_registration', name: 'Vehicle Registration', desc: 'RC document' },
+    { key: 'insurance', name: 'Insurance', desc: 'Valid vehicle insurance' },
+    { key: 'driver_vehicle_photo', name: 'Driver with Vehicle', desc: 'Clear photo of you with vehicle' },
+  ];
 
   if (loading) {
     return (
@@ -174,7 +194,8 @@ export default function ProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Text style={styles.title}>Profile</Text>
@@ -182,7 +203,7 @@ export default function ProfileScreen() {
         </View>
         <View style={styles.headerRight}>
           <View style={styles.ratingBadge}>
-            <Feather name="star" size={14} color={THEME.white} />
+            <Feather name="star" size={14} color={THEME.white} />
             <Text style={styles.ratingValue}>{profileData.rating.toFixed(1)}</Text>
           </View>
         </View>
@@ -194,15 +215,43 @@ export default function ProfileScreen() {
           <Text style={styles.sectionTitle}>Personal Information</Text>
           <View style={styles.card}>
             <View style={[styles.infoRow, styles.infoRowDivider]}>
-              <Feather name="phone" size={20} color={THEME.textMuted} style={styles.infoIcon} />
+              <View style={[styles.infoIconContainer, { backgroundColor: THEME.blue + '1A' }]}>
+                {/* ✅ FIXED: Replaced emoji with Feather icon */}
+                <Feather name="user" size={20} color={THEME.blue} />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Name</Text>
+                <Text style={styles.infoValue}>{profileData?.name || captain?.name || 'N/A'}</Text>
+              </View>
+            </View>
+
+            <View style={[styles.infoRow, styles.infoRowDivider]}>
+              <View style={[styles.infoIconContainer, { backgroundColor: THEME.orange + '1A' }]}>
+                {/* ✅ FIXED: Replaced emoji with Feather icon (using 'truck') */}
+                <Feather name="truck" size={20} color={THEME.orange} />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Vehicle Type</Text>
+                <Text style={styles.infoValue}>{(profileData?.vehicleType || captain?.vehicleType || 'N/A')?.toUpperCase()}</Text>
+              </View>
+          </View>
+
+            <View style={[styles.infoRow, styles.infoRowDivider]}>
+              <View style={[styles.infoIconContainer, { backgroundColor: THEME.primary + '1A' }]}>
+                {/* This one was already correct */}
+                <Feather name="phone" size={20} color={THEME.primary} />
+              </View>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Phone</Text>
                 <Text style={styles.infoValue}>{profileData.phone}</Text>
               </View>
             </View>
-            
+
             <View style={styles.infoRow}>
-              <Feather name="map-pin" size={20} color={THEME.textMuted} style={styles.infoIcon} />
+              <View style={[styles.infoIconContainer, { backgroundColor: THEME.purple + '1A' }]}>
+                {/* This one was already correct */}
+                <Feather name="map-pin" size={20} color={THEME.purple} />
+              </View>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>City</Text>
                 <Text style={styles.infoValue}>{profileData.city}</Text>
@@ -224,62 +273,63 @@ export default function ProfileScreen() {
             <Text style={styles.verificationMessage}>
               Complete document verification to start accepting trips
             </Text>
-            
-            <View style={styles.documentList}>
-              {documents.map((doc) => {
-                const key = doc.key as keyof typeof docUrls;
-                const url = docUrls[key];
-                const iconName = docIconMap[key] || 'file';
-                const isUploaded = !!url;
 
-                return (
-                  <View key={key} style={styles.documentItem}>
-                    <Feather name={iconName} size={20} color={THEME.textMuted} style={styles.documentIcon} />
-                    <View style={styles.documentInfo}>
-                      <Text style={styles.documentName}>{doc.name}</Text>
-                      <Text style={styles.documentDesc}>{doc.desc}</Text>
-                      {isUploaded && (
-                        <View style={styles.uploadedBadge}>
-                          <Feather name="check-circle" size={12} color={THEME.success} />
-                          <Text style={styles.uploadedText}>Uploaded</Text>
-                        </View>
-                      )}
-                    </View>
-                    {isUploaded ? (
-                      <Pressable style={[styles.uploadButton, styles.viewButton]} onPress={() => setPreviewUrl(url)}>
-                        <Text style={[styles.uploadText, styles.viewText]}>View</Text>
-                      </Pressable>
-                    ) : (
-                      <Pressable style={styles.uploadButton} onPress={() => pickAndUpload(key)}>
-                        <Text style={styles.uploadText}>Upload</Text>
-                      </Pressable>
-                    )}
-                  </View>
-                )
-              })}
+            <View style={styles.documentList}>
+              {documents.map((doc) => {
+                const key = doc.key as keyof typeof docUrls;
+                const url = docUrls[key];
+                const iconName = docIconMap[key] || 'file';
+                const iconColor = docColorMap[key] || THEME.textMuted; 
+                const isUploaded = !!url;
+
+                return (
+                  <View key={key} style={styles.documentItem}>
+                    <Feather name={iconName} size={20} color={iconColor} style={styles.documentIcon} />
+                    <View style={styles.documentInfo}>
+                      <Text style={styles.documentName}>{doc.name}</Text>
+                 <Text style={styles.documentDesc}>{doc.desc}</Text>
+                      {isUploaded && (
+                        <View style={styles.uploadedBadge}>
+                          <Feather name="check-circle" size={12} color={THEME.success} />
+                          <Text style={styles.uploadedText}>Uploaded</Text>
+                        </View>
+                      )}
+                    </View>
+                    {isUploaded ? (
+                      <Pressable style={[styles.uploadButton, styles.viewButton]} onPress={() => setPreviewUrl(url)}>
+                    <Text style={[styles.uploadText, styles.viewText]}>View</Text>
+                      </Pressable>
+                    ) : (
+                      <Pressable style={styles.uploadButton} onPress={() => pickAndUpload(key)}>
+                        <Text style={styles.uploadText}>Upload</Text>
+                      </Pressable>
+                    )}
+                  </View>
+            )
+              })}
             </View>
           </View>
         </View>
 
         {/* Logout Button */}
         <Pressable style={styles.logoutButton} onPress={handleLogout}>
-          <Feather name="log-out" size={18} color={THEME.danger} />
+          <Feather name="log-out" size={18} color={THEME.danger} />
           <Text style={styles.logoutText}>Logout</Text>
         </Pressable>
 
         <Text style={styles.version}>Version 1.0.0 (Captain)</Text>
       </ScrollView>
 
-      {/* Image Preview Modal */}
+      {/* Image Preview Modal (unchanged) */}
       <Modal visible={!!previewUrl} transparent animationType="fade" onRequestClose={() => setPreviewUrl(null)}>
-        <View style={styles.modalOverlay}>
+     <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <Pressable style={styles.modalClose} onPress={() => setPreviewUrl(null)}>
-              <Feather name="x" size={20} color={THEME.text} />
+              <Feather name="x" size={20} color={THEME.text} />
             </Pressable>
             {previewUrl && (
               <Image source={{ uri: previewUrl }} style={styles.previewImage} resizeMode="contain" />
-            )}
+       )}
           </View>
         </View>
       </Modal>
@@ -290,18 +340,18 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: THEME.background,
+    backgroundColor: THEME.blue, // This creates the blue top area
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    // ✅ FIX: Replaced hardcoded paddingTop with vertical padding
-    paddingVertical: 16,
-    backgroundColor: THEME.background,
-    borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
+    paddingTop: 20,
+    paddingBottom: 20,
+    backgroundColor: THEME.blue,
+    borderBottomWidth: 0,
+    minHeight: 120, // Give header ample space
   },
   headerLeft: {
     flex: 1,
@@ -312,30 +362,34 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '800',
-    color: THEME.text,
+    color: THEME.white,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 16,
-    color: THEME.textMuted,
+    color: THEME.accent,
+    opacity: 0.9,
   },
   ratingBadge: {
-    flexDirection: 'row',
-    backgroundColor: THEME.primary,
+    flexDirection: 'row',
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: THEME.white,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
     alignItems: 'center',
-    gap: 6,
+    gap: 6,
   },
   ratingValue: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: THEME.white,
+color: THEME.white,
   },
   content: {
     flex: 1,
-    paddingTop: 8, // Add space between header and content
+    backgroundColor: THEME.background,
+    paddingTop: 8, // Give a small space between header and content
   },
   section: {
     marginBottom: 24,
@@ -354,38 +408,50 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: THEME.border,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 3,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    // Add dividers in the JSX instead
   },
-  infoRowDivider: {
-    paddingBottom: 16,
-    marginBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
-  },
-  infoIcon: {
-    width: 32, // Give icon a fixed width for alignment
+  infoRowDivider: {
+    paddingBottom: 16,
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: THEME.border,
+  },
+  infoIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 16,
+  },
+  // This style is no longer used, but safe to keep
+  infoIcon: {
+    width: 32,
+    marginRight: 16,
+  },
+  // This style is no longer used, but safe to keep
+  infoEmoji: {
+    fontSize: 20,
   },
   infoContent: {
     flex: 1,
   },
   infoLabel: {
-    fontSize: 14,
+    fontSize: 15,
     color: THEME.textMuted,
     marginBottom: 4,
   },
   infoValue: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '600',
     color: THEME.text,
   },
   verificationHeader: {
@@ -396,7 +462,7 @@ const styles = StyleSheet.create({
   },
   verificationLabel: {
     fontSize: 16,
-    fontWeight: '600',
+   fontWeight: '600',
     color: THEME.text,
   },
   pendingBadge: {
@@ -404,8 +470,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: THEME.warning,
+    borderWidth: 1,
+    borderColor: THEME.warning,
   },
   pendingText: {
     fontSize: 12,
@@ -416,9 +482,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: THEME.textMuted,
     marginBottom: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: THEME.border,
   },
   documentList: {
     gap: 16,
@@ -433,32 +499,32 @@ const styles = StyleSheet.create({
     borderColor: THEME.border,
   },
   documentIcon: {
-    width: 24, // Fixed width
+    width: 24, // Ensures icon has a consistent space
     marginRight: 12,
-  },
+ },
   documentInfo: {
     flex: 1,
   },
   documentName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: THEME.text,
+    fontSize: 16,
+    fontWeight: '700',
+    color: THEME.text,
     marginBottom: 2,
   },
   documentDesc: {
-    fontSize: 12,
+    fontSize: 13,
     color: THEME.textMuted,
   },
-  uploadedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 6,
-  },
+  uploadedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 6,
+  },
   uploadedText: {
     fontSize: 12,
     color: THEME.success,
-    fontWeight: '600',
+    fontWeight: '600',
   },
   modalOverlay: {
     flex: 1,
@@ -484,13 +550,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: THEME.border,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 5,
+  borderWidth: 1,
+    borderColor: THEME.border,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 5,
   },
   previewImage: {
     width: '100%',
@@ -499,57 +565,57 @@ const styles = StyleSheet.create({
   },
   uploadButton: {
     backgroundColor: THEME.primary,
-   paddingHorizontal: 16,
+    paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
   },
   uploadText: {
     fontSize: 14,
-    fontWeight: '600',
+   fontWeight: '600',
     color: THEME.white,
   },
-  viewButton: {
-    backgroundColor: THEME.white,
-    borderWidth: 1.5,
-    borderColor: THEME.border,
-  },
-  viewText: {
-    color: THEME.text,
-  },
+  viewButton: {
+    backgroundColor: THEME.white,
+    borderWidth: 1.5,
+  	borderColor: THEME.border,
+  },
+  viewText: {
+    color: THEME.text,
+  },
   logoutButton: {
-    flexDirection: 'row',
-    gap: 12,
+    flexDirection: 'row',
+  	gap: 12,
     backgroundColor: THEME.dangerLight,
-    borderColor: THEME.danger,
-    borderWidth: 1.5,
-    marginHorizontal: 20,
-    marginTop: 20,
+    borderColor: THEME.danger,
+    borderWidth: 1.5,
+  	marginHorizontal: 20,
+  	marginTop: 20,
     padding: 16,
-    borderRadius: 16,
+  	borderRadius: 16,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'center',
   },
   logoutText: {
-    fontSize: 16,
-    fontWeight: 'bold',
+  	fontSize: 16,
+  	fontWeight: 'bold',
     color: THEME.danger,
   },
   version: {
-    textAlign: 'center',
+  	textAlign: 'center',
     color: THEME.textMuted,
-    fontSize: 12,
-    marginVertical: 24,
+  	fontSize: 12,
+  	marginVertical: 24,
   },
   loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: THEME.background,
-   },
+  	flex: 1,
+  	justifyContent: 'center',
+  	alignItems: 'center',
+  	backgroundColor: THEME.background,
+  },
   loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: THEME.textMuted,
-    textAlign: 'center',
+  	marginTop: 10,
+  	fontSize: 16,
+  	color: THEME.textMuted,
+  	textAlign: 'center',
   },
 });

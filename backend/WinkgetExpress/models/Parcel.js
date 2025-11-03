@@ -46,9 +46,12 @@ const parcelSchema = new mongoose.Schema(
 		typeOfDelivery: { type: String, enum: ['standard', 'express'], default: 'standard' },
 		fareEstimate: { type: Number, required: true },
 		accepted: { type: Boolean, default: false },
-		captainRef: { type: mongoose.Schema.Types.ObjectId, ref: 'Captain', default: null },
+		agentRef: { type: mongoose.Schema.Types.ObjectId, ref: 'Agent', default: null },
+		captainRef: { type: mongoose.Schema.Types.ObjectId, ref: 'Agent', default: null }, // Keep for backward compatibility
 		status: { type: String, enum: ['pending', 'accepted', 'in_transit', 'delivered', 'cancelled'], default: 'pending' },
 		otp: { type: otpSchema, default: () => ({}) },
+		otpPickupHash: { type: String, default: null },
+		otpDropHash: { type: String, default: null },
 	},
 	{ timestamps: { createdAt: true, updatedAt: true } }
 );

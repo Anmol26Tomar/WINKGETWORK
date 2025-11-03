@@ -6,9 +6,13 @@ const tripSchema = new Schema({
     type: String,
     required: true,
   },
+  agentId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Agent',
+  },
   captainId: {
     type: Schema.Types.ObjectId,
-    ref: 'Captain',
+    ref: 'Agent', // Changed ref from 'Captain' to 'Agent' for backward compatibility
   },
   serviceType: {
     type: String,

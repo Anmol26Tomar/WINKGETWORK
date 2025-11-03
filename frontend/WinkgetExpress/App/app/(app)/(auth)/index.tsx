@@ -114,7 +114,7 @@ export default function CaptainAuthScreen() {
     try {
       const response = await captainAuthApi.loginPassword({ phone, password });
       const token = response.data.token;
-      const captainData = response.data.captain;
+      const captainData = response.data.agent;
 
       await SecureStore.setItemAsync("captainToken", token);
       setCaptainApiToken(token);
@@ -161,7 +161,7 @@ export default function CaptainAuthScreen() {
       });
 
       const token = response.data.token;
-      const captainData = response.data.captain;
+      const captainData = response.data.agent; // Backend returns 'agent', not 'captain'
 
       await SecureStore.setItemAsync("captainToken", token);
       setCaptainApiToken(token);

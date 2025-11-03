@@ -15,7 +15,7 @@ export const captainApi = axios.create({
   timeout: 10000,
 });
 export const captainApi1 = axios.create({
-  baseURL: `http://10.85.123.137:3001/api/v1/captain`,
+  baseURL: `http://10.200.75.137:3001/api/v1/captain`,
   timeout: 10000,
 });
 
@@ -147,9 +147,8 @@ export const captainTripApi = {
   getWalletTransactions: () => captainApi.get('/wallet/transactions'),
   getCaptainStats: () => captainApi.get('/stats'),
 
-  // *** THIS IS THE FIX ***
-  // Changed from 'captainApi1' to 'captainApi'
-  getAllTrips: () => captainApi1.get('/trips/all-trips')
+  // Get all trips for earnings page
+  getAllTrips: () => captainApi.get('/trips/all-trips')
 };
 
 // Helper to upload a document

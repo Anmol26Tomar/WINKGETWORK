@@ -31,9 +31,22 @@
         "buildType": "apk"
       },
       "env": {
-        "APP_ENV": "production"
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_API_BASE": "https://captain-winkget-express.vercel.app",
+        "EXPO_PUBLIC_SOCKET_URL": "https://captain-winkget-express.vercel.app"
       },
       "autoIncrement": true
+    },
+    "preview-apk": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_API_BASE": "https://captain-winkget-express.vercel.app",
+        "EXPO_PUBLIC_SOCKET_URL": "https://captain-winkget-express.vercel.app"
+      }
     }
   },
   "submit": {

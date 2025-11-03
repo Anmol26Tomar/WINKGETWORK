@@ -1,6 +1,6 @@
 require('dotenv').config();
 const cloudinary = require('cloudinary').v2;
-const { Captain } = require('../models/Captain.model');
+const { Agent } = require('../models/Agent');
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -20,7 +20,7 @@ exports.uploadDocument = async (req, res) => {
   try {
     const { type } = req.params; // one of TYPE_TO_FIELD keys
     let { file } = req.body; // data URI or base64 string
-    const captainId = req.captain._id;
+    const agentId = req.agent._id;
 
     const { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } = process.env;
     const presetFromBody = (req.body && req.body.uploadPreset) || '';
@@ -44,7 +44,7 @@ exports.uploadDocument = async (req, res) => {
     }
 
     let upload;
-    const folder = `winkget/captain_docs/${captainId}`;
+    const folder = `winkget/agent_docs/${agentId}`;
     if (CLOUDINARY_UPLOAD_PRESET) {
       // Unsigned upload path - avoid options that force signing
       const options = { upload_preset: CLOUDINARY_UPLOAD_PRESET, resource_type: 'image' };
@@ -62,7 +62,7 @@ exports.uploadDocument = async (req, res) => {
     }
 
     const field = TYPE_TO_FIELD[type];
-    await Captain.findByIdAndUpdate(captainId, { [field]: upload.secure_url });
+    await Agent.findByIdAndUpdate(agentId, { [field]: upload.secure_url });
 
     res.json({ success: true, url: upload.secure_url, field });
   } catch (e) {

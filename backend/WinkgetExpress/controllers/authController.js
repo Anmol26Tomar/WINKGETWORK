@@ -226,7 +226,8 @@ async function CaptainSignup(req, res) {
 
     return res.status(201).json({
       success: true,
-      message: "Registration successful! Your account is pending admin approval. You will be notified once approved.",
+      message:
+        "Registration successful! Your account is pending admin approval. You will be notified once approved.",
       agent: agentData,
       approved: false,
       requiresApproval: true,
@@ -266,7 +267,8 @@ async function CaptainLogin(req, res) {
     if (!agent.approved) {
       return res.status(403).json({
         success: false,
-        message: "Your account is pending approval. Please wait for admin approval.",
+        message:
+          "Your account is pending approval. Please wait for admin approval.",
         approved: false,
         agent: {
           id: agent._id,
@@ -278,7 +280,7 @@ async function CaptainLogin(req, res) {
           serviceType: agent.serviceType,
           vehicleSubType: agent.vehicleSubType,
           approved: agent.approved,
-        }
+        },
       });
     }
 
@@ -295,11 +297,11 @@ async function CaptainLogin(req, res) {
     const agentData = agent.toObject();
     delete agentData.password;
 
-    return res.status(200).json({ 
-      success: true, 
-      token, 
+    return res.status(200).json({
+      success: true,
+      token,
       agent: agentData,
-      approved: true 
+      approved: true,
     });
   } catch (error) {
     console.error("Login error:", error);
@@ -431,7 +433,3 @@ module.exports = {
   updateProfile,
   CaptainProfile,
 };
-
-
-
-

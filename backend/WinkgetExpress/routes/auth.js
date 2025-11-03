@@ -10,5 +10,3 @@ router.get('/profile', authMiddleware, profile);
 router.put('/profile', authMiddleware, updateProfile);
 
 module.exports = router;
-
-

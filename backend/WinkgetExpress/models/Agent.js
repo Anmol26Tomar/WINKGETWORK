@@ -1,38 +1,51 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
+const { Schema } = mongoose;
 
-const agentSchema = new mongoose.Schema({
-  fullName: {
+const agentSchema = new Schema({
+  name: {
     type: String,
     required: true,
     trim: true,
   },
   email: {
     type: String,
-    required: true,
-    trim: true,
-    unique: true,
+    default: null,
+    sparse: true, // Allow null values but ensure uniqueness when present
+  },
+  licenseNumber: {
+    type: String,
+    default: null,
+    sparse: true, // Allow null values but ensure uniqueness when present
+  },
+  vehicleNumber: {
+    type: String,
+    default: null,
+    sparse: true, // Allow null values but ensure uniqueness when present
   },
   phone: {
     type: String,
+    unique: true,
     required: true,
     validate: {
       validator: function (v) {
-        return /^\d{10}$/.test(v); // exactly 10 digits
+        return /^\d{10}$/.test(v);
       },
-      message: (props) =>
-        `${props.value} is not a valid 10-digit phone number!`,
+      message: 'Phone must be exactly 10 digits',
     },
   },
   city: {
     type: String,
-    required: true,
     trim: true,
+    default: null,
+  },
+  passwordHash: {
+    type: String,
+    required: true,
   },
   vehicleType: {
     type: String,
-    enum: ["bike", "cab", "truck"],
+    enum: ['bike', 'truck', 'cab'],
     required: true,
-    trim: true,
   },
   vehicleSubType: {
     type: String,
@@ -48,29 +61,75 @@ const agentSchema = new mongoose.Schema({
     ],
     trim: true,
   },
-  serviceType: {
+  servicesOffered: [{
     type: String,
-    enum: ["intra-city", "inter-city"],
-    required: true,
-    validate: {
-      validator: function (v) {
-        // Ensure bikes can only do intra-city services
-        if (this.vehicleType === "bike" && v !== "intra-city") {
-          return false;
-        }
-        return true;
-      },
-      message: "Bike can only select intra-city service",
-    },
-  },
-  password: {
-    type: String,
-    required: true,
-  },
-  approved: {
+    enum: [
+      'local_parcel',
+      'intra_truck', 
+      'all_india_parcel',
+      'cab_booking',
+      'bike_ride',
+      'packers_movers'
+    ],
+  }],
+  isActive: {
     type: Boolean,
     default: false,
   },
+  location: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      default: 'Point',
+    },
+    coordinates: {
+      type: [Number],
+      default: [0, 0],
+    },
+  },
+  socketId: {
+    type: String,
+  },
+  rating: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 5,
+  },
+  totalTrips: {
+    type: Number,
+    default: 0,
+  },
+  todayEarnings: {
+    type: Number,
+    default: 0,
+  },
+  todayTrips: {
+    type: Number,
+    default: 0,
+  },
+  activeTrips: {
+    type: Number,
+    default: 0,
+  },
+  isApproved: {
+    type: Boolean,
+    default: false,
+  },
+  // Document URLs
+  drivingLicenseUrl: { type: String, default: null },
+  aadharCardUrl: { type: String, default: null },
+  vehicleRegistrationUrl: { type: String, default: null },
+  insuranceUrl: { type: String, default: null },
+  driverVehiclePhotoUrl: { type: String, default: null },
+}, {
+  timestamps: true,
 });
 
-module.exports = mongoose.model("Agent", agentSchema);
+// Create 2dsphere index for geospatial queries
+agentSchema.index({ location: '2dsphere' });
+
+const Agent = mongoose.model('Agent', agentSchema);
+
+module.exports = { Agent };
+
