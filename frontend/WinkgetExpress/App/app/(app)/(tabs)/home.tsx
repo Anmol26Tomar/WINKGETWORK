@@ -19,7 +19,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-// import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import * as Location from "expo-location";
 import * as SecureStore from "expo-secure-store";
 import { Feather } from "@expo/vector-icons";
@@ -47,8 +47,8 @@ const errorColor = "#EF4444";
 const warningColor = "#FBBF24";
 
 /* -------------------------
-     Notification Handler
-     ------------------------ */
+   Notification Handler
+   ------------------------ */
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -58,8 +58,8 @@ Notifications.setNotificationHandler({
 });
 
 /* -------------------------
-     Coordinate Validation
-     ------------------------ */
+   Coordinate Validation
+   ------------------------ */
 const validateCoordinate = (lat: any, lng: any) => {
   const defaultCoords = { latitude: 19.0760, longitude: 72.8777 }; // Mumbai
   try {
@@ -84,8 +84,8 @@ const validateCoordinate = (lat: any, lng: any) => {
 };
 
 /* -------------------------
-     Page Component
-     ------------------------ */
+   Page Component
+   ------------------------ */
 export default function CaptainHome() {
   const router = useRouter();
   const { captain, token } = useAuth();
@@ -118,8 +118,8 @@ export default function CaptainHome() {
   const responseListener = useRef<Notifications.EventSubscription>();
 
   /* -------------------------
-       Fetch captain stats
-       ------------------------ */
+     Fetch captain stats
+     ------------------------ */
   const fetchCaptainStats = useCallback(async () => {
     try {
       console.log("[DEBUG] fetchCaptainStats: starting");
@@ -141,8 +141,8 @@ export default function CaptainHome() {
   }, []);
 
   /* -------------------------
-       Request location permission & get location
-       ------------------------ */
+     Request location permission & get location
+     ------------------------ */
   const requestLocationPermission = useCallback(async () => {
     try {
       console.log("[DEBUG] requestLocationPermission: requesting");
@@ -170,8 +170,8 @@ export default function CaptainHome() {
   }, []);
 
   /* -------------------------
-       Fetch nearby trips
-       ------------------------ */
+     Fetch nearby trips
+     ------------------------ */
   const fetchNearbyTrips = useCallback(async () => {
     if (!currentLocation) {
       console.log("[DEBUG] fetchNearbyTrips: skipped - no currentLocation yet");
@@ -256,8 +256,8 @@ export default function CaptainHome() {
   }, [currentLocation, selectedTrip, currentTrip]);
 
   /* -------------------------
-       Pull to refresh
-       ------------------------ */
+     Pull to refresh
+     ------------------------ */
   const onRefresh = useCallback(async () => {
     if (isRefreshingRef.current) return;
     isRefreshingRef.current = true;
@@ -275,8 +275,8 @@ export default function CaptainHome() {
   }, [fetchNearbyTrips, fetchCaptainStats]);
 
   /* -------------------------
-       Open route in Google Maps
-       ------------------------ */
+     Open route in Google Maps
+     ------------------------ */
   const openInGoogleMaps = useCallback(
     (trip: any, leg: "pickup" | "destination" = "pickup") => {
       if (!trip || !trip.pickup || !trip.delivery) {
@@ -315,8 +315,8 @@ export default function CaptainHome() {
   );
 
   /* -------------------------
-       Trip handlers
-       ------------------------ */
+     Trip handlers
+     ------------------------ */
   const handleTripPress = useCallback((trip: any) => {
     setCurrentTrip({ ...trip, status: trip.status || "pending" });
     setTripModalVisible(true);
@@ -380,7 +380,7 @@ export default function CaptainHome() {
     [currentTrip]
   );
 
-  // --- handleStartTrip (Pickup OTP) - Trip completes when OTP is verified ---
+  // --- Pickup OTP (Unchanged) ---
   const handleStartTrip = useCallback(
     async (tripId: string) => {
       if (!currentTrip) return;
@@ -389,38 +389,73 @@ export default function CaptainHome() {
         Alert.alert("Invalid OTP", "Please enter a valid 4-digit OTP.");
         return;
       }
-      console.log(`[DEBUG] Verifying OTP: ${otp} for trip ${tripId}`);
+      console.log(`[DEBUG] Verifying PICKUP OTP: ${otp} for trip ${tripId}`);
 
       try {
         const tripType = currentTrip.type || "transport";
-        // Call verifyOtp endpoint - trip completes when pickup OTP is verified
+        // Call the new verifyOtp endpoint for 'pickup'
         await captainTripApi.verifyOtp(tripId, tripType, {
           otp: otp,
           phase: "pickup",
         });
 
-        console.log("[DEBUG] handleStartTrip: OTP Verified, Trip Completed");
+        console.log("[DEBUG] handleStartTrip: PICKUP OTP Verified");
 
-        Alert.alert("Trip Completed!", "Great job! Your earnings have been updated.");
-
-        await fetchCaptainStats(); // Refresh stats
-
-        // Clean up UI - trip is complete
-        setTripModalVisible(false);
-        setCurrentTrip(null);
+        // On success, update local state
+        setCurrentTrip((prev) => ({ ...prev, status: "in_transit" }));
         setOtp(""); // Clear OTP input
+        Alert.alert(
+          "Trip Started",
+          "You can now navigate to the destination."
+        );
       } catch (error: any) {
-        console.error("[ERROR] handleStartTrip (Verify OTP):", error);
+        console.error("[ERROR] handleStartTrip (Verify Pickup OTP):", error);
         const errorMsg =
           error?.response?.data?.message ||
-          "Could not complete trip. Please check OTP and try again.";
+          "Could not start trip. Please check OTP and try again.";
         Alert.alert("Error", errorMsg);
         throw error; // Keep modal open
       }
     },
-    [currentTrip, otp, fetchCaptainStats]
+    [currentTrip, otp]
   );
 
+  const handleNavigateToDestination = useCallback(
+    (trip: any) => {
+      openInGoogleMaps(trip, "destination");
+    },
+    [openInGoogleMaps]
+  );
+
+  // --- *** MODIFIED: handleCompleteTrip (Replaces handleVerifyDropOtp) *** ---
+  // This function now completes the trip WITHOUT an OTP.
+  const handleCompleteTrip = useCallback(
+    async (tripId: string) => {
+      if (!currentTrip) return;
+
+      console.log(`[DEBUG] Completing trip via reachedDestination for ${tripId}`);
+
+      try {
+        const tripType = currentTrip.type || "transport";
+        await captainTripApi.reachedDestination(tripId, tripType);
+
+        Alert.alert("Trip Completed!", "Great job! Your earnings have been updated.");
+
+        await fetchCaptainStats();
+        setTripModalVisible(false);
+        setCurrentTrip(null);
+        setOtp("");
+      } catch (error: any) {
+        console.error("[ERROR] handleCompleteTrip:", error);
+        const errorMsg =
+          error?.response?.data?.message ||
+          "Could not complete trip. Please try again.";
+        Alert.alert("Error", errorMsg);
+        throw error;
+      }
+    },
+    [currentTrip, fetchCaptainStats]
+  );
 
   const handleCloseTripModal = useCallback(() => {
     setTripModalVisible(false);
@@ -431,8 +466,8 @@ export default function CaptainHome() {
   }, [currentTrip]);
 
   /* -------------------------
-       Online toggle
-       ------------------------ */
+     Online toggle
+     ------------------------ */
   const handleOnlineToggle = useCallback(
     async (value: boolean) => {
       console.log("[DEBUG] handleOnlineToggle:", value);
@@ -455,8 +490,8 @@ export default function CaptainHome() {
   );
 
   /* -------------------------
-       Initialization
-       ------------------------ */
+     Initialization
+     ------------------------ */
   useEffect(() => {
     let mounted = true;
     const initializeCaptain = async () => {
@@ -526,8 +561,8 @@ export default function CaptainHome() {
   }, [captain, token, router, requestLocationPermission, fetchCaptainStats]);
 
   /* -------------------------
-       Effect: fetch trips when online/location changes
-       ------------------------ */
+     Effect: fetch trips when online/location changes
+     ------------------------ */
   useEffect(() => {
     if (isOnline && currentLocation) {
       console.log("[DEBUG] online & location present - fetching trips");
@@ -539,8 +574,8 @@ export default function CaptainHome() {
   }, [isOnline, currentLocation, fetchNearbyTrips]);
 
   /* -------------------------
-       Socket setup & listeners
-       ------------------------ */
+     Socket setup & listeners
+     ------------------------ */
   useEffect(() => {
     let mounted = true;
     let socketInstance: any = null;
@@ -619,6 +654,7 @@ export default function CaptainHome() {
         }
       } catch (e) {
         console.warn("[WARN] Socket init failed:", e);
+
       }
     };
     setup();
@@ -639,8 +675,8 @@ export default function CaptainHome() {
   }, [token, currentLocation, fetchCaptainStats, currentTrip]);
 
   /* -------------------------
-       Polling fallback while online
-       ------------------------ */
+     Polling fallback while online
+     ------------------------ */
   useEffect(() => {
     if (!isOnline) return;
     const id = setInterval(() => {
@@ -651,8 +687,8 @@ export default function CaptainHome() {
   }, [isOnline, fetchNearbyTrips]);
 
   /* -------------------------
-       Emit location when it changes (if socket exists)
-       ------------------------ */
+     Emit location when it changes (if socket exists)
+     ------------------------ */
   useEffect(() => {
     const s = getSocket();
     if (s && currentLocation && isOnline) {
@@ -662,8 +698,8 @@ export default function CaptainHome() {
   }, [currentLocation, isOnline]);
 
   /* -------------------------
-       AppState listener
-       ------------------------ */
+     AppState listener
+     ------------------------ */
   useEffect(() => {
     const subscription = AppState.addEventListener(
       "change",
@@ -687,8 +723,8 @@ export default function CaptainHome() {
   }, [isOnline, onRefresh]);
 
   /* -------------------------
-       Push Notification setup
-       ------------------------ */
+     Push Notification setup
+     ------------------------ */
   useEffect(() => {
     async function registerForPushNotificationsAsync() {
       let token;
@@ -758,8 +794,8 @@ export default function CaptainHome() {
   }, [onRefresh]);
 
   /* -------------------------
-       Map region (bulletproof)
-       ------------------------ */
+     Map region (bulletproof)
+     ------------------------ */
   const mapRegion = useMemo(() => {
     const defaultCoords = { latitude: 19.076, longitude: 72.8777 };
     if (!currentLocation)
@@ -777,8 +813,8 @@ export default function CaptainHome() {
   }, [currentLocation]);
 
   /* -------------------------
-       Marker component (memoized)
-       ------------------------ */
+     Marker component (memoized)
+     ------------------------ */
   const TripMarker = React.memo(
     ({ trip, onPress }: { trip: any; onPress: () => void }) => {
       const pickupValidation = validateCoordinate(
@@ -804,8 +840,8 @@ export default function CaptainHome() {
   );
 
   /* -------------------------
-       Loading screen
-       ------------------------ */
+     Loading screen
+     ------------------------ */
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -818,8 +854,8 @@ export default function CaptainHome() {
   const mostRecentTrip = availableTrips?.[0] ?? null;
 
   /* -------------------------
-       Render
-       ------------------------ */
+     Render
+     ------------------------ */
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -989,8 +1025,8 @@ export default function CaptainHome() {
                       ? `${mostRecentTrip.distanceKm} km`
                       : mostRecentTrip.estimatedDistance
                       ? `${
-                          mostRecentTrip.estimatedDistance.toFixed?.(1) ?? "—"
-                        } km`
+                        mostRecentTrip.estimatedDistance.toFixed?.(1) ?? "—"
+                      } km`
                       : "— km"}
                   </Text>
                 </View>
@@ -1032,6 +1068,7 @@ export default function CaptainHome() {
             /* Case 3: No active trip AND no new trips */
             <View style={{ paddingVertical: 20 }}>
               <Text style={styles.noTripTitle}>No trip available</Text>
+
               <Text style={styles.noTripSub}>
                 {isOnline ? "Looking for trips..." : "Go online to see trips"}
               </Text>
@@ -1077,10 +1114,10 @@ export default function CaptainHome() {
           </View>
         </View>
 
-        {/* --- Map (Replaced with Image) --- */}
+        {/* --- Map --- */}
         <View style={styles.mapContainer}>
-          {/* MapView commented out - replaced with Image */}
-          {/* <MapView
+          {/* Map disabled per request
+          <MapView
             provider={PROVIDER_GOOGLE}
             style={styles.map}
             region={mapRegion}
@@ -1091,6 +1128,7 @@ export default function CaptainHome() {
               <Marker
                 coordinate={{
                   latitude: currentLocation.lat,
+
                   longitude: currentLocation.lng,
                 }}
                 title="Your Location"
@@ -1101,7 +1139,7 @@ export default function CaptainHome() {
               <TripMarker
                 key={currentTrip.id}
                 trip={currentTrip}
-                onPress={() => openInGoogleMaps(currentTrip, "destination")}
+                onPress={() => handleNavigateToDestination(currentTrip)}
               />
             )}
             {availableTrips.map((t) => (
@@ -1111,16 +1149,7 @@ export default function CaptainHome() {
                 onPress={() => handleTripPress(t)}
               />
             ))}
-          </MapView> */}
-
-          {/* Image placeholder for map */}
-          <Image
-            source={{
-              uri: "https://via.placeholder.com/400x250/E5E7EB/9CA3AF?text=Map+View",
-            }}
-            style={styles.map}
-            resizeMode="cover"
-          />
+          </MapView>
 
           {availableTrips.length > 0 && (
             <ScrollView
@@ -1148,6 +1177,12 @@ export default function CaptainHome() {
               ))}
             </ScrollView>
           )}
+          */}
+          <Image
+            source={{ uri: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTszXBW-awGYRab9sBzw1FnVNIn7TZfAIA55h8S7s9NqDJSSv3UaCS2ggj99-cVIOr56rs&usqp=CAU' }}
+            style={styles.map}
+            resizeMode="cover"
+          />
         </View>
 
         {/* --- Trips list (REMOVED) --- */}
@@ -1215,6 +1250,7 @@ export default function CaptainHome() {
                       onPress={async () => {
                         try {
                           await handleReachedPickup(currentTrip.id);
+
                         } catch (e) {
                           console.log("Reached pickup failed");
                         }
@@ -1246,15 +1282,59 @@ export default function CaptainHome() {
                             await handleStartTrip(currentTrip.id);
                           } catch (e) {
                             console.log("Start trip failed");
+
                           }
                         }}
                       >
                         <Text style={styles.modalBtnTextPrimary}>
-                        Verify OTP & Complete Trip
+                          Start Trip
                         </Text>
                       </TouchableOpacity>
                     </>
                   )}
+
+                  {/* ===== STATE 4: IN TRANSIT (MODIFIED) ===== */}
+                  {currentTrip.status === "in_transit" && (
+                    <>
+                      <TouchableOpacity
+                        style={styles.modalBtnPrimary}
+                        onPress={() => {
+                          handleNavigateToDestination(currentTrip);
+                        }}
+                      >
+                        <Text style={styles.modalBtnTextPrimary}>
+                          Navigate to Destination
+                        </Text>
+                      </TouchableOpacity>
+
+                      {/* --- MODIFIED: This button now completes the trip directly --- */}
+                      <TouchableOpacity
+                        style={[
+                          styles.modalBtnPrimary,
+                          { backgroundColor: successColor, marginTop: 12 },
+                        ]}
+                        onPress={async () => {
+                          try {
+                            // FIX: Call handleCompleteTrip directly
+                            await handleCompleteTrip(currentTrip.id);
+                            // On success, the function will close the modal
+
+                          } catch (e) {
+                            console.log(
+                              "Complete trip failed, modal remains open"
+                            );
+                          }
+                        }}
+                      >
+                        <Text style={styles.modalBtnTextPrimary}>
+                          Complete Trip (No OTP)
+                        </Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+
+                  {/* ===== STATE 5: REACHED DESTINATION (REMOVED) ===== */}
+                  {/* This UI state is no longer needed as per the request */}
 
                   {/* --- Close Button (always shown) --- */}
                   <TouchableOpacity
@@ -1272,7 +1352,7 @@ export default function CaptainHome() {
         </View>
       </Modal>
 
-      {/* --- New trip toast (This is your in-app "box" notification) --- */}
+
       {newTripToast && (
         <Pressable
           style={styles.toast}
@@ -1292,8 +1372,8 @@ export default function CaptainHome() {
 }
 
 /* -------------------------
-     Styles (FINAL)
-     ------------------------ */
+   Styles (FINAL)
+   ------------------------ */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -1635,6 +1715,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
+
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
@@ -1649,6 +1730,7 @@ const styles = StyleSheet.create({
   },
   tripChipFare: {
     fontSize: 15,
+
     fontWeight: "bold",
     color: "#1F2937",
     marginTop: 2,
@@ -1675,6 +1757,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#1F2937",
     marginBottom: 16,
+
   },
   modalLabel: {
     fontSize: 13,
@@ -1703,6 +1786,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     marginTop: 12,
+
   },
   modalBtnTextPrimary: {
     color: "#FFFFFF",
@@ -1715,6 +1799,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     marginTop: 12,
+
     borderWidth: 1,
     borderColor: "#D1D5DB",
   },

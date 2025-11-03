@@ -1,11 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 
 // Auth context interface
 interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
   captain: CaptainData | null;
+  token: string | null;
   login: (data: CaptainData) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -49,6 +51,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setCaptain(data);
       await AsyncStorage.setItem('captain', JSON.stringify(data));
+      // Also persist token in SecureStore for API fallback/interceptors
+      if (data?.token) {
+        await SecureStore.setItemAsync('captainToken', data.token);
+      }
     } catch (err) {
       console.error('Login error:', err);
     }
@@ -59,6 +65,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setCaptain(null);
       await AsyncStorage.removeItem('captain');
+      await SecureStore.deleteItemAsync('captainToken');
     } catch (err) {
       console.error('Logout error:', err);
     }
@@ -70,6 +77,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isAuthenticated: !!captain,
         loading,
         captain,
+        token: captain?.token ?? null,
         login,
         logout,
       }}

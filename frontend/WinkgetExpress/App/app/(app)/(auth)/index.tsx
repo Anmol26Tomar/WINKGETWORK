@@ -91,6 +91,9 @@ export default function CaptainAuthScreen() {
   // Signup fields
   const [name, setName] = useState("");
   const [city, setCity] = useState("");
+  // ADDED: State for license and vehicle number
+  const [licenseNumber, setLicenseNumber] = useState("");
+  const [vehicleNumber, setVehicleNumber] = useState("");
   const [vehicleType, setVehicleType] = useState<VehicleType>("bike");
   const [vehicleSubType, setVehicleSubType] = useState<string>("");
   const [servicesOffered, setServicesOffered] = useState<ServiceType[]>([]);
@@ -140,7 +143,17 @@ export default function CaptainAuthScreen() {
   };
 
   const handleSignup = async () => {
-    if (!name || !phone || !password || !city || !vehicleSubType || !servicesOffered.length) {
+    // MODIFIED: Added validation for new fields
+    if (
+      !name ||
+      !phone ||
+      !password ||
+      !city ||
+      !licenseNumber ||
+      !vehicleNumber ||
+      !vehicleSubType ||
+      !servicesOffered.length
+    ) {
       setError("Please fill all required fields");
       return;
     }
@@ -150,11 +163,14 @@ export default function CaptainAuthScreen() {
     setSuccess("");
 
     try {
+      // MODIFIED: Added new fields to the signup payload
       const response = await captainAuthApi.signup({
         fullName: name,
         phone,
         password,
         city,
+        licenseNumber,
+        vehicleNumber,
         vehicleType,
         vehicleSubType,
         servicesOffered,
@@ -213,6 +229,9 @@ export default function CaptainAuthScreen() {
     setPassword("");
     setName("");
     setCity("");
+    // ADDED: Reset new fields on form toggle
+    setLicenseNumber("");
+    setVehicleNumber("");
     setVehicleType("bike");
     setVehicleSubType("");
     setServicesOffered([]);
@@ -325,6 +344,24 @@ export default function CaptainAuthScreen() {
                   onChangeText={setCity}
                 />
 
+                {/* ADDED: New input fields for license and vehicle number */}
+                <TextInput
+                  style={styles.input}
+                  placeholder="License Number"
+                  placeholderTextColor={Colors.mutedText}
+                  value={licenseNumber}
+                  onChangeText={setLicenseNumber}
+                  autoCapitalize="characters"
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Vehicle Number"
+                  placeholderTextColor={Colors.mutedText}
+                  value={vehicleNumber}
+                  onChangeText={setVehicleNumber}
+                  autoCapitalize="characters"
+                />
+
                 <Text style={styles.label}>Vehicle Type</Text>
                 <View style={styles.optionRow}>
                   {(["bike", "truck", "cab"] as VehicleType[]).map((type) => (
@@ -428,7 +465,7 @@ export default function CaptainAuthScreen() {
   );
 }
 
-// --- Styles (same as before) ---
+// --- Styles (no changes) ---
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Colors.background },
   container: { flex: 1 },
