@@ -15,7 +15,7 @@ export const captainApi = axios.create({
   timeout: 10000,
 });
 export const captainApi1 = axios.create({
-  baseURL: `http://10.200.75.137:3001/api/v1/captain`,
+  baseURL: `https://winkgetexpresscaptain.vercel.app/api/v1/captain`,
   timeout: 10000,
 });
 
