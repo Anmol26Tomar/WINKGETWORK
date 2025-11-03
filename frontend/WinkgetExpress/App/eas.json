@@ -32,8 +32,8 @@
       },
       "env": {
         "APP_ENV": "production",
-        "EXPO_PUBLIC_API_BASE": "https://captain-winkget-express.vercel.app",
-        "EXPO_PUBLIC_SOCKET_URL": "https://captain-winkget-express.vercel.app"
+        "EXPO_PUBLIC_API_BASE": "https://winkgetexpresscaptain.vercel.app",
+        "EXPO_PUBLIC_SOCKET_URL": "https://winkgetexpresscaptain.vercel.app"
       },
       "autoIncrement": true
     },
@@ -44,8 +44,8 @@
       },
       "env": {
         "APP_ENV": "production",
-        "EXPO_PUBLIC_API_BASE": "https://captain-winkget-express.vercel.app",
-        "EXPO_PUBLIC_SOCKET_URL": "https://captain-winkget-express.vercel.app"
+        "EXPO_PUBLIC_API_BASE": "https://winkgetexpresscaptain.vercel.app",
+        "EXPO_PUBLIC_SOCKET_URL": "https://winkgetexpresscaptain.vercel.app"
       }
     }
   },

@@ -7,6 +7,7 @@ module.exports = function (api) {
   return {
     presets: ['babel-preset-expo'],
     plugins: [
+      'expo-router/babel',
       [
         'module:react-native-dotenv',
         {
@@ -18,6 +19,24 @@ module.exports = function (api) {
           allowUndefined: true,
         },
       ],
+      [
+        'module-resolver',
+        {
+          root: ['./'],
+          alias: {
+            '@': './',
+          },
+          extensions: [
+            '.ios.js',
+            '.android.js',
+            '.js',
+            '.ts',
+            '.tsx',
+            '.json',
+          ],
+        },
+      ],
+      'react-native-reanimated/plugin', // MUST be last
     ],
   };
 };
